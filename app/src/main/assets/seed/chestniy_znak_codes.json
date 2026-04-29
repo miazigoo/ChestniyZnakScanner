@@ -1,0 +1,20 @@
+[
+  {
+    "rawCode": "010460123456789021SERIAL0000000000001\u001d91ABCD\u001d92WXYZ9876",
+    "status1c": "Новый",
+    "appStatus": "active",
+    "orderNumber": "DNP-1001"
+  },
+  {
+    "rawCode": "010460123456789121SERIAL0000000000002\u001d91EFGH\u001d92QWER4321",
+    "status1c": "Напечатан",
+    "appStatus": "active",
+    "orderNumber": "DNP-1002"
+  },
+  {
+    "rawCode": "010460123456789221SERIAL0000000000003",
+    "status1c": "В обороте",
+    "appStatus": "active",
+    "orderNumber": "DNP-1003"
+  }
+]

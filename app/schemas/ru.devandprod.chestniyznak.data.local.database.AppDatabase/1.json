@@ -1,0 +1,257 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "404f95770288823c13d9f31d7696eda0",
+    "entities": [
+      {
+        "tableName": "marking_codes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `gtin` TEXT NOT NULL, `serial` TEXT NOT NULL, `identityKey` TEXT NOT NULL, `aiPartsJson` TEXT NOT NULL, `rawCode` TEXT NOT NULL, `visibleCode` TEXT NOT NULL, `rawCodeSha256` TEXT NOT NULL, `status1c` TEXT NOT NULL, `appStatus` TEXT NOT NULL, `orderNumber` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gtin",
+            "columnName": "gtin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serial",
+            "columnName": "serial",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "identityKey",
+            "columnName": "identityKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aiPartsJson",
+            "columnName": "aiPartsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawCode",
+            "columnName": "rawCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "visibleCode",
+            "columnName": "visibleCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawCodeSha256",
+            "columnName": "rawCodeSha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status1c",
+            "columnName": "status1c",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "appStatus",
+            "columnName": "appStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orderNumber",
+            "columnName": "orderNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_marking_codes_rawCodeSha256",
+            "unique": true,
+            "columnNames": [
+              "rawCodeSha256"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_marking_codes_rawCodeSha256` ON `${TABLE_NAME}` (`rawCodeSha256`)"
+          },
+          {
+            "name": "index_marking_codes_gtin_serial",
+            "unique": false,
+            "columnNames": [
+              "gtin",
+              "serial"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_marking_codes_gtin_serial` ON `${TABLE_NAME}` (`gtin`, `serial`)"
+          },
+          {
+            "name": "index_marking_codes_identityKey",
+            "unique": false,
+            "columnNames": [
+              "identityKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_marking_codes_identityKey` ON `${TABLE_NAME}` (`identityKey`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scan_logs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `codeId` INTEGER, `status` TEXT NOT NULL, `message` TEXT NOT NULL, `rawInput` TEXT NOT NULL, `normalizedCode` TEXT NOT NULL, `visibleCode` TEXT NOT NULL, `gtin` TEXT NOT NULL, `serial` TEXT NOT NULL, `aiPartsJson` TEXT NOT NULL, `warningsJson` TEXT NOT NULL, `scannerId` TEXT NOT NULL, `scannerGsNative` INTEGER NOT NULL, `gsRestored` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "codeId",
+            "columnName": "codeId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "message",
+            "columnName": "message",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawInput",
+            "columnName": "rawInput",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedCode",
+            "columnName": "normalizedCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "visibleCode",
+            "columnName": "visibleCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gtin",
+            "columnName": "gtin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serial",
+            "columnName": "serial",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aiPartsJson",
+            "columnName": "aiPartsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "warningsJson",
+            "columnName": "warningsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scannerId",
+            "columnName": "scannerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scannerGsNative",
+            "columnName": "scannerGsNative",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gsRestored",
+            "columnName": "gsRestored",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_scan_logs_status_createdAt",
+            "unique": false,
+            "columnNames": [
+              "status",
+              "createdAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scan_logs_status_createdAt` ON `${TABLE_NAME}` (`status`, `createdAt`)"
+          },
+          {
+            "name": "index_scan_logs_gtin_serial",
+            "unique": false,
+            "columnNames": [
+              "gtin",
+              "serial"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scan_logs_gtin_serial` ON `${TABLE_NAME}` (`gtin`, `serial`)"
+          },
+          {
+            "name": "index_scan_logs_codeId",
+            "unique": false,
+            "columnNames": [
+              "codeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scan_logs_codeId` ON `${TABLE_NAME}` (`codeId`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '404f95770288823c13d9f31d7696eda0')"
+    ]
+  }
+}
