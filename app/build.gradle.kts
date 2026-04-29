@@ -20,15 +20,25 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+
+        buildConfigField("String", "API_BASE_URL", "\"https://srv-dnp.argos.loc/api/v2/\"")
+        buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
+        buildConfigField("String", "AUTH_TOKEN", "\"testtokentablet\"")
     }
 
     buildTypes {
         debug {
             isMinifyEnabled = false
+            buildConfigField("String", "API_BASE_URL", "\"https://srv-dnp.argos.loc/api/v2/\"")
+            buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
+            buildConfigField("String", "AUTH_TOKEN", "\"testtokentablet\"")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            buildConfigField("String", "API_BASE_URL", "\"https://srv-dnp.argos.loc/api/v2/\"")
+            buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "false")
+            buildConfigField("String", "AUTH_TOKEN", "\"testtokentablet\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -81,6 +91,10 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.kotlinx.serialization)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
 
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.core)

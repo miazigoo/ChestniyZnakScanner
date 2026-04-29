@@ -150,6 +150,15 @@ class LocalChestniyZnakRepository @Inject constructor(
         )
     }
 
+    override suspend fun refreshStats() = Unit
+
+    suspend fun snapshotStats(): CatalogStats = withContext(ioDispatcher) {
+        CatalogStats(
+            totalCodes = markingCodeDao.count(),
+            totalScans = scanLogDao.count(),
+        )
+    }
+
     private fun MarkingCodeEntity.toDomain(json: Json): MarkingCode = MarkingCode(
         id = id,
         gtin = gtin,

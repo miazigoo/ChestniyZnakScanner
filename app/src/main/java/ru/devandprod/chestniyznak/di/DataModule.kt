@@ -1,6 +1,7 @@
 package ru.devandprod.chestniyznak.di
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.room.Room
 import dagger.Binds
 import dagger.Module
@@ -10,11 +11,23 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import ru.devandprod.chestniyznak.BuildConfig
 import ru.devandprod.chestniyznak.data.local.dao.MarkingCodeDao
 import ru.devandprod.chestniyznak.data.local.dao.ScanLogDao
 import ru.devandprod.chestniyznak.data.local.database.AppDatabase
-import ru.devandprod.chestniyznak.data.repository.LocalChestniyZnakRepository
+import ru.devandprod.chestniyznak.data.remote.api.AccountApi
+import ru.devandprod.chestniyznak.data.remote.api.ChestniyZnakApi
+import ru.devandprod.chestniyznak.data.remote.auth.CsrfInterceptor
+import ru.devandprod.chestniyznak.data.remote.auth.PersistentCookieJar
+import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
+import ru.devandprod.chestniyznak.data.repository.HybridChestniyZnakRepository
 import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
+import ru.devandprod.chestniyznak.domain.repository.AuthRepository
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -25,6 +38,12 @@ object StorageModule {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
+
+    @Provides
+    @Singleton
+    fun provideSharedPreferences(
+        @ApplicationContext context: Context,
+    ): SharedPreferences = context.getSharedPreferences("chz_prefs", Context.MODE_PRIVATE)
 
     @Provides
     @Singleton
@@ -41,6 +60,44 @@ object StorageModule {
 
     @Provides
     fun provideScanLogDao(database: AppDatabase): ScanLogDao = database.scanLogDao()
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(
+        cookieJar: PersistentCookieJar,
+        csrfInterceptor: CsrfInterceptor,
+    ): OkHttpClient = OkHttpClient.Builder()
+        .cookieJar(cookieJar)
+        .addInterceptor(csrfInterceptor)
+        .addInterceptor(
+            HttpLoggingInterceptor().apply {
+                level = if (BuildConfig.ENABLE_HTTP_LOGGING) {
+                    HttpLoggingInterceptor.Level.BODY
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
+            },
+        )
+        .build()
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(
+        okHttpClient: OkHttpClient,
+        json: Json,
+    ): Retrofit = Retrofit.Builder()
+        .baseUrl(BuildConfig.API_BASE_URL)
+        .client(okHttpClient)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+
+    @Provides
+    @Singleton
+    fun provideAccountApi(retrofit: Retrofit): AccountApi = retrofit.create(AccountApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideChestniyZnakApi(retrofit: Retrofit): ChestniyZnakApi = retrofit.create(ChestniyZnakApi::class.java)
 }
 
 @Module
@@ -49,6 +106,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindChestniyZnakRepository(
-        implementation: LocalChestniyZnakRepository,
+        implementation: HybridChestniyZnakRepository,
     ): ChestniyZnakRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(
+        implementation: RemoteAuthRepository,
+    ): AuthRepository
 }

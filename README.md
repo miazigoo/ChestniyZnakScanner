@@ -1,6 +1,6 @@
 # ChestniyZnakScanner
 
-Android-приложение для сканирования Data Matrix кодов Честного знака и проверки их наличия в локальной базе.
+Android-приложение для сканирования Data Matrix кодов Честного знака и проверки их наличия на backend и в локальном fallback-хранилище.
 
 MVP-сценарий простой:
 - пользователь наводит камеру на код;
@@ -17,6 +17,11 @@ MVP-сценарий простой:
 - декодирование `Data Matrix` через `ML Kit Barcode Scanning`;
 - отдельный доменный парсер Честного знака;
 - локальная база `Room` для кодов и истории сканов;
+- вход через backend `accounts/login` с Django session cookie;
+- вход через backend `accounts/login/token`;
+- автологин тестовым токеном `testtokentablet`;
+- серверная проверка через `POST /api/v2/chestniy-znak/verify`;
+- получение статистики через `GET /api/v2/chestniy-znak/stats`;
 - стартовая загрузка seed-данных из `assets`;
 - проверка статусов:
   `OK`,
@@ -56,7 +61,7 @@ app/src/main/java/ru/devandprod/chestniyznak/
 ```
 
 Это сделано с расчетом на дальнейшее развитие:
-- можно заменить локальный репозиторий на гибридный `local + remote`;
+- гибридный репозиторий уже поддерживает `remote + local fallback`;
 - можно вынести фичи в отдельные Gradle-модули;
 - можно добавить синхронизацию с backend без переписывания UI.
 
@@ -68,6 +73,8 @@ app/src/main/java/ru/devandprod/chestniyznak/
 - `Room`
 - `CameraX`
 - `ML Kit`
+- `Retrofit`
+- `OkHttp`
 - `Gradle Kotlin DSL`
 
 ## Как работает проверка
@@ -84,9 +91,10 @@ app/src/main/java/ru/devandprod/chestniyznak/
    `GTIN`,
    `serial`,
    `AI tail`.
-4. Репозиторий ищет полное совпадение по хэшу полного кода.
-5. Если полного совпадения нет, дополнительно проверяется совпадение `GTIN + serial`.
-6. Возвращается доменный результат, который UI отображает как `OK` или `NO`.
+4. Если есть активная серверная сессия, приложение отправляет код на backend.
+5. Если сервер недоступен по сети, используется локальный fallback.
+6. Если полного совпадения нет, дополнительно проверяется совпадение `GTIN + serial`.
+7. Возвращается доменный результат, который UI отображает как `OK` или `NO`.
 
 ## Локальные данные
 
@@ -100,15 +108,39 @@ app/src/main/java/ru/devandprod/chestniyznak/
 - `marking_codes` — коды Честного знака;
 - `scan_logs` — история проверок и результатов сканирования.
 
-## Backend compatibility
+## Backend integration
 
-В проекте уже учтена логика из backend-модуля `chestniy_znak`:
+Сервер подключен по базе:
+
+- `https://srv-dnp.argos.loc/api/v2/`
+
+Используемые endpoint'ы:
+
+- `POST /accounts/login/token`
+- `GET /auth-check`
+- `POST /accounts/logout`
+- `POST /chestniy-znak/verify`
+- `GET /chestniy-znak/stats`
+
+Для тестового режима токен сейчас захардкожен в `BuildConfig.AUTH_TOKEN`.
+Следующим шагом его можно заменить на значение, считанное из QR-кода.
+
+В проекте учтена логика из backend-модуля `chestniy_znak`:
 - нормализация scanner input;
 - разбор `01 + GTIN + 21 + serial + AI tail`;
 - статусы проверки;
 - сценарий `TAIL_MISMATCH`, когда совпадает `GTIN + serial`, но отличается полный хвост.
 
-Это упрощает будущий переход на серверную проверку и синхронизацию.
+Сессия хранится через cookie `dnp_session_id`.
+
+Важно:
+- backend использует self-signed certificate;
+- в текущем окружении `/api/v2/health` отвечает, но стандартная TLS-проверка вне корпоративного trust store падает;
+- в приложение добавлен `network_security_config`, который разрешает доверять `user` certificates для `srv-dnp.argos.loc`;
+- для POST-запросов приложение автоматически прокидывает `X-CSRFToken` и `Referer` на основе cookies, полученных после token login;
+- на тестовом Android-устройстве должен быть установлен пользовательский или системный сертификат, которому соответствует сервер.
+
+В приложении отключение TLS-проверки не добавлялось.
 
 ## Сборка и запуск
 
@@ -123,6 +155,7 @@ app/src/main/java/ru/devandprod/chestniyznak/
 2. Дождаться Gradle Sync.
 3. Запустить модуль `app` на устройстве или эмуляторе.
 4. Разрешить доступ к камере.
+5. Войти под учетной записью backend.
 
 Для локальной проверки через консоль:
 

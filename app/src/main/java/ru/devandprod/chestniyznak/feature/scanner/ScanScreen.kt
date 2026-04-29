@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +51,8 @@ import ru.devandprod.chestniyznak.core.scanner.DataMatrixCameraPreview
 
 @Composable
 fun ScanRoute(
+    currentUserName: String,
+    onLogoutRequest: () -> Unit,
     viewModel: ScanViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -73,7 +76,9 @@ fun ScanRoute(
 
     ScanScreen(
         state = state,
+        currentUserName = currentUserName,
         onCodeScanned = viewModel::onCodeScanned,
+        onLogoutRequest = onLogoutRequest,
         onRetryPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
         onScanNextRequested = viewModel::onScanNextRequested,
     )
@@ -83,7 +88,9 @@ fun ScanRoute(
 @Composable
 fun ScanScreen(
     state: ScanUiState,
+    currentUserName: String,
     onCodeScanned: (String) -> Unit,
+    onLogoutRequest: () -> Unit,
     onRetryPermission: () -> Unit,
     onScanNextRequested: () -> Unit,
 ) {
@@ -101,6 +108,20 @@ fun ScanScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = Slate,
                         )
+                    }
+                },
+                actions = {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                    ) {
+                        Text(
+                            text = currentUserName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Slate,
+                        )
+                        TextButton(onClick = onLogoutRequest) {
+                            Text("Выйти")
+                        }
                     }
                 },
             )

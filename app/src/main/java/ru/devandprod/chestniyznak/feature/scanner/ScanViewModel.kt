@@ -12,12 +12,14 @@ import kotlinx.coroutines.launch
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
 import ru.devandprod.chestniyznak.domain.usecase.EnsureSeedDataUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ObserveCatalogStatsUseCase
+import ru.devandprod.chestniyznak.domain.usecase.RefreshCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.VerifyScannedCodeUseCase
 
 @HiltViewModel
 class ScanViewModel @Inject constructor(
     private val ensureSeedDataUseCase: EnsureSeedDataUseCase,
     observeCatalogStatsUseCase: ObserveCatalogStatsUseCase,
+    private val refreshCatalogStatsUseCase: RefreshCatalogStatsUseCase,
     private val verifyScannedCodeUseCase: VerifyScannedCodeUseCase,
 ) : ViewModel() {
 
@@ -28,6 +30,7 @@ class ScanViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { ensureSeedDataUseCase() }
                 .onSuccess {
+                    runCatching { refreshCatalogStatsUseCase() }
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
