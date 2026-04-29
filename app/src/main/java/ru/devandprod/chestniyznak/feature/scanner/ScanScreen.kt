@@ -34,25 +34,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import ru.devandprod.chestniyznak.core.designsystem.theme.Accent
-import ru.devandprod.chestniyznak.core.designsystem.theme.Border
-import ru.devandprod.chestniyznak.core.designsystem.theme.Graphite
-import ru.devandprod.chestniyznak.core.designsystem.theme.Ink
-import ru.devandprod.chestniyznak.core.designsystem.theme.Sand
-import ru.devandprod.chestniyznak.core.designsystem.theme.Slate
+import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
+import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.DataMatrixCameraPreview
 
 @Composable
 fun ScanRoute(
     currentUserName: String,
     onLogoutRequest: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: ScanViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -79,6 +74,7 @@ fun ScanRoute(
         currentUserName = currentUserName,
         onCodeScanned = viewModel::onCodeScanned,
         onLogoutRequest = onLogoutRequest,
+        onOpenSettings = onOpenSettings,
         onRetryPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
         onScanNextRequested = viewModel::onScanNextRequested,
     )
@@ -91,9 +87,11 @@ fun ScanScreen(
     currentUserName: String,
     onCodeScanned: (String) -> Unit,
     onLogoutRequest: () -> Unit,
+    onOpenSettings: () -> Unit,
     onRetryPermission: () -> Unit,
     onScanNextRequested: () -> Unit,
 ) {
+    val themeSpec = CurrentAppThemeSpec
     Scaffold(
         topBar = {
             TopAppBar(
@@ -106,7 +104,7 @@ fun ScanScreen(
                         Text(
                             text = "${state.statsLabel}  •  ${state.scansLabel}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Slate,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         )
                     }
                 },
@@ -117,85 +115,91 @@ fun ScanScreen(
                         Text(
                             text = currentUserName,
                             style = MaterialTheme.typography.bodySmall,
-                            color = Slate,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         )
-                        TextButton(onClick = onLogoutRequest) {
-                            Text("Выйти")
+                        Row {
+                            TextButton(onClick = onOpenSettings) {
+                                Text("Настройки")
+                            }
+                            TextButton(onClick = onLogoutRequest) {
+                                Text("Выйти")
+                            }
                         }
                     }
                 },
             )
         },
-        containerColor = Sand,
+        containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        Column(
+        ThemedAppBackground(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Sand, Sand.copy(alpha = 0.94f)),
-                    ),
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            ScannerViewport(
-                state = state,
-                onCodeScanned = onCodeScanned,
-                onRetryPermission = onRetryPermission,
-            )
-
-            state.resultCard?.let { card ->
-                StatusCard(result = card)
-            }
-
-            Surface(
-                shape = RoundedCornerShape(28.dp),
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
-                modifier = Modifier.fillMaxWidth(),
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Column(
-                    modifier = Modifier
-                        .border(1.dp, Border, RoundedCornerShape(28.dp))
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ScannerViewport(
+                    state = state,
+                    onCodeScanned = onCodeScanned,
+                    onRetryPermission = onRetryPermission,
+                )
+
+                state.resultCard?.let { card ->
+                    StatusCard(result = card)
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
+                    color = themeSpec.decorColors.panelSurface.copy(alpha = 0.92f),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(
-                        text = "Последний код",
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                    Text(
-                        text = if (state.visibleCode.isBlank()) "Сканируйте Data Matrix камерой" else state.visibleCode,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Graphite,
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (state.technicalStatus.isNotBlank()) {
-                        Text(
-                            text = "Статус проверки: ${state.technicalStatus}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Slate,
-                        )
-                    }
-                    state.warnings.forEach { warning ->
-                        Text(
-                            text = warning,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Accent,
-                        )
-                    }
-                    Button(
-                        onClick = onScanNextRequested,
-                        enabled = !state.isLoading && state.hasCameraPermission,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Ink,
-                            contentColor = Sand,
-                        ),
+                    Column(
+                        modifier = Modifier
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(28.dp))
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Text("Сканировать следующий")
+                        Text(
+                            text = "Последний код",
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                        Text(
+                            text = if (state.visibleCode.isBlank()) "Сканируйте Data Matrix камерой" else state.visibleCode,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (state.technicalStatus.isNotBlank()) {
+                            Text(
+                                text = "Статус проверки: ${state.technicalStatus}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        state.warnings.forEach { warning ->
+                            Text(
+                                text = warning,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary,
+                            )
+                        }
+                        Button(
+                            onClick = onScanNextRequested,
+                            enabled = !state.isLoading && state.hasCameraPermission,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) {
+                            Text("Сканировать следующий")
+                        }
                     }
                 }
             }
@@ -219,7 +223,7 @@ private fun ScannerViewport(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(360.dp)
-                .border(1.dp, Border, RoundedCornerShape(32.dp)),
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(32.dp)),
         ) {
             when {
                 !state.hasCameraPermission -> PermissionStub(onRetryPermission)
@@ -246,7 +250,7 @@ private fun PermissionStub(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Sand)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -258,7 +262,7 @@ private fun PermissionStub(
         Text(
             text = "Разрешите доступ к камере, чтобы сканировать Data Matrix.",
             style = MaterialTheme.typography.bodyLarge,
-            color = Slate,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
         )
         Button(onClick = onRetryPermission) {
@@ -272,6 +276,7 @@ private fun ScannerOverlay(
     isLoading: Boolean,
     scannerEnabled: Boolean,
 ) {
+    val themeSpec = CurrentAppThemeSpec
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -280,14 +285,14 @@ private fun ScannerOverlay(
                 .align(Alignment.Center)
                 .width(260.dp)
                 .height(180.dp)
-                .border(2.dp, Ink, RoundedCornerShape(28.dp)),
+                .border(2.dp, MaterialTheme.colorScheme.onBackground, RoundedCornerShape(28.dp)),
         )
 
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(18.dp)
-                .background(Ink, RoundedCornerShape(100.dp))
+                .background(themeSpec.decorColors.panelText, RoundedCornerShape(100.dp))
                 .padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -296,21 +301,21 @@ private fun ScannerOverlay(
                 modifier = Modifier
                     .size(10.dp)
                     .background(
-                        if (scannerEnabled) Accent else Graphite,
+                        if (scannerEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                         CircleShape,
                     ),
             )
             Text(
                 text = if (scannerEnabled) "Сканирование активно" else "Сканирование на паузе",
                 style = MaterialTheme.typography.bodySmall,
-                color = Sand,
+                color = MaterialTheme.colorScheme.surface,
             )
         }
 
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
-                color = Ink,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }

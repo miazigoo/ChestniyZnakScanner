@@ -11,30 +11,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ru.devandprod.chestniyznak.core.designsystem.theme.Border
-import ru.devandprod.chestniyznak.core.designsystem.theme.Error
-import ru.devandprod.chestniyznak.core.designsystem.theme.ErrorContainer
-import ru.devandprod.chestniyznak.core.designsystem.theme.Success
-import ru.devandprod.chestniyznak.core.designsystem.theme.SuccessContainer
+import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 
 @Composable
 fun StatusCard(
     result: ScanResultCardUi,
     modifier: Modifier = Modifier,
 ) {
+    val decor = CurrentAppDecorColors
     val (containerColor, textColor) = when (result.tone) {
-        ScanResultTone.Success -> SuccessContainer to Success
-        ScanResultTone.Error -> ErrorContainer to Error
+        ScanResultTone.Success -> decor.successContainer to decor.success
+        ScanResultTone.Error -> decor.dangerContainer to decor.danger
     }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(containerColor, RoundedCornerShape(28.dp))
-            .border(1.dp, Border, RoundedCornerShape(28.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(28.dp))
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -47,7 +43,7 @@ fun StatusCard(
         Text(
             text = result.message,
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.Black.copy(alpha = 0.8f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
         )
     }
 }

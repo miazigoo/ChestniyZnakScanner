@@ -24,9 +24,11 @@ import ru.devandprod.chestniyznak.data.remote.api.ChestniyZnakApi
 import ru.devandprod.chestniyznak.data.remote.auth.CsrfInterceptor
 import ru.devandprod.chestniyznak.data.remote.auth.PersistentCookieJar
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
+import ru.devandprod.chestniyznak.data.settings.ThemePreferencesRepository
 import ru.devandprod.chestniyznak.data.repository.HybridChestniyZnakRepository
 import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
 import ru.devandprod.chestniyznak.domain.repository.AuthRepository
+import ru.devandprod.chestniyznak.domain.repository.ThemeRepository
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 @Module
@@ -114,4 +116,10 @@ abstract class RepositoryModule {
     abstract fun bindAuthRepository(
         implementation: RemoteAuthRepository,
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindThemeRepository(
+        implementation: ThemePreferencesRepository,
+    ): ThemeRepository
 }

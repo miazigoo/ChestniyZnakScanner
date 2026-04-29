@@ -1,12 +1,18 @@
 package ru.devandprod.chestniyznak.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import ru.devandprod.chestniyznak.app.navigation.AppNavHost
 import ru.devandprod.chestniyznak.core.designsystem.theme.ChestniyZnakTheme
 
 @Composable
 fun ChestniyZnakApp() {
-    ChestniyZnakTheme {
-        AppNavHost()
+    val themeViewModel: AppThemeViewModel = hiltViewModel()
+    val selectedTheme by themeViewModel.selectedTheme.collectAsState()
+
+    ChestniyZnakTheme(selectedTheme = selectedTheme) {
+        AppNavHost(selectedTheme = selectedTheme)
     }
 }

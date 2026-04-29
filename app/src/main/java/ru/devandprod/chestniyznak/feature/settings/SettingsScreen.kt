@@ -1,0 +1,178 @@
+package ru.devandprod.chestniyznak.feature.settings
+
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
+import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
+import ru.devandprod.chestniyznak.domain.model.AppThemeOption
+
+@Composable
+fun SettingsRoute(
+    currentTheme: AppThemeOption,
+    onBack: () -> Unit,
+    onOpenThemeSelection: () -> Unit,
+) {
+    SettingsScreen(
+        currentTheme = currentTheme,
+        onBack = onBack,
+        onOpenThemeSelection = onOpenThemeSelection,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    currentTheme: AppThemeOption,
+    onBack: () -> Unit,
+    onOpenThemeSelection: () -> Unit,
+) {
+    val decor = CurrentAppDecorColors
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("Настройки", style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            "Подготовлено под будущие модули устройства",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        )
+                    }
+                },
+                navigationIcon = {
+                    TextButton(onClick = onBack) {
+                        Text("Назад")
+                    }
+                },
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { innerPadding ->
+        ThemedAppBackground(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                SettingsSectionCard(
+                    title = "Оформление",
+                    subtitle = "Текущая тема: ${currentTheme.title}",
+                    description = "Сменить палитру, фон, настроение интерфейса и общий визуальный язык сканера.",
+                    actionLabel = "Выбрать тему",
+                    panelColor = decor.panelSurface,
+                    onClick = onOpenThemeSelection,
+                )
+                SettingsSectionCard(
+                    title = "Принтер",
+                    subtitle = "Скоро",
+                    description = "Подключение принтера, шаблоны печати, маршруты печати для линии и ручного режима.",
+                    actionLabel = "Скоро",
+                    panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                    enabled = false,
+                    onClick = {},
+                )
+                SettingsSectionCard(
+                    title = "Звук и оповещения",
+                    subtitle = "Скоро",
+                    description = "Сигналы успеха и ошибки, громкость, silent mode, сценарии предупреждений.",
+                    actionLabel = "Скоро",
+                    panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                    enabled = false,
+                    onClick = {},
+                )
+                SettingsSectionCard(
+                    title = "Профиль устройства",
+                    subtitle = "Скоро",
+                    description = "ID сканера, сетевые настройки, источники данных, служебные параметры и диагностика.",
+                    actionLabel = "Скоро",
+                    panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                    enabled = false,
+                    onClick = {},
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSectionCard(
+    title: String,
+    subtitle: String,
+    description: String,
+    actionLabel: String,
+    panelColor: androidx.compose.ui.graphics.Color,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(30.dp),
+            )
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(30.dp),
+        color = panelColor,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Text(
+                    text = actionLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                )
+            }
+        }
+    }
+}
