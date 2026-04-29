@@ -21,7 +21,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
-        buildConfigField("String", "API_BASE_URL", "\"https://srv-dnp.argos.loc/api/v2/\"")
+        buildConfigField("String", "API_BASE_URL", "\"http://srv-dnp.argos.loc/api/v2/\"")
         buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
         buildConfigField("String", "AUTH_TOKEN", "\"testtokentablet\"")
     }
@@ -29,14 +29,14 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", "\"https://srv-dnp.argos.loc/api/v2/\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://srv-dnp.argos.loc/api/v2/\"")
             buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
             buildConfigField("String", "AUTH_TOKEN", "\"testtokentablet\"")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            buildConfigField("String", "API_BASE_URL", "\"https://srv-dnp.argos.loc/api/v2/\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://srv-dnp.argos.loc/api/v2/\"")
             buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "false")
             buildConfigField("String", "AUTH_TOKEN", "\"testtokentablet\"")
             proguardFiles(

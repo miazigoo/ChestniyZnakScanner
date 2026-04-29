@@ -112,7 +112,7 @@ app/src/main/java/ru/devandprod/chestniyznak/
 
 Сервер подключен по базе:
 
-- `https://srv-dnp.argos.loc/api/v2/`
+- `http://srv-dnp.argos.loc/api/v2/`
 
 Используемые endpoint'ы:
 
@@ -134,11 +134,11 @@ app/src/main/java/ru/devandprod/chestniyznak/
 Сессия хранится через cookie `dnp_session_id`.
 
 Важно:
-- backend использует self-signed certificate;
-- в текущем окружении `/api/v2/health` отвечает, но стандартная TLS-проверка вне корпоративного trust store падает;
-- в приложение добавлен `network_security_config`, который разрешает доверять `user` certificates для `srv-dnp.argos.loc`;
+- для тестового режима приложение сейчас работает по `HTTP`;
+- `network_security_config` разрешает cleartext traffic для `srv-dnp.argos.loc`;
+- если позже вернетесь на `HTTPS`, можно сохранить текущую конфигурацию trust anchors для `user` certificates;
 - для POST-запросов приложение автоматически прокидывает `X-CSRFToken` и `Referer` на основе cookies, полученных после token login;
-- на тестовом Android-устройстве должен быть установлен пользовательский или системный сертификат, которому соответствует сервер.
+- при возврате на `HTTPS` на тестовом Android-устройстве должен быть установлен пользовательский или системный сертификат, которому соответствует сервер.
 
 В приложении отключение TLS-проверки не добавлялось.
 
