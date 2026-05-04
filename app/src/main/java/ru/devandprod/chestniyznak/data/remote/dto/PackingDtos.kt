@@ -7,6 +7,7 @@ import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackingBox
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.model.PackingBoxItem
+import ru.devandprod.chestniyznak.domain.model.PackingBoxPage
 import ru.devandprod.chestniyznak.domain.model.PackingScanResult
 
 @Serializable
@@ -104,6 +105,16 @@ data class OpenBoxResponseDto(
 )
 
 @Serializable
+data class BoxesListResponseDto(
+    val items: List<BoxDto> = emptyList(),
+    val total: Int = 0,
+    val limit: Int = 50,
+    val offset: Int = 0,
+    @SerialName("has_more")
+    val hasMore: Boolean = false,
+)
+
+@Serializable
 data class CurrentBoxResponseDto(
     @SerialName("box_id")
     val boxId: Long,
@@ -163,6 +174,14 @@ fun OpenBoxResponseDto.toDomain(): OpenPackingBoxResult = OpenPackingBoxResult(
     hasActiveBoxes = hasActiveBoxes,
     boxes = boxes.map { it.toDomain() },
     box = box.toDomain(),
+)
+
+fun BoxesListResponseDto.toDomain(): PackingBoxPage = PackingBoxPage(
+    items = items.map { it.toDomain() },
+    total = total,
+    limit = limit,
+    offset = offset,
+    hasMore = hasMore,
 )
 
 fun CurrentBoxResponseDto.toDomain(): PackingBoxDetail = PackingBoxDetail(

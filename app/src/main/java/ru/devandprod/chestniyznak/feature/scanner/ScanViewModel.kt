@@ -305,7 +305,7 @@ class ScanViewModel @Inject constructor(
                 packing = it.packing.copy(
                     isBusy = true,
                     errorText = null,
-                    statusText = "Закрываем коробку...",
+                    statusText = "Закрываем коробку и ждем печать этикетки...",
                 ),
             )
         }
@@ -498,6 +498,11 @@ class ScanViewModel @Inject constructor(
                 message = "Код добавлен в коробку",
                 tone = if (boxFullSignal == true) ScanResultTone.Warning else ScanResultTone.Success,
             )
+            reasonCode == "code_in_other_box" -> ScanResultCardUi(
+                headline = "NO",
+                message = error ?: "Код уже лежит в другой коробке",
+                tone = ScanResultTone.Error,
+            )
             verify?.status == VerificationStatus.DUPLICATE_SCAN -> ScanResultCardUi(
                 headline = "NO",
                 message = verify.message,
@@ -514,6 +519,7 @@ class ScanViewModel @Inject constructor(
     private fun PackingScanResult.toPackingStatusText(): String = when {
         ok && boxFullSignal == true -> "Коробка заполнена"
         ok && duplicate == true -> "Код уже есть в коробке"
+        reasonCode == "code_in_other_box" -> "Код уже в другой коробке"
         ok -> "Код добавлен в коробку"
         else -> "Код не добавлен"
     }

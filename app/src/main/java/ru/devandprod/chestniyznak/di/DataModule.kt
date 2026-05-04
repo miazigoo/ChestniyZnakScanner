@@ -15,6 +15,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
+import java.util.concurrent.TimeUnit
 import ru.devandprod.chestniyznak.BuildConfig
 import ru.devandprod.chestniyznak.data.local.dao.MarkingCodeDao
 import ru.devandprod.chestniyznak.data.local.dao.ScanLogDao
@@ -74,6 +75,10 @@ object StorageModule {
     ): OkHttpClient = OkHttpClient.Builder()
         .cookieJar(cookieJar)
         .addInterceptor(csrfInterceptor)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(35, TimeUnit.SECONDS)
+        .callTimeout(40, TimeUnit.SECONDS)
         .addInterceptor(
             HttpLoggingInterceptor().apply {
                 level = if (BuildConfig.ENABLE_HTTP_LOGGING) {

@@ -18,6 +18,7 @@ import ru.devandprod.chestniyznak.data.remote.dto.toDomain
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
+import ru.devandprod.chestniyznak.domain.model.PackingBoxPage
 import ru.devandprod.chestniyznak.domain.model.PackingScanResult
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
@@ -30,6 +31,27 @@ class RemotePackingRepository @Inject constructor(
     private val errorParser: RemoteErrorParser,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : PackingRepository {
+
+    override suspend fun listBoxes(
+        status: String,
+        query: String,
+        limit: Int,
+        offset: Int,
+    ): PackingBoxPage = withContext(ioDispatcher) {
+        val response = runCatching {
+            packingApi.listBoxes(
+                query = query,
+                status = status,
+                limit = limit,
+                offset = offset,
+            )
+        }.getOrElse {
+            throw RuntimeException(it.message ?: "Не удалось получить список коробок")
+        }
+
+        mapResponse(response)?.toDomain()
+            ?: throw RuntimeException(errorParser.message(response))
+    }
 
     override suspend fun getCurrentBox(): PackingBoxDetail? = withContext(ioDispatcher) {
         val response = runCatching { packingApi.currentBox() }.getOrElse {

@@ -5,7 +5,9 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 import ru.devandprod.chestniyznak.data.remote.dto.CloseBoxResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.BoxesListResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.CurrentBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxResponseDto
@@ -13,6 +15,14 @@ import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxResponseDto
 
 interface PackingApi {
+    @GET("chestniy-znak/packing/boxes")
+    suspend fun listBoxes(
+        @Query("query") query: String = "",
+        @Query("status") status: String = "all",
+        @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0,
+    ): Response<BoxesListResponseDto>
+
     @GET("chestniy-znak/packing/boxes/current")
     suspend fun currentBox(): Response<CurrentBoxResponseDto>
 

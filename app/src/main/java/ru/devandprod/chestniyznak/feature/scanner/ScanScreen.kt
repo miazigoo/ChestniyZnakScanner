@@ -59,12 +59,13 @@ import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.DataMatrixCameraPreview
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
+import ru.devandprod.chestniyznak.core.scanner.ScannerCommand
+import ru.devandprod.chestniyznak.core.scanner.ScannerCommandBus
 
 @Composable
 fun ScanRoute(
     currentUserName: String,
-    onLogoutRequest: () -> Unit,
-    onOpenSettings: () -> Unit,
+    onOpenMenu: () -> Unit,
     viewModel: ScanViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -96,12 +97,21 @@ fun ScanRoute(
         }
     }
 
+    LaunchedEffect(viewModel) {
+        ScannerCommandBus.commands().collect { command ->
+            when (command) {
+                ScannerCommand.OpenBox -> viewModel.onOpenBoxRequested()
+                ScannerCommand.SwitchToCamera -> viewModel.onScanModeSelected(ScanMode.CameraVerify)
+                ScannerCommand.SwitchToTsd -> viewModel.onScanModeSelected(ScanMode.PackingTsd)
+            }
+        }
+    }
+
     ScanScreen(
         state = state,
         currentUserName = currentUserName,
         onCameraCodeScanned = viewModel::onCameraCodeScanned,
-        onLogoutRequest = onLogoutRequest,
-        onOpenSettings = onOpenSettings,
+        onOpenMenu = onOpenMenu,
         onRetryPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
         onScanNextRequested = viewModel::onScanNextRequested,
         onScanModeSelected = viewModel::onScanModeSelected,
@@ -119,8 +129,7 @@ fun ScanScreen(
     state: ScanUiState,
     currentUserName: String,
     onCameraCodeScanned: (String) -> Unit,
-    onLogoutRequest: () -> Unit,
-    onOpenSettings: () -> Unit,
+    onOpenMenu: () -> Unit,
     onRetryPermission: () -> Unit,
     onScanNextRequested: () -> Unit,
     onScanModeSelected: (ScanMode) -> Unit,
@@ -152,22 +161,28 @@ fun ScanScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Сканер ЧЗ",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            painter = painterResource(id = android.R.drawable.ic_menu_manage),
-                            contentDescription = "Настройки",
+                    TextButton(
+                        onClick = {
+                            onScanModeSelected(
+                                if (state.scanMode == ScanMode.CameraVerify) {
+                                    ScanMode.PackingTsd
+                                } else {
+                                    ScanMode.CameraVerify
+                                },
+                            )
+                        },
+                    ) {
+                        Text(
+                            text = if (state.scanMode == ScanMode.CameraVerify) "Камера" else "ТСД",
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
-                    IconButton(onClick = onLogoutRequest) {
+                },
+                actions = {
+                    IconButton(onClick = onOpenMenu) {
                         Icon(
-                            painter = painterResource(id = android.R.drawable.ic_lock_power_off),
-                            contentDescription = "Выйти",
+                            painter = painterResource(id = android.R.drawable.ic_menu_sort_by_size),
+                            contentDescription = "Меню",
                         )
                     }
                 },
@@ -218,13 +233,18 @@ fun ScanScreen(
                     }
                 }
 
-                ScanModeSelector(
-                    selectedMode = state.scanMode,
-                    onScanModeSelected = onScanModeSelected,
-                )
-
                 if (state.scanMode == ScanMode.PackingTsd) {
                     HidScannerInputField(modifier = Modifier.size(1.dp))
+                }
+
+                val activeResult = if (state.scanMode == ScanMode.CameraVerify) {
+                    state.verify.resultCard
+                } else {
+                    state.packing.resultCard
+                }
+
+                activeResult?.let { card ->
+                    StatusCard(result = card)
                 }
 
                 when (state.scanMode) {
@@ -245,11 +265,6 @@ fun ScanScreen(
                         )
                     }
                 }
-
-                ModeHintCard(
-                    scanMode = state.scanMode,
-                    hasCameraPermission = state.verify.hasCameraPermission,
-                )
             }
         }
     }
@@ -269,10 +284,6 @@ private fun CameraVerifyContent(
         onCodeScanned = onCodeScanned,
         onRetryPermission = onRetryPermission,
     )
-
-    state.resultCard?.let { card ->
-        StatusCard(result = card)
-    }
 
     ResultPanel(
         title = "Последний код",
@@ -297,10 +308,6 @@ private fun PackingContent(
     onScanNextRequested: () -> Unit,
 ) {
     PackingViewport(isBusy = state.isBusy)
-
-    state.resultCard?.let { card ->
-        StatusCard(result = card)
-    }
 
     CurrentBoxPanel(
         state = state,
@@ -361,7 +368,7 @@ private fun PackingViewport(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(132.dp)
+                .height(120.dp)
                 .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(32.dp))
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)),
         ) {
@@ -373,7 +380,7 @@ private fun PackingViewport(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Режим упаковки ТСД",
+                    text = "Упаковка в коробку",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
@@ -383,54 +390,6 @@ private fun PackingViewport(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ScanModeSelector(
-    selectedMode: ScanMode,
-    onScanModeSelected: (ScanMode) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        ModeButton(
-            label = "Проверка камерой",
-            selected = selectedMode == ScanMode.CameraVerify,
-            onClick = { onScanModeSelected(ScanMode.CameraVerify) },
-            modifier = Modifier.weight(1f),
-        )
-        ModeButton(
-            label = "Упаковка ТСД",
-            selected = selectedMode == ScanMode.PackingTsd,
-            onClick = { onScanModeSelected(ScanMode.PackingTsd) },
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun ModeButton(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (selected) {
-        Button(
-            onClick = onClick,
-            modifier = modifier,
-        ) {
-            Text(label)
-        }
-    } else {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = modifier,
-        ) {
-            Text(label)
         }
     }
 }
@@ -764,38 +723,6 @@ private fun ScannerOverlay(
     }
 }
 
-@Composable
-private fun ModeHintCard(
-    scanMode: ScanMode,
-    hasCameraPermission: Boolean,
-) {
-    val message = when (scanMode) {
-        ScanMode.CameraVerify -> if (hasCameraPermission) {
-            "Режим проверки: камера проверяет, существует ли Data Matrix в базе."
-        } else {
-            "Режим проверки: дайте доступ к камере и наведите Data Matrix в рамку."
-        }
-        ScanMode.PackingTsd -> "Режим упаковки: встроенный сканер ТСД добавляет коды в открытую коробку. Для проверки наличия кода используйте режим камеры."
-    }
-
-    Surface(
-        shape = RoundedCornerShape(22.dp),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(22.dp))
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-        )
-    }
-}
 
 @Composable
 private fun CloseBoxDialog(

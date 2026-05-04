@@ -30,6 +30,14 @@ data class PackingBoxDetail(
     val items: List<PackingBoxItem> = emptyList(),
 )
 
+data class PackingBoxPage(
+    val items: List<PackingBox>,
+    val total: Int,
+    val limit: Int,
+    val offset: Int,
+    val hasMore: Boolean,
+)
+
 data class OpenPackingBoxResult(
     val ok: Boolean,
     val created: Boolean,
