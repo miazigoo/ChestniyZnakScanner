@@ -12,10 +12,12 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import ru.devandprod.chestniyznak.domain.usecase.ListPackingBoxesUseCase
 
 @HiltViewModel
 class BoxLookupViewModel @Inject constructor(
+    private val audioFeedbackPlayer: AudioFeedbackPlayer,
     private val listPackingBoxesUseCase: ListPackingBoxesUseCase,
 ) : ViewModel() {
 
@@ -57,6 +59,7 @@ class BoxLookupViewModel @Inject constructor(
                 foundBoxId
             }.onSuccess { boxId ->
                 if (boxId == null) {
+                    audioFeedbackPlayer.playError()
                     _uiState.update {
                         it.copy(
                             isBusy = false,
@@ -65,6 +68,7 @@ class BoxLookupViewModel @Inject constructor(
                         )
                     }
                 } else {
+                    audioFeedbackPlayer.playSuccess()
                     _uiState.update {
                         it.copy(
                             isBusy = false,
@@ -74,6 +78,7 @@ class BoxLookupViewModel @Inject constructor(
                     _openBoxEvents.tryEmit(boxId)
                 }
             }.onFailure { error ->
+                audioFeedbackPlayer.playError()
                 _uiState.update {
                     it.copy(
                         isBusy = false,

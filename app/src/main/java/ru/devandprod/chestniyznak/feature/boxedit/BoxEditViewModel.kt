@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.devandprod.chestniyznak.app.navigation.AppDestination
+import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.usecase.ClearPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.DeleteEmptyPackingBoxUseCase
@@ -24,6 +25,7 @@ import ru.devandprod.chestniyznak.domain.usecase.ScanCodeToPackingBoxUseCase
 @HiltViewModel
 class BoxEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    private val audioFeedbackPlayer: AudioFeedbackPlayer,
     private val getPackingBoxUseCase: GetPackingBoxUseCase,
     private val scanCodeToPackingBoxUseCase: ScanCodeToPackingBoxUseCase,
     private val removePackingBoxItemUseCase: RemovePackingBoxItemUseCase,
@@ -68,6 +70,7 @@ class BoxEditViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
+                    audioFeedbackPlayer.playError()
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -110,6 +113,13 @@ class BoxEditViewModel @Inject constructor(
                     scannerId = "android-hid",
                 )
             }.onSuccess { result ->
+                when {
+                    result.reasonCode == "wrong_order" -> audioFeedbackPlayer.playOtherOrder()
+                    result.ok -> audioFeedbackPlayer.playSuccess()
+                    result.reasonCode == "code_in_other_box" -> audioFeedbackPlayer.playWarning()
+                    result.reasonCode == "duplicate_in_box" -> audioFeedbackPlayer.playWarning()
+                    else -> audioFeedbackPlayer.playError()
+                }
                 _uiState.update {
                     it.copy(
                         isBusy = false,
@@ -120,6 +130,7 @@ class BoxEditViewModel @Inject constructor(
                 }
                 refresh()
             }.onFailure { error ->
+                audioFeedbackPlayer.playError()
                 _uiState.update {
                     it.copy(
                         isBusy = false,
@@ -153,6 +164,11 @@ class BoxEditViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { removePackingBoxItemUseCase(boxId, itemId) }
                 .onSuccess { result ->
+                    if (result.ok) {
+                        audioFeedbackPlayer.playSuccess()
+                    } else {
+                        audioFeedbackPlayer.playError()
+                    }
                     _uiState.update {
                         it.copy(
                             isBusy = false,
@@ -163,6 +179,7 @@ class BoxEditViewModel @Inject constructor(
                     refresh()
                 }
                 .onFailure { error ->
+                    audioFeedbackPlayer.playError()
                     _uiState.update {
                         it.copy(
                             isBusy = false,
@@ -209,8 +226,14 @@ class BoxEditViewModel @Inject constructor(
             }
             action.onSuccess { result ->
                 if (box.items.isEmpty() && result.ok) {
+                    audioFeedbackPlayer.playSuccess()
                     _boxDeleted.tryEmit(Unit)
                 } else {
+                    if (result.ok) {
+                        audioFeedbackPlayer.playSuccess()
+                    } else {
+                        audioFeedbackPlayer.playError()
+                    }
                     _uiState.update {
                         it.copy(
                             isBusy = false,
@@ -225,6 +248,7 @@ class BoxEditViewModel @Inject constructor(
                     refresh()
                 }
             }.onFailure { error ->
+                audioFeedbackPlayer.playError()
                 _uiState.update {
                     it.copy(
                         isBusy = false,

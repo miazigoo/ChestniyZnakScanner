@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -22,6 +23,7 @@ import ru.devandprod.chestniyznak.domain.usecase.PrintPackingBoxLabelUseCase
 @HiltViewModel
 class BoxDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    private val audioFeedbackPlayer: AudioFeedbackPlayer,
     private val getPackingBoxUseCase: GetPackingBoxUseCase,
     private val openPackingBoxEditUseCase: OpenPackingBoxEditUseCase,
     private val printPackingBoxLabelUseCase: PrintPackingBoxLabelUseCase,
@@ -59,6 +61,7 @@ class BoxDetailViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
+                    audioFeedbackPlayer.playError()
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -76,6 +79,7 @@ class BoxDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isActionBusy = true, errorText = null, statusText = "Открываем редактирование...") }
             runCatching { openPackingBoxEditUseCase(boxId) }
                 .onSuccess {
+                    audioFeedbackPlayer.playSuccess()
                     _uiState.update { state ->
                         state.copy(
                             isActionBusy = false,
@@ -85,6 +89,7 @@ class BoxDetailViewModel @Inject constructor(
                     _openEditEvents.tryEmit(boxId)
                 }
                 .onFailure { error ->
+                    audioFeedbackPlayer.playError()
                     _uiState.update {
                         it.copy(
                             isActionBusy = false,
@@ -102,6 +107,11 @@ class BoxDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isActionBusy = true, errorText = null, statusText = "Проверяем принтер и отправляем на печать...") }
             runCatching { printPackingBoxLabelUseCase(boxId) }
                 .onSuccess { result ->
+                    when {
+                        result.ok && result.printOk == false -> audioFeedbackPlayer.playWarning()
+                        result.ok -> audioFeedbackPlayer.playSuccess()
+                        else -> audioFeedbackPlayer.playError()
+                    }
                     _uiState.update {
                         it.copy(
                             isActionBusy = false,
@@ -112,6 +122,7 @@ class BoxDetailViewModel @Inject constructor(
                     refresh()
                 }
                 .onFailure { error ->
+                    audioFeedbackPlayer.playError()
                     _uiState.update {
                         it.copy(
                             isActionBusy = false,

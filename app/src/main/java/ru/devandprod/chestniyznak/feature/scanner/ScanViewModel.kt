@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackingBox
@@ -26,6 +27,7 @@ import ru.devandprod.chestniyznak.domain.usecase.VerifyCodeExistsUseCase
 
 @HiltViewModel
 class ScanViewModel @Inject constructor(
+    private val audioFeedbackPlayer: AudioFeedbackPlayer,
     private val ensureSeedDataUseCase: EnsureSeedDataUseCase,
     observeCatalogStatsUseCase: ObserveCatalogStatsUseCase,
     private val refreshCatalogStatsUseCase: RefreshCatalogStatsUseCase,
@@ -55,6 +57,7 @@ class ScanViewModel @Inject constructor(
                     loadCurrentBox()
                 }
                 .onFailure { error ->
+                    audioFeedbackPlayer.playError()
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
@@ -130,6 +133,11 @@ class ScanViewModel @Inject constructor(
                 rawInput = rawCode,
                 scannerId = "android-camera",
             )
+            if (result.isSuccess) {
+                audioFeedbackPlayer.playSuccess()
+            } else {
+                audioFeedbackPlayer.playError()
+            }
             _uiState.update { current ->
                 current.copy(
                     verify = current.verify.copy(
@@ -148,6 +156,7 @@ class ScanViewModel @Inject constructor(
     fun onHardwareCodeScanned(rawCode: String) {
         val state = _uiState.value
         val box = state.packing.currentBox ?: run {
+            audioFeedbackPlayer.playError()
             _uiState.update {
                 it.copy(
                     packing = it.packing.copy(
@@ -187,6 +196,7 @@ class ScanViewModel @Inject constructor(
                 handlePackingScanResult(result)
                 runCatching { refreshCatalogStatsUseCase() }
             }.onFailure { error ->
+                audioFeedbackPlayer.playError()
                 _uiState.update {
                     it.copy(
                         packing = it.packing.copy(
@@ -243,6 +253,7 @@ class ScanViewModel @Inject constructor(
             runCatching { openPackingBoxUseCase(deviceId = "M3SL20") }
                 .onSuccess(::handleOpenBoxResult)
                 .onFailure { error ->
+                    audioFeedbackPlayer.playError()
                     _uiState.update {
                         it.copy(
                             packing = it.packing.copy(
@@ -314,6 +325,7 @@ class ScanViewModel @Inject constructor(
             runCatching { closePackingBoxUseCase(boxId) }
                 .onSuccess(::handleCloseBoxResult)
                 .onFailure { error ->
+                    audioFeedbackPlayer.playError()
                     _uiState.update {
                         it.copy(
                             packing = it.packing.copy(
@@ -375,6 +387,11 @@ class ScanViewModel @Inject constructor(
     }
 
     private fun handleOpenBoxResult(result: OpenPackingBoxResult) {
+        when {
+            result.created -> audioFeedbackPlayer.playSuccess()
+            result.hasActiveBoxes -> audioFeedbackPlayer.playWarning()
+            else -> audioFeedbackPlayer.playSuccess()
+        }
         _uiState.update { state ->
             when {
                 result.created -> state.copy(
@@ -422,6 +439,14 @@ class ScanViewModel @Inject constructor(
     }
 
     private fun handlePackingScanResult(result: PackingScanResult) {
+        when {
+            result.reasonCode == "wrong_order" -> audioFeedbackPlayer.playOtherOrder()
+            result.ok && result.duplicate == true -> audioFeedbackPlayer.playWarning()
+            result.ok -> audioFeedbackPlayer.playSuccess()
+            result.reasonCode == "code_in_other_box" -> audioFeedbackPlayer.playWarning()
+            result.verify?.status == VerificationStatus.DUPLICATE_SCAN -> audioFeedbackPlayer.playWarning()
+            else -> audioFeedbackPlayer.playError()
+        }
         _uiState.update { state ->
             state.copy(
                 packing = state.packing.copy(
@@ -436,6 +461,11 @@ class ScanViewModel @Inject constructor(
     }
 
     private fun handleCloseBoxResult(result: ClosePackingBoxResult) {
+        when {
+            result.ok && result.printOk == false -> audioFeedbackPlayer.playWarning()
+            result.ok -> audioFeedbackPlayer.playSuccess()
+            else -> audioFeedbackPlayer.playError()
+        }
         val boxUi = result.box.toUi()
         val isFull = result.box.filled >= result.box.capacity
         _uiState.update { state ->
