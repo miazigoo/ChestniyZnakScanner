@@ -140,6 +140,16 @@ class LocalChestniyZnakRepository @Inject constructor(
         )
     }
 
+    override suspend fun verifyExists(
+        rawInput: String,
+        scannerId: String,
+        allowDuplicate: Boolean,
+    ): VerificationResult = verify(
+        rawInput = rawInput,
+        scannerId = scannerId,
+        allowDuplicate = allowDuplicate,
+    )
+
     override fun observeStats(): Flow<CatalogStats> = combine(
         markingCodeDao.observeCount(),
         scanLogDao.observeCount(),

@@ -24,6 +24,7 @@ fun StatusCard(
     val (containerColor, textColor) = when (result.tone) {
         ScanResultTone.Success -> decor.successContainer to decor.success
         ScanResultTone.Error -> decor.dangerContainer to decor.danger
+        ScanResultTone.Warning -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.secondary
     }
 
     Column(

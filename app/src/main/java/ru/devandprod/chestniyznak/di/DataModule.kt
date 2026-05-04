@@ -21,13 +21,16 @@ import ru.devandprod.chestniyznak.data.local.dao.ScanLogDao
 import ru.devandprod.chestniyznak.data.local.database.AppDatabase
 import ru.devandprod.chestniyznak.data.remote.api.AccountApi
 import ru.devandprod.chestniyznak.data.remote.api.ChestniyZnakApi
+import ru.devandprod.chestniyznak.data.remote.api.PackingApi
 import ru.devandprod.chestniyznak.data.remote.auth.CsrfInterceptor
 import ru.devandprod.chestniyznak.data.remote.auth.PersistentCookieJar
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
 import ru.devandprod.chestniyznak.data.settings.ThemePreferencesRepository
 import ru.devandprod.chestniyznak.data.repository.HybridChestniyZnakRepository
+import ru.devandprod.chestniyznak.data.repository.RemotePackingRepository
 import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
 import ru.devandprod.chestniyznak.domain.repository.AuthRepository
+import ru.devandprod.chestniyznak.domain.repository.PackingRepository
 import ru.devandprod.chestniyznak.domain.repository.ThemeRepository
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 
@@ -100,6 +103,10 @@ object StorageModule {
     @Provides
     @Singleton
     fun provideChestniyZnakApi(retrofit: Retrofit): ChestniyZnakApi = retrofit.create(ChestniyZnakApi::class.java)
+
+    @Provides
+    @Singleton
+    fun providePackingApi(retrofit: Retrofit): PackingApi = retrofit.create(PackingApi::class.java)
 }
 
 @Module
@@ -110,6 +117,12 @@ abstract class RepositoryModule {
     abstract fun bindChestniyZnakRepository(
         implementation: HybridChestniyZnakRepository,
     ): ChestniyZnakRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPackingRepository(
+        implementation: RemotePackingRepository,
+    ): PackingRepository
 
     @Binds
     @Singleton

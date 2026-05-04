@@ -20,12 +20,35 @@ data class VerifyRequestDto(
 )
 
 @Serializable
+data class VerifyExistsRequestDto(
+    val code: String,
+    @SerialName("scanner_id")
+    val scannerId: String = "",
+    @SerialName("allow_duplicate")
+    val allowDuplicate: Boolean = true,
+    @SerialName("save_scan")
+    val saveScan: Boolean = true,
+)
+
+@Serializable
 data class VerifyResponseDto(
     val status: String,
     val message: String,
     @SerialName("scan_id")
     val scanId: Long? = null,
     val parsed: ParsedCodeDto? = null,
+    val code: RemoteCodeDto? = null,
+    val warnings: List<String> = emptyList(),
+)
+
+@Serializable
+data class VerifyExistsResponseDto(
+    val ok: Boolean,
+    val exists: Boolean,
+    val status: String,
+    val message: String,
+    @SerialName("scan_id")
+    val scanId: Long? = null,
     val code: RemoteCodeDto? = null,
     val warnings: List<String> = emptyList(),
 )
@@ -75,6 +98,16 @@ fun VerifyResponseDto.toDomain(): VerificationResult = VerificationResult(
     message = message,
     scanId = scanId,
     parsed = parsed?.toDomain(),
+    code = code?.toDomain(),
+    warnings = warnings,
+)
+
+fun VerifyExistsResponseDto.toDomain(): VerificationResult = VerificationResult(
+    status = runCatching { VerificationStatus.valueOf(status) }
+        .getOrDefault(if (exists) VerificationStatus.OK else VerificationStatus.NOT_FOUND),
+    message = message,
+    scanId = scanId,
+    parsed = null,
     code = code?.toDomain(),
     warnings = warnings,
 )

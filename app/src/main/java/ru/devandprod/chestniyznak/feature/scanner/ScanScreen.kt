@@ -2,8 +2,15 @@ package ru.devandprod.chestniyznak.feature.scanner
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.text.Editable
+import android.text.InputType
+import android.text.TextWatcher
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -16,13 +23,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,13 +48,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.DataMatrixCameraPreview
+import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
 
 @Composable
 fun ScanRoute(
@@ -57,26 +74,42 @@ fun ScanRoute(
         onResult = viewModel::onCameraPermissionChanged,
     )
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(state.scanMode) {
         val granted = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.CAMERA,
         ) == PackageManager.PERMISSION_GRANTED
-        if (granted) {
-            viewModel.onCameraPermissionChanged(true)
+        if (state.scanMode == ScanMode.CameraVerify) {
+            if (granted) {
+                viewModel.onCameraPermissionChanged(true)
+            } else {
+                permissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         } else {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
+            viewModel.onCameraPermissionChanged(false)
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        HidScannerInputBus.scannedCodes().collect { code ->
+            viewModel.onHardwareCodeScanned(code)
         }
     }
 
     ScanScreen(
         state = state,
         currentUserName = currentUserName,
-        onCodeScanned = viewModel::onCodeScanned,
+        onCameraCodeScanned = viewModel::onCameraCodeScanned,
         onLogoutRequest = onLogoutRequest,
         onOpenSettings = onOpenSettings,
         onRetryPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
         onScanNextRequested = viewModel::onScanNextRequested,
+        onScanModeSelected = viewModel::onScanModeSelected,
+        onOpenBoxRequested = viewModel::onOpenBoxRequested,
+        onCloseBoxRequested = viewModel::onCloseBoxRequested,
+        onDismissCloseDialog = viewModel::onDismissCloseDialog,
+        onActiveBoxSelected = viewModel::onActiveBoxSelected,
+        onDismissActiveBoxesDialog = viewModel::onDismissActiveBoxesDialog,
     )
 }
 
@@ -85,46 +118,57 @@ fun ScanRoute(
 fun ScanScreen(
     state: ScanUiState,
     currentUserName: String,
-    onCodeScanned: (String) -> Unit,
+    onCameraCodeScanned: (String) -> Unit,
     onLogoutRequest: () -> Unit,
     onOpenSettings: () -> Unit,
     onRetryPermission: () -> Unit,
     onScanNextRequested: () -> Unit,
+    onScanModeSelected: (ScanMode) -> Unit,
+    onOpenBoxRequested: () -> Unit,
+    onCloseBoxRequested: () -> Unit,
+    onDismissCloseDialog: () -> Unit,
+    onActiveBoxSelected: (Long) -> Unit,
+    onDismissActiveBoxesDialog: () -> Unit,
 ) {
     val themeSpec = CurrentAppThemeSpec
+    val scrollState = rememberScrollState()
+
+    state.packing.closeDialog?.let { dialog ->
+        CloseBoxDialog(
+            dialog = dialog,
+            onDismiss = onDismissCloseDialog,
+        )
+    }
+
+    state.packing.activeBoxesDialog?.let { dialog ->
+        ActiveBoxesDialog(
+            dialog = dialog,
+            onSelectBox = onActiveBoxSelected,
+            onDismiss = onDismissActiveBoxesDialog,
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "Сканер Честного знака",
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-                        Text(
-                            text = "${state.statsLabel}  •  ${state.scansLabel}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        )
-                    }
+                    Text(
+                        text = "Сканер ЧЗ",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
                 },
                 actions = {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                    ) {
-                        Text(
-                            text = currentUserName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            painter = painterResource(id = android.R.drawable.ic_menu_manage),
+                            contentDescription = "Настройки",
                         )
-                        Row {
-                            TextButton(onClick = onOpenSettings) {
-                                Text("Настройки")
-                            }
-                            TextButton(onClick = onLogoutRequest) {
-                                Text("Выйти")
-                            }
-                        }
+                    }
+                    IconButton(onClick = onLogoutRequest) {
+                        Icon(
+                            painter = painterResource(id = android.R.drawable.ic_lock_power_off),
+                            contentDescription = "Выйти",
+                        )
                     }
                 },
             )
@@ -134,82 +178,143 @@ fun ScanScreen(
         ThemedAppBackground(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ScannerViewport(
-                    state = state,
-                    onCodeScanned = onCodeScanned,
-                    onRetryPermission = onRetryPermission,
-                )
-
-                state.resultCard?.let { card ->
-                    StatusCard(result = card)
-                }
-
                 Surface(
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(20.dp),
                     tonalElevation = 0.dp,
                     shadowElevation = 0.dp,
-                    color = themeSpec.decorColors.panelSurface.copy(alpha = 0.92f),
+                    color = themeSpec.decorColors.panelSurface.copy(alpha = 0.88f),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Column(
+                    Row(
                         modifier = Modifier
-                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(28.dp))
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                            .fillMaxWidth()
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Последний код",
-                            style = MaterialTheme.typography.titleLarge,
+                            text = currentUserName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
                         )
                         Text(
-                            text = if (state.visibleCode.isBlank()) "Сканируйте Data Matrix камерой" else state.visibleCode,
+                            text = "${state.statsLabel}  •  ${state.scansLabel}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
-                            maxLines = 4,
-                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         )
-                        if (state.technicalStatus.isNotBlank()) {
-                            Text(
-                                text = "Статус проверки: ${state.technicalStatus}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                        state.warnings.forEach { warning ->
-                            Text(
-                                text = warning,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                        Button(
-                            onClick = onScanNextRequested,
-                            enabled = !state.isLoading && state.hasCameraPermission,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
-                        ) {
-                            Text("Сканировать следующий")
-                        }
                     }
                 }
+
+                ScanModeSelector(
+                    selectedMode = state.scanMode,
+                    onScanModeSelected = onScanModeSelected,
+                )
+
+                if (state.scanMode == ScanMode.PackingTsd) {
+                    HidScannerInputField(modifier = Modifier.size(1.dp))
+                }
+
+                when (state.scanMode) {
+                    ScanMode.CameraVerify -> {
+                        CameraVerifyContent(
+                            state = state.verify,
+                            onCodeScanned = onCameraCodeScanned,
+                            onRetryPermission = onRetryPermission,
+                            onScanNextRequested = onScanNextRequested,
+                        )
+                    }
+                    ScanMode.PackingTsd -> {
+                        PackingContent(
+                            state = state.packing,
+                            onOpenBoxRequested = onOpenBoxRequested,
+                            onCloseBoxRequested = onCloseBoxRequested,
+                            onScanNextRequested = onScanNextRequested,
+                        )
+                    }
+                }
+
+                ModeHintCard(
+                    scanMode = state.scanMode,
+                    hasCameraPermission = state.verify.hasCameraPermission,
+                )
             }
         }
     }
 }
 
 @Composable
+private fun CameraVerifyContent(
+    state: VerifyPaneUiState,
+    onCodeScanned: (String) -> Unit,
+    onRetryPermission: () -> Unit,
+    onScanNextRequested: () -> Unit,
+) {
+    ScannerViewport(
+        hasCameraPermission = state.hasCameraPermission,
+        isLoading = state.isProcessing,
+        isScannerEnabled = state.isScannerEnabled,
+        onCodeScanned = onCodeScanned,
+        onRetryPermission = onRetryPermission,
+    )
+
+    state.resultCard?.let { card ->
+        StatusCard(result = card)
+    }
+
+    ResultPanel(
+        title = "Последний код",
+        mainText = if (state.visibleCode.isBlank()) {
+            "Сканируйте Data Matrix камерой"
+        } else {
+            state.visibleCode
+        },
+        secondaryText = state.technicalStatus.takeIf(String::isNotBlank)?.let { "Статус проверки: $it" },
+        warnings = state.warnings,
+        buttonLabel = "Сканировать следующий",
+        isButtonEnabled = state.hasCameraPermission && !state.isProcessing,
+        onButtonClick = onScanNextRequested,
+    )
+}
+
+@Composable
+private fun PackingContent(
+    state: PackingPaneUiState,
+    onOpenBoxRequested: () -> Unit,
+    onCloseBoxRequested: () -> Unit,
+    onScanNextRequested: () -> Unit,
+) {
+    PackingViewport(isBusy = state.isBusy)
+
+    state.resultCard?.let { card ->
+        StatusCard(result = card)
+    }
+
+    CurrentBoxPanel(
+        state = state,
+        onOpenBoxRequested = onOpenBoxRequested,
+        onCloseBoxRequested = onCloseBoxRequested,
+        onScanNextRequested = onScanNextRequested,
+    )
+}
+
+@Composable
 private fun ScannerViewport(
-    state: ScanUiState,
+    hasCameraPermission: Boolean,
+    isLoading: Boolean,
+    isScannerEnabled: Boolean,
     onCodeScanned: (String) -> Unit,
     onRetryPermission: () -> Unit,
 ) {
@@ -222,25 +327,363 @@ private fun ScannerViewport(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(360.dp)
+                .height(260.dp)
                 .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(32.dp)),
         ) {
             when {
-                !state.hasCameraPermission -> PermissionStub(onRetryPermission)
+                !hasCameraPermission -> PermissionStub(onRetryPermission)
                 else -> {
                     DataMatrixCameraPreview(
-                        isEnabled = state.isScannerEnabled,
+                        isEnabled = isScannerEnabled,
                         onCodeScanned = onCodeScanned,
                         modifier = Modifier.fillMaxSize(),
                     )
                     ScannerOverlay(
-                        isLoading = state.isLoading || state.isProcessing,
-                        scannerEnabled = state.isScannerEnabled,
+                        isLoading = isLoading,
+                        scannerEnabled = isScannerEnabled,
                     )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun PackingViewport(
+    isBusy: Boolean,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(32.dp),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(132.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(32.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "Режим упаковки ТСД",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = if (isBusy) "Обработка скана..." else "Ожидание сканирования встроенным сканером",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScanModeSelector(
+    selectedMode: ScanMode,
+    onScanModeSelected: (ScanMode) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ModeButton(
+            label = "Проверка камерой",
+            selected = selectedMode == ScanMode.CameraVerify,
+            onClick = { onScanModeSelected(ScanMode.CameraVerify) },
+            modifier = Modifier.weight(1f),
+        )
+        ModeButton(
+            label = "Упаковка ТСД",
+            selected = selectedMode == ScanMode.PackingTsd,
+            onClick = { onScanModeSelected(ScanMode.PackingTsd) },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ModeButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (selected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+        ) {
+            Text(label)
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier,
+        ) {
+            Text(label)
+        }
+    }
+}
+
+@Composable
+private fun CurrentBoxPanel(
+    state: PackingPaneUiState,
+    onOpenBoxRequested: () -> Unit,
+    onCloseBoxRequested: () -> Unit,
+    onScanNextRequested: () -> Unit,
+) {
+    val themeSpec = CurrentAppThemeSpec
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        color = themeSpec.decorColors.panelSurface.copy(alpha = 0.92f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(28.dp))
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Текущая коробка",
+                style = MaterialTheme.typography.titleLarge,
+            )
+            val box = state.currentBox
+            if (box == null) {
+                Text(
+                    text = state.statusText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                )
+            } else {
+                Text(
+                    text = "ID: ${box.boxId}",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = "Наполнение: ${box.filled}/${box.capacity}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                box.orderName?.takeIf(String::isNotBlank)?.let { orderName ->
+                    Text(
+                        text = "Заказ: $orderName",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                    )
+                }
+                box.sscc?.takeIf(String::isNotBlank)?.let { sscc ->
+                    Text(
+                        text = "SSCC: $sscc",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                    )
+                }
+                if (box.printError.isNotBlank()) {
+                    Text(
+                        text = box.printError,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+            }
+
+            state.errorText?.takeIf(String::isNotBlank)?.let { error ->
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            if (state.lastScannedCode.isNotBlank()) {
+                Text(
+                    text = state.lastScannedCode,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (box == null) {
+                    Button(
+                        onClick = onOpenBoxRequested,
+                        enabled = !state.isBusy,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Открыть коробку")
+                    }
+                } else {
+                    Button(
+                        onClick = onCloseBoxRequested,
+                        enabled = !state.isBusy,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Закрыть коробку")
+                    }
+                    OutlinedButton(
+                        onClick = onScanNextRequested,
+                        enabled = !state.isBusy,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Сбросить статус")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultPanel(
+    title: String,
+    mainText: String,
+    secondaryText: String?,
+    warnings: List<String>,
+    buttonLabel: String,
+    isButtonEnabled: Boolean,
+    onButtonClick: () -> Unit,
+) {
+    val themeSpec = CurrentAppThemeSpec
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        color = themeSpec.decorColors.panelSurface.copy(alpha = 0.92f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(28.dp))
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(
+                text = mainText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+            )
+            secondaryText?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            warnings.forEach { warning ->
+                Text(
+                    text = warning,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            }
+            Button(
+                onClick = onButtonClick,
+                enabled = isButtonEnabled,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            ) {
+                Text(buttonLabel)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HidScannerInputField(
+    modifier: Modifier = Modifier,
+) {
+    AndroidView(
+        factory = { context ->
+            EditText(context).apply {
+                val inputMethodManager = context.getSystemService(InputMethodManager::class.java)
+                fun hideKeyboard() {
+                    inputMethodManager?.hideSoftInputFromWindow(windowToken, 0)
+                }
+
+                isSingleLine = true
+                isFocusable = true
+                isFocusableInTouchMode = true
+                imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI or EditorInfo.IME_FLAG_NO_FULLSCREEN
+                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+                showSoftInputOnFocus = false
+                isCursorVisible = false
+                background = null
+                setTextColor(android.graphics.Color.TRANSPARENT)
+                setHintTextColor(android.graphics.Color.TRANSPARENT)
+                requestFocus()
+                post { hideKeyboard() }
+                setOnFocusChangeListener { view, hasFocus ->
+                    if (!hasFocus) {
+                        view.post {
+                            view.requestFocus()
+                            hideKeyboard()
+                        }
+                    } else {
+                        hideKeyboard()
+                    }
+                }
+                val emitRunnable = Runnable {
+                    val text = this.text?.toString().orEmpty()
+                    if (text.isNotBlank()) {
+                        HidScannerInputBus.onTextCommitted(text)
+                        setText("")
+                    }
+                }
+                addTextChangedListener(
+                    object : TextWatcher {
+                        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+                        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+
+                        override fun afterTextChanged(editable: Editable?) {
+                            val text = editable?.toString().orEmpty()
+                            removeCallbacks(emitRunnable)
+                            if (text.contains('\n') || text.contains('\r') || text.contains('\t')) {
+                                HidScannerInputBus.onTextCommitted(text)
+                                setText("")
+                            } else if (text.isNotBlank()) {
+                                postDelayed(emitRunnable, 180L)
+                            }
+                        }
+                    },
+                )
+            }
+        },
+        update = { editText ->
+            if (!editText.hasFocus()) {
+                editText.post { editText.requestFocus() }
+            }
+            val inputMethodManager = editText.context.getSystemService(InputMethodManager::class.java)
+            inputMethodManager?.hideSoftInputFromWindow(editText.windowToken, 0)
+        },
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -257,11 +700,11 @@ private fun PermissionStub(
     ) {
         Text(
             text = "Камера выключена",
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = "Разрешите доступ к камере, чтобы сканировать Data Matrix.",
-            style = MaterialTheme.typography.bodyLarge,
+            text = "Разрешите доступ к камере для проверки существования кода в базе.",
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
         )
@@ -306,7 +749,7 @@ private fun ScannerOverlay(
                     ),
             )
             Text(
-                text = if (scannerEnabled) "Сканирование активно" else "Сканирование на паузе",
+                text = if (scannerEnabled) "Проверка активна" else "Проверка на паузе",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.surface,
             )
@@ -319,4 +762,127 @@ private fun ScannerOverlay(
             )
         }
     }
+}
+
+@Composable
+private fun ModeHintCard(
+    scanMode: ScanMode,
+    hasCameraPermission: Boolean,
+) {
+    val message = when (scanMode) {
+        ScanMode.CameraVerify -> if (hasCameraPermission) {
+            "Режим проверки: камера проверяет, существует ли Data Matrix в базе."
+        } else {
+            "Режим проверки: дайте доступ к камере и наведите Data Matrix в рамку."
+        }
+        ScanMode.PackingTsd -> "Режим упаковки: встроенный сканер ТСД добавляет коды в открытую коробку. Для проверки наличия кода используйте режим камеры."
+    }
+
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(22.dp))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+        )
+    }
+}
+
+@Composable
+private fun CloseBoxDialog(
+    dialog: CloseBoxDialogUi,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(if (dialog.isFull) "Коробка закрыта" else "Коробка закрыта не полной")
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Image(
+                    painter = painterResource(id = if (dialog.isFull) R.drawable.close_box else R.drawable.open_box),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp),
+                )
+                Text("ID коробки: ${dialog.boxId}")
+                dialog.sscc?.takeIf(String::isNotBlank)?.let { sscc ->
+                    Text("SSCC: $sscc")
+                }
+                if (!dialog.isFull) {
+                    Text("Коробку физически не закрывать.")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK")
+            }
+        },
+    )
+}
+
+@Composable
+private fun ActiveBoxesDialog(
+    dialog: ActiveBoxesDialogUi,
+    onSelectBox: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Есть открытая коробка")
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Новая коробка не будет открыта, пока не завершена текущая. Выберите коробку для продолжения.")
+                dialog.boxes.forEach { box ->
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("Коробка #${box.boxId}", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "${box.filled}/${box.capacity}${box.orderName?.let { " • $it" }.orEmpty()}",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Button(
+                                onClick = { onSelectBox(box.boxId) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Продолжить с этой коробкой")
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Закрыть")
+            }
+        },
+    )
 }

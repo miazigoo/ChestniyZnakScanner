@@ -13,6 +13,7 @@ import ru.devandprod.chestniyznak.data.remote.api.ChestniyZnakApi
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteErrorParser
 import ru.devandprod.chestniyznak.data.remote.dto.StatsResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.VerifyExistsRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.VerifyRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.toDomain
 import ru.devandprod.chestniyznak.domain.model.CatalogStats
@@ -59,6 +60,53 @@ class HybridChestniyZnakRepository @Inject constructor(
             return@withContext VerificationResult(
                 status = VerificationStatus.INTERNAL_ERROR,
                 message = exception.message ?: "Не удалось проверить код на сервере",
+            )
+        }
+
+        when {
+            response.isSuccessful && response.body() != null -> {
+                refreshStats()
+                response.body()!!.toDomain()
+            }
+            response.code() == 401 || response.code() == 403 -> {
+                authRepository.invalidateSession()
+                VerificationResult(
+                    status = VerificationStatus.INTERNAL_ERROR,
+                    message = "Сессия истекла. Войдите снова.",
+                )
+            }
+            else -> {
+                val local = localRepository.verify(rawInput, scannerId, allowDuplicate)
+                statsFlow.value = localRepository.snapshotStats()
+                local.copy(
+                    warnings = local.warnings + errorParser.message(response),
+                )
+            }
+        }
+    }
+
+    override suspend fun verifyExists(
+        rawInput: String,
+        scannerId: String,
+        allowDuplicate: Boolean,
+    ): VerificationResult = withContext(ioDispatcher) {
+        val response = try {
+            remoteApi.verifyExists(
+                VerifyExistsRequestDto(
+                    code = rawInput,
+                    scannerId = scannerId,
+                    allowDuplicate = allowDuplicate,
+                    saveScan = true,
+                ),
+            )
+        } catch (_: IOException) {
+            val local = localRepository.verify(rawInput, scannerId, allowDuplicate)
+            statsFlow.value = localRepository.snapshotStats()
+            return@withContext local
+        } catch (exception: Exception) {
+            return@withContext VerificationResult(
+                status = VerificationStatus.INTERNAL_ERROR,
+                message = exception.message ?: "Не удалось проверить наличие кода на сервере",
             )
         }
 
