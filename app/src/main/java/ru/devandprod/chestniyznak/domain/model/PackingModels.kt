@@ -38,6 +38,13 @@ data class PackingBoxPage(
     val hasMore: Boolean,
 )
 
+data class PackingBoxActionResult(
+    val ok: Boolean,
+    val reasonCode: String,
+    val error: String? = null,
+    val box: PackingBoxDetail,
+)
+
 data class OpenPackingBoxResult(
     val ok: Boolean,
     val created: Boolean,

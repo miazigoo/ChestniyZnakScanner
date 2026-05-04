@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackingBox
+import ru.devandprod.chestniyznak.domain.model.PackingBoxActionResult
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.model.PackingBoxItem
 import ru.devandprod.chestniyznak.domain.model.PackingBoxPage
@@ -17,6 +18,11 @@ data class OpenBoxRequestDto(
     val allowDuplicateScans: Boolean? = null,
     @SerialName("device_id")
     val deviceId: String = "",
+)
+
+@Serializable
+data class EditBoxRequestDto(
+    val reason: String = "",
 )
 
 @Serializable
@@ -64,6 +70,10 @@ data class BoxItemDto(
     val serial: String,
     @SerialName("visible_code")
     val visibleCode: String,
+    @SerialName("added_at")
+    val addedAt: String? = null,
+    @SerialName("added_by_id")
+    val addedById: Long? = null,
 )
 
 @Serializable
@@ -143,6 +153,15 @@ data class CurrentBoxResponseDto(
 )
 
 @Serializable
+data class BoxActionResponseDto(
+    val ok: Boolean,
+    @SerialName("reason_code")
+    val reasonCode: String,
+    val error: String? = null,
+    val box: CurrentBoxResponseDto,
+)
+
+@Serializable
 data class ScanToBoxResponseDto(
     val ok: Boolean,
     @SerialName("reason_code")
@@ -187,6 +206,13 @@ fun BoxesListResponseDto.toDomain(): PackingBoxPage = PackingBoxPage(
 fun CurrentBoxResponseDto.toDomain(): PackingBoxDetail = PackingBoxDetail(
     box = toBox().toDomain(),
     items = items.map { it.toDomain() },
+)
+
+fun BoxActionResponseDto.toDomain(): PackingBoxActionResult = PackingBoxActionResult(
+    ok = ok,
+    reasonCode = reasonCode,
+    error = error,
+    box = box.toDomain(),
 )
 
 fun ScanToBoxResponseDto.toDomain(): PackingScanResult = PackingScanResult(

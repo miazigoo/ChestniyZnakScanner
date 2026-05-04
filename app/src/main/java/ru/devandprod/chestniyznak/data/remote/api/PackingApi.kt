@@ -6,9 +6,11 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+import ru.devandprod.chestniyznak.data.remote.dto.BoxActionResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.CloseBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.BoxesListResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.CurrentBoxResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.EditBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxRequestDto
@@ -26,6 +28,11 @@ interface PackingApi {
     @GET("chestniy-znak/packing/boxes/current")
     suspend fun currentBox(): Response<CurrentBoxResponseDto>
 
+    @GET("chestniy-znak/packing/boxes/{boxId}")
+    suspend fun getBox(
+        @Path("boxId") boxId: Long,
+    ): Response<BoxActionResponseDto>
+
     @POST("chestniy-znak/packing/boxes/open")
     suspend fun openBox(
         @Body request: OpenBoxRequestDto,
@@ -39,6 +46,17 @@ interface PackingApi {
 
     @POST("chestniy-znak/packing/boxes/{boxId}/close")
     suspend fun closeBox(
+        @Path("boxId") boxId: Long,
+    ): Response<CloseBoxResponseDto>
+
+    @POST("chestniy-znak/packing/box-edit/{boxId}/open")
+    suspend fun openBoxEdit(
+        @Path("boxId") boxId: Long,
+        @Body request: EditBoxRequestDto,
+    ): Response<BoxActionResponseDto>
+
+    @POST("chestniy-znak/packing/printer/boxes/{boxId}/print")
+    suspend fun printBoxLabel(
         @Path("boxId") boxId: Long,
     ): Response<CloseBoxResponseDto>
 }

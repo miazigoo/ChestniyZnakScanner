@@ -20,6 +20,8 @@ import ru.devandprod.chestniyznak.core.scanner.ScannerCommandBus
 import ru.devandprod.chestniyznak.domain.model.AppThemeOption
 import ru.devandprod.chestniyznak.feature.auth.AuthRoute
 import ru.devandprod.chestniyznak.feature.auth.AuthViewModel
+import ru.devandprod.chestniyznak.feature.boxdetail.BoxDetailRoute
+import ru.devandprod.chestniyznak.feature.boxlookup.BoxLookupRoute
 import ru.devandprod.chestniyznak.feature.boxes.BoxesListRoute
 import ru.devandprod.chestniyznak.feature.menu.MenuRoute
 import ru.devandprod.chestniyznak.feature.scanner.ScanRoute
@@ -84,8 +86,7 @@ private fun AuthenticatedNavHost(
                     navController.popBackStack()
                 },
                 onShowCurrentBox = {
-                    ScannerCommandBus.send(ScannerCommand.SwitchToTsd)
-                    navController.popBackStack()
+                    navController.navigate(AppDestination.BoxLookup.route)
                 },
                 onOpenBoxesList = {
                     navController.navigate(AppDestination.boxesRoute("all"))
@@ -96,6 +97,28 @@ private fun AuthenticatedNavHost(
                 onOpenSettings = { navController.navigate(AppDestination.Settings.route) },
                 onOpenThemeSelection = { navController.navigate(AppDestination.ThemeSelection.route) },
                 onLogoutRequest = onLogoutRequest,
+            )
+        }
+        composable(AppDestination.BoxLookup.route) {
+            BoxLookupRoute(
+                onBack = { navController.popBackStack() },
+                onOpenBox = { boxId ->
+                    navController.navigate(AppDestination.boxDetailRoute(boxId))
+                },
+            )
+        }
+        composable(
+            route = AppDestination.BoxDetail.route,
+            arguments = listOf(
+                navArgument(AppDestination.BOX_ID_ARG) {
+                    type = NavType.LongType
+                },
+            ),
+        ) {
+            BoxDetailRoute(
+                onBackToMenu = {
+                    navController.popBackStack(AppDestination.Menu.route, false)
+                },
             )
         }
         composable(

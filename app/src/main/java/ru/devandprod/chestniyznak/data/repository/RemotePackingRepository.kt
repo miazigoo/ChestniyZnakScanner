@@ -10,11 +10,13 @@ import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteErrorParser
 import ru.devandprod.chestniyznak.data.remote.dto.CloseBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.CurrentBoxResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.EditBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.toDomain
+import ru.devandprod.chestniyznak.domain.model.PackingBoxActionResult
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
@@ -69,6 +71,15 @@ class RemotePackingRepository @Inject constructor(
         }
     }
 
+    override suspend fun getBox(boxId: Long): PackingBoxDetail = withContext(ioDispatcher) {
+        val response = runCatching { packingApi.getBox(boxId) }.getOrElse {
+            throw RuntimeException(it.message ?: "Не удалось получить коробку")
+        }
+        mapResponse(response)?.toDomain()
+            ?.box
+            ?: throw RuntimeException(errorParser.message(response))
+    }
+
     override suspend fun openBox(deviceId: String): OpenPackingBoxResult = withContext(ioDispatcher) {
         val response = runCatching {
             packingApi.openBox(
@@ -76,6 +87,29 @@ class RemotePackingRepository @Inject constructor(
             )
         }.getOrElse {
             throw RuntimeException(it.message ?: "Не удалось открыть коробку")
+        }
+
+        mapResponse(response)?.toDomain()
+            ?: throw RuntimeException(errorParser.message(response))
+    }
+
+    override suspend fun openBoxEdit(boxId: Long, reason: String): PackingBoxActionResult = withContext(ioDispatcher) {
+        val response = runCatching {
+            packingApi.openBoxEdit(
+                boxId = boxId,
+                request = EditBoxRequestDto(reason = reason),
+            )
+        }.getOrElse {
+            throw RuntimeException(it.message ?: "Не удалось открыть редактирование коробки")
+        }
+
+        mapResponse(response)?.toDomain()
+            ?: throw RuntimeException(errorParser.message(response))
+    }
+
+    override suspend fun printBoxLabel(boxId: Long): ClosePackingBoxResult = withContext(ioDispatcher) {
+        val response = runCatching { packingApi.printBoxLabel(boxId) }.getOrElse {
+            throw RuntimeException(it.message ?: "Не удалось распечатать этикетку коробки")
         }
 
         mapResponse(response)?.toDomain()
