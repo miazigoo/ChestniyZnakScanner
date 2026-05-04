@@ -150,6 +150,9 @@ private fun AuthenticatedNavHost(
         ) {
             BoxesListRoute(
                 onBack = { navController.popBackStack() },
+                onOpenBox = { boxId ->
+                    navController.navigate(AppDestination.boxDetailRoute(boxId))
+                },
             )
         }
         composable(AppDestination.Settings.route) {

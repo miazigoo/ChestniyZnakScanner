@@ -1,6 +1,7 @@
 package ru.devandprod.chestniyznak.feature.boxes
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,12 +34,14 @@ import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 @Composable
 fun BoxesListRoute(
     onBack: () -> Unit,
+    onOpenBox: (Long) -> Unit,
     viewModel: BoxesListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
     BoxesListScreen(
         state = state,
         onBack = onBack,
+        onOpenBox = onOpenBox,
         onRefresh = viewModel::refresh,
     )
 }
@@ -48,6 +51,7 @@ fun BoxesListRoute(
 fun BoxesListScreen(
     state: BoxesListUiState,
     onBack: () -> Unit,
+    onOpenBox: (Long) -> Unit,
     onRefresh: () -> Unit,
 ) {
     val decor = CurrentAppDecorColors
@@ -151,6 +155,7 @@ fun BoxesListScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .clickable { onOpenBox(box.boxId) }
                                         .padding(18.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
