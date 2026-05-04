@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +31,8 @@ class BoxDetailViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(BoxDetailUiState())
     val uiState: StateFlow<BoxDetailUiState> = _uiState.asStateFlow()
+    private val _openEditEvents = MutableSharedFlow<Long>(extraBufferCapacity = 1)
+    val openEditEvents: SharedFlow<Long> = _openEditEvents.asSharedFlow()
 
     init {
         refresh()
@@ -77,7 +82,7 @@ class BoxDetailViewModel @Inject constructor(
                             statusText = "Режим редактирования открыт",
                         )
                     }
-                    refresh()
+                    _openEditEvents.tryEmit(boxId)
                 }
                 .onFailure { error ->
                     _uiState.update {

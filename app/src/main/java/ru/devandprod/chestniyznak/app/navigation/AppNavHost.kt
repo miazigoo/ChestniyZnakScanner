@@ -21,6 +21,7 @@ import ru.devandprod.chestniyznak.domain.model.AppThemeOption
 import ru.devandprod.chestniyznak.feature.auth.AuthRoute
 import ru.devandprod.chestniyznak.feature.auth.AuthViewModel
 import ru.devandprod.chestniyznak.feature.boxdetail.BoxDetailRoute
+import ru.devandprod.chestniyznak.feature.boxedit.BoxEditRoute
 import ru.devandprod.chestniyznak.feature.boxlookup.BoxLookupRoute
 import ru.devandprod.chestniyznak.feature.boxes.BoxesListRoute
 import ru.devandprod.chestniyznak.feature.menu.MenuRoute
@@ -119,6 +120,21 @@ private fun AuthenticatedNavHost(
                 onBackToMenu = {
                     navController.popBackStack(AppDestination.Menu.route, false)
                 },
+                onOpenEdit = { boxId ->
+                    navController.navigate(AppDestination.boxEditRoute(boxId))
+                },
+            )
+        }
+        composable(
+            route = AppDestination.BoxEdit.route,
+            arguments = listOf(
+                navArgument(AppDestination.BOX_ID_ARG) {
+                    type = NavType.LongType
+                },
+            ),
+        ) {
+            BoxEditRoute(
+                onBack = { navController.popBackStack() },
             )
         }
         composable(

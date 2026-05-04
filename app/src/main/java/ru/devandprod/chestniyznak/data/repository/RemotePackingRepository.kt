@@ -13,6 +13,7 @@ import ru.devandprod.chestniyznak.data.remote.dto.CurrentBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.EditBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.RemoveBoxItemRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.toDomain
@@ -101,6 +102,38 @@ class RemotePackingRepository @Inject constructor(
             )
         }.getOrElse {
             throw RuntimeException(it.message ?: "Не удалось открыть редактирование коробки")
+        }
+
+        mapResponse(response)?.toDomain()
+            ?: throw RuntimeException(errorParser.message(response))
+    }
+
+    override suspend fun removeBoxItem(boxId: Long, itemId: Long): PackingBoxActionResult = withContext(ioDispatcher) {
+        val response = runCatching {
+            packingApi.removeBoxItem(
+                boxId = boxId,
+                request = RemoveBoxItemRequestDto(itemId = itemId),
+            )
+        }.getOrElse {
+            throw RuntimeException(it.message ?: "Не удалось удалить код из коробки")
+        }
+
+        mapResponse(response)?.toDomain()
+            ?: throw RuntimeException(errorParser.message(response))
+    }
+
+    override suspend fun clearBox(boxId: Long): PackingBoxActionResult = withContext(ioDispatcher) {
+        val response = runCatching { packingApi.clearBox(boxId) }.getOrElse {
+            throw RuntimeException(it.message ?: "Не удалось очистить коробку")
+        }
+
+        mapResponse(response)?.toDomain()
+            ?: throw RuntimeException(errorParser.message(response))
+    }
+
+    override suspend fun deleteEmptyBox(boxId: Long): PackingBoxActionResult = withContext(ioDispatcher) {
+        val response = runCatching { packingApi.deleteEmptyBox(boxId) }.getOrElse {
+            throw RuntimeException(it.message ?: "Не удалось удалить пустую коробку")
         }
 
         mapResponse(response)?.toDomain()

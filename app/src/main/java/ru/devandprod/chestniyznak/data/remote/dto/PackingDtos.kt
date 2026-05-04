@@ -26,6 +26,14 @@ data class EditBoxRequestDto(
 )
 
 @Serializable
+data class RemoveBoxItemRequestDto(
+    @SerialName("item_id")
+    val itemId: Long? = null,
+    @SerialName("code_id")
+    val codeId: Long? = null,
+)
+
+@Serializable
 data class ScanToBoxRequestDto(
     val code: String,
     @SerialName("scanner_id")
@@ -159,6 +167,7 @@ data class BoxActionResponseDto(
     val reasonCode: String,
     val error: String? = null,
     val box: CurrentBoxResponseDto,
+    val removed: Int? = null,
 )
 
 @Serializable
@@ -213,6 +222,7 @@ fun BoxActionResponseDto.toDomain(): PackingBoxActionResult = PackingBoxActionRe
     reasonCode = reasonCode,
     error = error,
     box = box.toDomain(),
+    removed = removed,
 )
 
 fun ScanToBoxResponseDto.toDomain(): PackingScanResult = PackingScanResult(

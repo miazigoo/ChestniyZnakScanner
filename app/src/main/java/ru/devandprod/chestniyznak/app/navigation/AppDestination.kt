@@ -5,6 +5,7 @@ enum class AppDestination(val route: String) {
     Boxes("boxes/{filter}"),
     BoxLookup("box-lookup"),
     BoxDetail("box-detail/{boxId}"),
+    BoxEdit("box-edit/{boxId}"),
     Settings("settings"),
     ThemeSelection("theme-selection"),
     Login("login"),
@@ -15,5 +16,6 @@ enum class AppDestination(val route: String) {
         const val BOX_ID_ARG = "boxId"
         fun boxesRoute(filter: String): String = "boxes/$filter"
         fun boxDetailRoute(boxId: Long): String = "box-detail/$boxId"
+        fun boxEditRoute(boxId: Long): String = "box-edit/$boxId"
     }
 }

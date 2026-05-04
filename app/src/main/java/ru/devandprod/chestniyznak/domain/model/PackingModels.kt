@@ -43,6 +43,7 @@ data class PackingBoxActionResult(
     val reasonCode: String,
     val error: String? = null,
     val box: PackingBoxDetail,
+    val removed: Int? = null,
 )
 
 data class OpenPackingBoxResult(

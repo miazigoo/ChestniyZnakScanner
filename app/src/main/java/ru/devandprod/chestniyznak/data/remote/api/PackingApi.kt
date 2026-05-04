@@ -2,6 +2,7 @@ package ru.devandprod.chestniyznak.data.remote.api
 
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -13,6 +14,7 @@ import ru.devandprod.chestniyznak.data.remote.dto.CurrentBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.EditBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.RemoveBoxItemRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxResponseDto
 
@@ -53,6 +55,22 @@ interface PackingApi {
     suspend fun openBoxEdit(
         @Path("boxId") boxId: Long,
         @Body request: EditBoxRequestDto,
+    ): Response<BoxActionResponseDto>
+
+    @POST("chestniy-znak/packing/box-edit/{boxId}/items/remove")
+    suspend fun removeBoxItem(
+        @Path("boxId") boxId: Long,
+        @Body request: RemoveBoxItemRequestDto,
+    ): Response<BoxActionResponseDto>
+
+    @POST("chestniy-znak/packing/box-edit/{boxId}/clear")
+    suspend fun clearBox(
+        @Path("boxId") boxId: Long,
+    ): Response<BoxActionResponseDto>
+
+    @DELETE("chestniy-znak/packing/box-edit/{boxId}/empty")
+    suspend fun deleteEmptyBox(
+        @Path("boxId") boxId: Long,
     ): Response<BoxActionResponseDto>
 
     @POST("chestniy-znak/packing/printer/boxes/{boxId}/print")
