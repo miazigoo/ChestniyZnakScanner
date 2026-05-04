@@ -54,6 +54,7 @@ import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
 @Composable
 fun BoxEditRoute(
     onBack: () -> Unit,
+    onBoxDeleted: () -> Unit,
     viewModel: BoxEditViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -63,7 +64,7 @@ fun BoxEditRoute(
     }
 
     LaunchedEffect(viewModel) {
-        viewModel.boxDeleted.collect { onBack() }
+        viewModel.boxDeleted.collect { onBoxDeleted() }
     }
 
     BoxEditScreen(

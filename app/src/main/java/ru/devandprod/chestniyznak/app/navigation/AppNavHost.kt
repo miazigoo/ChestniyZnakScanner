@@ -135,6 +135,9 @@ private fun AuthenticatedNavHost(
         ) {
             BoxEditRoute(
                 onBack = { navController.popBackStack() },
+                onBoxDeleted = {
+                    navController.popBackStack(AppDestination.Menu.route, false)
+                },
             )
         }
         composable(
