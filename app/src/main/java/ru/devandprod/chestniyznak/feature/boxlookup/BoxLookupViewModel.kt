@@ -30,6 +30,7 @@ class BoxLookupViewModel @Inject constructor(
 
         val normalized = rawCode.trim()
         if (normalized.isBlank()) return
+        val candidates = buildLookupCandidates(normalized)
 
         _uiState.update {
             it.copy(
@@ -42,13 +43,20 @@ class BoxLookupViewModel @Inject constructor(
 
         viewModelScope.launch {
             runCatching {
-                listPackingBoxesUseCase(query = normalized, limit = 10)
-            }.onSuccess { page ->
-                val exact = page.items.firstOrNull {
-                    it.sscc == normalized || it.boxId.toString() == normalized
-                } ?: page.items.firstOrNull()
-
-                if (exact == null) {
+                var foundBoxId: Long? = null
+                for (candidate in candidates) {
+                    val page = listPackingBoxesUseCase(query = candidate, limit = 10)
+                    val exact = page.items.firstOrNull {
+                        it.sscc == candidate || it.boxId.toString() == candidate
+                    } ?: page.items.firstOrNull()
+                    if (exact != null) {
+                        foundBoxId = exact.boxId
+                        break
+                    }
+                }
+                foundBoxId
+            }.onSuccess { boxId ->
+                if (boxId == null) {
                     _uiState.update {
                         it.copy(
                             isBusy = false,
@@ -60,10 +68,10 @@ class BoxLookupViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isBusy = false,
-                            statusText = "Коробка #${exact.boxId} найдена",
+                            statusText = "Коробка #$boxId найдена",
                         )
                     }
-                    _openBoxEvents.tryEmit(exact.boxId)
+                    _openBoxEvents.tryEmit(boxId)
                 }
             }.onFailure { error ->
                 _uiState.update {
@@ -75,6 +83,27 @@ class BoxLookupViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun buildLookupCandidates(raw: String): List<String> {
+        val compact = raw
+            .replace("(", "")
+            .replace(")", "")
+            .replace("\u001D", "")
+            .replace(" ", "")
+
+        val values = linkedSetOf<String>()
+        values += compact
+
+        val digitsOnly = compact.filter(Char::isDigit)
+        if (digitsOnly.isNotBlank()) {
+            values += digitsOnly
+            if (digitsOnly.length == 20 && digitsOnly.startsWith("00")) {
+                values += digitsOnly.drop(2)
+            }
+        }
+
+        return values.filter { it.isNotBlank() }
     }
 
     fun onResetStatus() {
