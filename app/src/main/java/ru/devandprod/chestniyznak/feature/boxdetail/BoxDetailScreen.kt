@@ -14,12 +14,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,6 +78,14 @@ fun BoxDetailScreen(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
                         }
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onBackToMenu) {
+                        Icon(
+                            painter = painterResource(id = android.R.drawable.ic_menu_sort_by_size),
+                            contentDescription = "Меню",
+                        )
                     }
                 },
             )
@@ -132,20 +142,6 @@ fun BoxDetailScreen(
                                     modifier = Modifier.weight(1f),
                                 ) {
                                     Text("Распечатать", maxLines = 1)
-                                }
-                                OutlinedButton(
-                                    onClick = onRefresh,
-                                    enabled = !state.isActionBusy,
-                                    modifier = Modifier.weight(1f),
-                                ) {
-                                    Text("Обновить", maxLines = 1)
-                                }
-                                OutlinedButton(
-                                    onClick = onBackToMenu,
-                                    enabled = !state.isActionBusy,
-                                    modifier = Modifier.weight(1f),
-                                ) {
-                                    Text("Меню", maxLines = 1)
                                 }
                             }
                         }
