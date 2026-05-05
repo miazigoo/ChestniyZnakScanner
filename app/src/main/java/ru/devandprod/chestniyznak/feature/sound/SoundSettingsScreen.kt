@@ -1,7 +1,6 @@
 package ru.devandprod.chestniyznak.feature.sound
 
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,9 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,6 +24,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -165,29 +170,66 @@ private fun SoundGroupCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
-            choices.forEach { choice ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSelected(choice.key) }
-                        .padding(vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    RadioButton(
-                        selected = selectedKey == choice.key,
-                        onClick = { onSelected(choice.key) },
+            SoundSelector(
+                selectedKey = selectedKey,
+                choices = choices,
+                onSelected = onSelected,
+                onPreview = onPreview,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SoundSelector(
+    selectedKey: String,
+    choices: List<SoundChoice>,
+    onSelected: (String) -> Unit,
+    onPreview: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedTitle = choices.firstOrNull { it.key == selectedKey }?.title ?: selectedKey
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
+            modifier = Modifier.weight(1f),
+        ) {
+            OutlinedTextField(
+                value = selectedTitle,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Выбранный звук") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                choices.forEach { choice ->
+                    DropdownMenuItem(
+                        text = { Text(choice.title) },
+                        onClick = {
+                            onSelected(choice.key)
+                            expanded = false
+                        },
                     )
-                    Text(
-                        text = choice.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(onClick = { onPreview(choice.key) }) {
-                        Text("Play")
-                    }
                 }
             }
+        }
+        TextButton(onClick = { onPreview(selectedKey) }) {
+            Text("Play")
         }
     }
 }
