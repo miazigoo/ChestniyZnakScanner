@@ -144,6 +144,8 @@ class ScanViewModel @Inject constructor(
                         isProcessing = false,
                         isScannerEnabled = false,
                         resultCard = result.toVerifyCard(),
+                        orderName = result.orderName?.takeIf(String::isNotBlank)
+                            ?: result.code?.orderName?.takeIf(String::isNotBlank),
                         visibleCode = result.parsed?.visibleCode ?: rawCode,
                         technicalStatus = result.status.name,
                         warnings = result.warnings,
@@ -222,6 +224,7 @@ class ScanViewModel @Inject constructor(
                     isScannerEnabled = state.scanMode == ScanMode.CameraVerify && state.verify.hasCameraPermission && !state.isLoading,
                     isProcessing = false,
                     resultCard = null,
+                    orderName = null,
                     visibleCode = "",
                     technicalStatus = "",
                     warnings = emptyList(),
@@ -528,6 +531,11 @@ class ScanViewModel @Inject constructor(
                 message = "Код добавлен в коробку",
                 tone = if (boxFullSignal == true) ScanResultTone.Warning else ScanResultTone.Success,
             )
+            reasonCode == "wrong_order" -> ScanResultCardUi(
+                headline = "NO",
+                message = error ?: "Код не подходит для этой коробки",
+                tone = ScanResultTone.Warning,
+            )
             reasonCode == "code_in_other_box" -> ScanResultCardUi(
                 headline = "NO",
                 message = error ?: "Код уже лежит в другой коробке",
@@ -549,6 +557,8 @@ class ScanViewModel @Inject constructor(
     private fun PackingScanResult.toPackingStatusText(): String = when {
         ok && boxFullSignal == true -> "Коробка заполнена"
         ok && duplicate == true -> "Код уже есть в коробке"
+        reasonCode == "wrong_order" && error?.contains("не привязан", ignoreCase = true) == true -> "Код не привязан к заказу"
+        reasonCode == "wrong_order" -> "Другой заказ"
         reasonCode == "code_in_other_box" -> "Код уже в другой коробке"
         ok -> "Код добавлен в коробку"
         else -> "Код не добавлен"

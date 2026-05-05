@@ -9,4 +9,5 @@ data class MarkingCode(
     val status1c: String,
     val appStatus: String,
     val orderNumber: String,
+    val orderName: String = "",
 )

@@ -292,7 +292,17 @@ private fun CameraVerifyContent(
         } else {
             state.visibleCode
         },
-        secondaryText = state.technicalStatus.takeIf(String::isNotBlank)?.let { "Статус проверки: $it" },
+        secondaryText = buildString {
+            state.technicalStatus.takeIf(String::isNotBlank)?.let {
+                append("Статус проверки: ")
+                append(it)
+            }
+            state.orderName?.takeIf(String::isNotBlank)?.let { orderName ->
+                if (isNotEmpty()) append('\n')
+                append("Заказ: ")
+                append(orderName)
+            }
+        }.takeIf(String::isNotBlank),
         warnings = state.warnings,
         buttonLabel = "Сканировать следующий",
         isButtonEnabled = state.hasCameraPermission && !state.isProcessing,

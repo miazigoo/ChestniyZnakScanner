@@ -16,6 +16,7 @@ data class VerificationResult(
     val scanId: Long? = null,
     val parsed: ParsedMarkingCode? = null,
     val code: MarkingCode? = null,
+    val orderName: String? = null,
     val warnings: List<String> = emptyList(),
 ) {
     val isSuccess: Boolean

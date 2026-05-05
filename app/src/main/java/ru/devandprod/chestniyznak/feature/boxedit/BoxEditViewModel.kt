@@ -124,7 +124,13 @@ class BoxEditViewModel @Inject constructor(
                     it.copy(
                         isBusy = false,
                         isAwaitingScan = false,
-                        statusText = if (result.ok) "Код добавлен" else (result.error ?: result.verify?.message ?: "Код не добавлен"),
+                        statusText = when {
+                            result.ok -> "Код добавлен"
+                            result.reasonCode == "wrong_order" && (result.error?.contains("не привязан", ignoreCase = true) == true) ->
+                                "Код не привязан к заказу"
+                            result.reasonCode == "wrong_order" -> "Другой заказ"
+                            else -> result.error ?: result.verify?.message ?: "Код не добавлен"
+                        },
                         errorText = if (result.ok) null else result.error ?: result.verify?.message,
                     )
                 }
