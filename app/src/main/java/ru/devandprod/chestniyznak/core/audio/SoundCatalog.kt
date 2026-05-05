@@ -10,7 +10,7 @@ data class SoundChoice(
 object SoundCatalog {
     const val DEFAULT_ERROR = "error"
     const val DEFAULT_WARNING = "other"
-    const val DEFAULT_OTHER_ORDER = "other_order_2"
+    const val DEFAULT_OTHER_ORDER = "other_order"
     const val DEFAULT_SUCCESS = "victory"
 
     val errorChoices = listOf(
@@ -48,6 +48,7 @@ object SoundCatalog {
     )
 
     val otherOrderChoices = listOf(
+        SoundChoice("other_order", "Другой заказ — основной"),
         SoundChoice("other_order_2", "Другой заказ 02"),
         SoundChoice("other_order_3", "Другой заказ 03"),
         SoundChoice("other_order_4", "Другой заказ 04"),
@@ -57,7 +58,6 @@ object SoundCatalog {
         SoundChoice("other_order_8", "Другой заказ 08"),
         SoundChoice("other_order_9", "Другой заказ 09"),
         SoundChoice("other_order_10", "Другой заказ 10"),
-        SoundChoice("other_order", "Другой заказ — основной"),
         SoundChoice("other", "Другой заказ — резерв"),
     )
 
