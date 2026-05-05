@@ -44,6 +44,10 @@ class AudioFeedbackPlayer @Inject constructor(
         )
     }
 
+    fun previewByKey(key: String) {
+        playByKey(key, emptyList())
+    }
+
     private fun playByKey(key: String?, fallbackKeys: List<String>) {
         val resId = (listOfNotNull(key) + fallbackKeys)
             .distinct()

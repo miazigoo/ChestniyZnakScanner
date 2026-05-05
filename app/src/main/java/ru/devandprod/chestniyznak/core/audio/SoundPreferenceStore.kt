@@ -29,4 +29,20 @@ class SoundPreferenceStore @Inject constructor(
 
     fun getSuccessKey(): String =
         prefs.getString(KEY_SUCCESS, SoundCatalog.DEFAULT_SUCCESS) ?: SoundCatalog.DEFAULT_SUCCESS
+
+    fun setErrorKey(value: String) {
+        prefs.edit().putString(KEY_ERROR, value).apply()
+    }
+
+    fun setWarningKey(value: String) {
+        prefs.edit().putString(KEY_WARNING, value).apply()
+    }
+
+    fun setOtherOrderKey(value: String) {
+        prefs.edit().putString(KEY_OTHER_ORDER, value).apply()
+    }
+
+    fun setSuccessKey(value: String) {
+        prefs.edit().putString(KEY_SUCCESS, value).apply()
+    }
 }

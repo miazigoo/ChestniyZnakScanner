@@ -28,11 +28,13 @@ import ru.devandprod.chestniyznak.domain.model.AppThemeOption
 fun SettingsRoute(
     currentTheme: AppThemeOption,
     onBack: () -> Unit,
+    onOpenSoundSettings: () -> Unit,
     onOpenThemeSelection: () -> Unit,
 ) {
     SettingsScreen(
         currentTheme = currentTheme,
         onBack = onBack,
+        onOpenSoundSettings = onOpenSoundSettings,
         onOpenThemeSelection = onOpenThemeSelection,
     )
 }
@@ -42,6 +44,7 @@ fun SettingsRoute(
 fun SettingsScreen(
     currentTheme: AppThemeOption,
     onBack: () -> Unit,
+    onOpenSoundSettings: () -> Unit,
     onOpenThemeSelection: () -> Unit,
 ) {
     val decor = CurrentAppDecorColors
@@ -97,12 +100,11 @@ fun SettingsScreen(
                 )
                 SettingsSectionCard(
                     title = "Звук и оповещения",
-                    subtitle = "Скоро",
+                    subtitle = "Настраивается",
                     description = "Сигналы успеха и ошибки, громкость, silent mode, сценарии предупреждений.",
-                    actionLabel = "Скоро",
+                    actionLabel = "Открыть",
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                    enabled = false,
-                    onClick = {},
+                    onClick = onOpenSoundSettings,
                 )
                 SettingsSectionCard(
                     title = "Профиль устройства",

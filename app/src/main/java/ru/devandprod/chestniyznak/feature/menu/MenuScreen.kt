@@ -32,6 +32,7 @@ fun MenuRoute(
     onOpenBoxesList: () -> Unit,
     onOpenEmptyBoxes: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenSoundSettings: () -> Unit,
     onOpenThemeSelection: () -> Unit,
     onLogoutRequest: () -> Unit,
 ) {
@@ -42,6 +43,7 @@ fun MenuRoute(
         onOpenBoxesList = onOpenBoxesList,
         onOpenEmptyBoxes = onOpenEmptyBoxes,
         onOpenSettings = onOpenSettings,
+        onOpenSoundSettings = onOpenSoundSettings,
         onOpenThemeSelection = onOpenThemeSelection,
         onLogoutRequest = onLogoutRequest,
     )
@@ -56,6 +58,7 @@ fun MenuScreen(
     onOpenBoxesList: () -> Unit,
     onOpenEmptyBoxes: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenSoundSettings: () -> Unit,
     onOpenThemeSelection: () -> Unit,
     onLogoutRequest: () -> Unit,
 ) {
@@ -133,10 +136,9 @@ fun MenuScreen(
                 )
                 MenuItemCard(
                     title = "Звук",
-                    subtitle = "Раздел подготовлен под сигналы и оповещения.",
+                    subtitle = "Настроить сигналы успеха, ошибки и предупреждений.",
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                    enabled = false,
-                    onClick = {},
+                    onClick = onOpenSoundSettings,
                 )
                 MenuItemCard(
                     title = "Выйти",

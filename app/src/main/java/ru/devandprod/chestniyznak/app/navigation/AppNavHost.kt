@@ -27,6 +27,7 @@ import ru.devandprod.chestniyznak.feature.boxes.BoxesListRoute
 import ru.devandprod.chestniyznak.feature.menu.MenuRoute
 import ru.devandprod.chestniyznak.feature.scanner.ScanRoute
 import ru.devandprod.chestniyznak.feature.settings.SettingsRoute
+import ru.devandprod.chestniyznak.feature.sound.SoundSettingsRoute
 import ru.devandprod.chestniyznak.feature.themes.ThemeSelectionRoute
 
 @Composable
@@ -96,6 +97,7 @@ private fun AuthenticatedNavHost(
                     navController.navigate(AppDestination.boxesRoute("empty"))
                 },
                 onOpenSettings = { navController.navigate(AppDestination.Settings.route) },
+                onOpenSoundSettings = { navController.navigate(AppDestination.SoundSettings.route) },
                 onOpenThemeSelection = { navController.navigate(AppDestination.ThemeSelection.route) },
                 onLogoutRequest = onLogoutRequest,
             )
@@ -159,7 +161,13 @@ private fun AuthenticatedNavHost(
             SettingsRoute(
                 currentTheme = selectedTheme,
                 onBack = { navController.popBackStack() },
+                onOpenSoundSettings = { navController.navigate(AppDestination.SoundSettings.route) },
                 onOpenThemeSelection = { navController.navigate(AppDestination.ThemeSelection.route) },
+            )
+        }
+        composable(AppDestination.SoundSettings.route) {
+            SoundSettingsRoute(
+                onBack = { navController.popBackStack() },
             )
         }
         composable(AppDestination.ThemeSelection.route) {

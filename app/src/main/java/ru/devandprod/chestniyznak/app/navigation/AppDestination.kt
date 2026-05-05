@@ -7,6 +7,7 @@ enum class AppDestination(val route: String) {
     BoxDetail("box-detail/{boxId}"),
     BoxEdit("box-edit/{boxId}"),
     Settings("settings"),
+    SoundSettings("sound-settings"),
     ThemeSelection("theme-selection"),
     Login("login"),
     Scanner("scanner");
