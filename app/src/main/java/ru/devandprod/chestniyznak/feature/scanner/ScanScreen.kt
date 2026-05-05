@@ -317,8 +317,6 @@ private fun PackingContent(
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
 ) {
-    PackingViewport(isBusy = state.isBusy)
-
     CurrentBoxPanel(
         state = state,
         onOpenBoxRequested = onOpenBoxRequested,
@@ -365,44 +363,6 @@ private fun ScannerViewport(
     }
 }
 
-@Composable
-private fun PackingViewport(
-    isBusy: Boolean,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp),
-        shadowElevation = 0.dp,
-        tonalElevation = 0.dp,
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(32.dp))
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = "Упаковка в коробку",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    text = if (isBusy) "Обработка скана..." else "Ожидание сканирования встроенным сканером",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun CurrentBoxPanel(

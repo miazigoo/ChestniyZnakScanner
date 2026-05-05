@@ -46,6 +46,7 @@ data class BoxDto(
     val boxId: Long,
     @SerialName("order_id")
     val orderId: Long? = null,
+    val name: String? = null,
     @SerialName("order_name")
     val orderName: String? = null,
     val sscc: String? = null,
@@ -90,6 +91,7 @@ data class BoxDetailDto(
     val boxId: Long,
     @SerialName("order_id")
     val orderId: Long? = null,
+    val name: String? = null,
     @SerialName("order_name")
     val orderName: String? = null,
     val sscc: String? = null,
@@ -138,6 +140,7 @@ data class CurrentBoxResponseDto(
     val boxId: Long,
     @SerialName("order_id")
     val orderId: Long? = null,
+    val name: String? = null,
     @SerialName("order_name")
     val orderName: String? = null,
     val sscc: String? = null,
@@ -247,6 +250,7 @@ fun CloseBoxResponseDto.toDomain(): ClosePackingBoxResult = ClosePackingBoxResul
 private fun CurrentBoxResponseDto.toBox(): BoxDto = BoxDto(
     boxId = boxId,
     orderId = orderId,
+    name = name,
     orderName = orderName,
     sscc = sscc,
     capacity = capacity,
@@ -263,7 +267,7 @@ private fun CurrentBoxResponseDto.toBox(): BoxDto = BoxDto(
 private fun BoxDto.toDomain(): PackingBox = PackingBox(
     boxId = boxId,
     orderId = orderId,
-    orderName = orderName,
+    orderName = name?.takeIf(String::isNotBlank) ?: orderName,
     sscc = sscc,
     capacity = capacity,
     filled = filled,
