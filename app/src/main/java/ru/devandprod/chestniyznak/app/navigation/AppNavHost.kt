@@ -25,6 +25,7 @@ import ru.devandprod.chestniyznak.feature.boxedit.BoxEditRoute
 import ru.devandprod.chestniyznak.feature.boxlookup.BoxLookupRoute
 import ru.devandprod.chestniyznak.feature.boxes.BoxesListRoute
 import ru.devandprod.chestniyznak.feature.menu.MenuRoute
+import ru.devandprod.chestniyznak.feature.printer.PrinterSettingsRoute
 import ru.devandprod.chestniyznak.feature.scanner.ScanRoute
 import ru.devandprod.chestniyznak.feature.settings.SettingsRoute
 import ru.devandprod.chestniyznak.feature.sound.SoundSettingsRoute
@@ -97,6 +98,7 @@ private fun AuthenticatedNavHost(
                     navController.navigate(AppDestination.boxesRoute("empty"))
                 },
                 onOpenSettings = { navController.navigate(AppDestination.Settings.route) },
+                onOpenPrinterSettings = { navController.navigate(AppDestination.PrinterSettings.route) },
                 onOpenSoundSettings = { navController.navigate(AppDestination.SoundSettings.route) },
                 onOpenThemeSelection = { navController.navigate(AppDestination.ThemeSelection.route) },
                 onLogoutRequest = onLogoutRequest,
@@ -161,8 +163,14 @@ private fun AuthenticatedNavHost(
             SettingsRoute(
                 currentTheme = selectedTheme,
                 onBack = { navController.popBackStack() },
+                onOpenPrinterSettings = { navController.navigate(AppDestination.PrinterSettings.route) },
                 onOpenSoundSettings = { navController.navigate(AppDestination.SoundSettings.route) },
                 onOpenThemeSelection = { navController.navigate(AppDestination.ThemeSelection.route) },
+            )
+        }
+        composable(AppDestination.PrinterSettings.route) {
+            PrinterSettingsRoute(
+                onBack = { navController.popBackStack() },
             )
         }
         composable(AppDestination.SoundSettings.route) {

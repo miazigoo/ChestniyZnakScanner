@@ -3,6 +3,8 @@ package ru.devandprod.chestniyznak.data.remote.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
+import ru.devandprod.chestniyznak.domain.model.ClientPrinter
+import ru.devandprod.chestniyznak.domain.model.ClientPrinterSelection
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackingBox
 import ru.devandprod.chestniyznak.domain.model.PackingBoxActionResult
@@ -26,6 +28,14 @@ data class EditBoxRequestDto(
 )
 
 @Serializable
+data class ClientPrinterSelectionRequestDto(
+    @SerialName("device_id")
+    val deviceId: String,
+    @SerialName("printer_id")
+    val printerId: Long,
+)
+
+@Serializable
 data class RemoveBoxItemRequestDto(
     @SerialName("item_id")
     val itemId: Long? = null,
@@ -38,6 +48,29 @@ data class ScanToBoxRequestDto(
     val code: String,
     @SerialName("scanner_id")
     val scannerId: String = "",
+)
+
+@Serializable
+data class ClientPrinterDto(
+    val id: Long,
+    val name: String,
+    @SerialName("ip_address")
+    val ipAddress: String,
+    val section: String = "",
+    @SerialName("is_active")
+    val isActive: Boolean,
+)
+
+@Serializable
+data class ClientPrinterSelectionResponseDto(
+    val ok: Boolean,
+    @SerialName("device_id")
+    val deviceId: String,
+    @SerialName("selected_printer_id")
+    val selectedPrinterId: Long? = null,
+    @SerialName("selected_printer")
+    val selectedPrinter: ClientPrinterDto? = null,
+    val printers: List<ClientPrinterDto> = emptyList(),
 )
 
 @Serializable
@@ -207,6 +240,14 @@ fun OpenBoxResponseDto.toDomain(): OpenPackingBoxResult = OpenPackingBoxResult(
     box = box.toDomain(),
 )
 
+fun ClientPrinterSelectionResponseDto.toDomain(): ClientPrinterSelection = ClientPrinterSelection(
+    ok = ok,
+    deviceId = deviceId,
+    selectedPrinterId = selectedPrinterId,
+    selectedPrinter = selectedPrinter?.toDomain(),
+    printers = printers.map { it.toDomain() },
+)
+
 fun BoxesListResponseDto.toDomain(): PackingBoxPage = PackingBoxPage(
     items = items.map { it.toDomain() },
     total = total,
@@ -287,4 +328,12 @@ private fun BoxItemDto.toDomain(): PackingBoxItem = PackingBoxItem(
     gtin = gtin,
     serial = serial,
     visibleCode = visibleCode,
+)
+
+private fun ClientPrinterDto.toDomain(): ClientPrinter = ClientPrinter(
+    id = id,
+    name = name,
+    ipAddress = ipAddress,
+    section = section,
+    isActive = isActive,
 )

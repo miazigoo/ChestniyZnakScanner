@@ -28,12 +28,14 @@ import ru.devandprod.chestniyznak.domain.model.AppThemeOption
 fun SettingsRoute(
     currentTheme: AppThemeOption,
     onBack: () -> Unit,
+    onOpenPrinterSettings: () -> Unit,
     onOpenSoundSettings: () -> Unit,
     onOpenThemeSelection: () -> Unit,
 ) {
     SettingsScreen(
         currentTheme = currentTheme,
         onBack = onBack,
+        onOpenPrinterSettings = onOpenPrinterSettings,
         onOpenSoundSettings = onOpenSoundSettings,
         onOpenThemeSelection = onOpenThemeSelection,
     )
@@ -44,6 +46,7 @@ fun SettingsRoute(
 fun SettingsScreen(
     currentTheme: AppThemeOption,
     onBack: () -> Unit,
+    onOpenPrinterSettings: () -> Unit,
     onOpenSoundSettings: () -> Unit,
     onOpenThemeSelection: () -> Unit,
 ) {
@@ -91,12 +94,11 @@ fun SettingsScreen(
                 )
                 SettingsSectionCard(
                     title = "Принтер",
-                    subtitle = "Скоро",
-                    description = "Подключение принтера, шаблоны печати, маршруты печати для линии и ручного режима.",
-                    actionLabel = "Скоро",
+                    subtitle = "Настраивается",
+                    description = "Выбор активного принтера для текущего ТСД. Этот выбор используется при закрытии коробки и повторной печати.",
+                    actionLabel = "Открыть",
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                    enabled = false,
-                    onClick = {},
+                    onClick = onOpenPrinterSettings,
                 )
                 SettingsSectionCard(
                     title = "Звук и оповещения",

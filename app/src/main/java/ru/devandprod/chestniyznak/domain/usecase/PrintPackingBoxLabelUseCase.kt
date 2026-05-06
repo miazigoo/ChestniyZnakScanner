@@ -7,5 +7,6 @@ import ru.devandprod.chestniyznak.domain.repository.PackingRepository
 class PrintPackingBoxLabelUseCase @Inject constructor(
     private val repository: PackingRepository,
 ) {
-    suspend operator fun invoke(boxId: Long): ClosePackingBoxResult = repository.printBoxLabel(boxId)
+    suspend operator fun invoke(boxId: Long, deviceId: String = ""): ClosePackingBoxResult =
+        repository.printBoxLabel(boxId, deviceId)
 }

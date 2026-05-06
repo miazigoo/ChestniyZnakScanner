@@ -8,6 +8,7 @@ import ru.devandprod.chestniyznak.core.common.IoDispatcher
 import ru.devandprod.chestniyznak.data.remote.api.PackingApi
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteErrorParser
+import ru.devandprod.chestniyznak.data.remote.dto.ClientPrinterSelectionRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.CloseBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.CurrentBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.EditBoxRequestDto
@@ -19,6 +20,7 @@ import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.toDomain
 import ru.devandprod.chestniyznak.domain.model.PackingBoxActionResult
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
+import ru.devandprod.chestniyznak.domain.model.ClientPrinterSelection
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.model.PackingBoxPage
@@ -34,6 +36,34 @@ class RemotePackingRepository @Inject constructor(
     private val errorParser: RemoteErrorParser,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : PackingRepository {
+
+    override suspend fun getClientPrinterSelection(deviceId: String): ClientPrinterSelection = withContext(ioDispatcher) {
+        val response = runCatching { packingApi.clientPrinters(deviceId = deviceId) }.getOrElse {
+            throw RuntimeException(it.message ?: "Не удалось получить список принтеров")
+        }
+
+        mapResponse(response)?.toDomain()
+            ?: throw RuntimeException(errorParser.message(response))
+    }
+
+    override suspend fun setClientPrinterSelection(
+        deviceId: String,
+        printerId: Long,
+    ): ClientPrinterSelection = withContext(ioDispatcher) {
+        val response = runCatching {
+            packingApi.setClientPrinterSelection(
+                ClientPrinterSelectionRequestDto(
+                    deviceId = deviceId,
+                    printerId = printerId,
+                ),
+            )
+        }.getOrElse {
+            throw RuntimeException(it.message ?: "Не удалось сохранить выбор принтера")
+        }
+
+        mapResponse(response)?.toDomain()
+            ?: throw RuntimeException(errorParser.message(response))
+    }
 
     override suspend fun listBoxes(
         status: String,
@@ -140,8 +170,8 @@ class RemotePackingRepository @Inject constructor(
             ?: throw RuntimeException(errorParser.message(response))
     }
 
-    override suspend fun printBoxLabel(boxId: Long): ClosePackingBoxResult = withContext(ioDispatcher) {
-        val response = runCatching { packingApi.printBoxLabel(boxId) }.getOrElse {
+    override suspend fun printBoxLabel(boxId: Long, deviceId: String): ClosePackingBoxResult = withContext(ioDispatcher) {
+        val response = runCatching { packingApi.printBoxLabel(boxId, deviceId) }.getOrElse {
             throw RuntimeException(it.message ?: "Не удалось распечатать этикетку коробки")
         }
 
@@ -170,8 +200,8 @@ class RemotePackingRepository @Inject constructor(
             ?: throw RuntimeException(errorParser.message(response))
     }
 
-    override suspend fun closeBox(boxId: Long): ClosePackingBoxResult = withContext(ioDispatcher) {
-        val response = runCatching { packingApi.closeBox(boxId) }.getOrElse {
+    override suspend fun closeBox(boxId: Long, deviceId: String): ClosePackingBoxResult = withContext(ioDispatcher) {
+        val response = runCatching { packingApi.closeBox(boxId, deviceId) }.getOrElse {
             throw RuntimeException(it.message ?: "Не удалось закрыть коробку")
         }
 

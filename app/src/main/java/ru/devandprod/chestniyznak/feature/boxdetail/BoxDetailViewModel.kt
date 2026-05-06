@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import ru.devandprod.chestniyznak.core.device.DeviceIdentity
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -105,7 +106,7 @@ class BoxDetailViewModel @Inject constructor(
         if (_uiState.value.isActionBusy) return
         viewModelScope.launch {
             _uiState.update { it.copy(isActionBusy = true, errorText = null, statusText = "Проверяем принтер и отправляем на печать...") }
-            runCatching { printPackingBoxLabelUseCase(boxId) }
+            runCatching { printPackingBoxLabelUseCase(boxId, deviceId = DeviceIdentity.clientDeviceId) }
                 .onSuccess { result ->
                     when {
                         result.ok && result.printOk == false -> audioFeedbackPlayer.playWarning()

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
+import ru.devandprod.chestniyznak.core.device.DeviceIdentity
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackingBox
@@ -253,7 +254,7 @@ class ScanViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            runCatching { openPackingBoxUseCase(deviceId = "M3SL20") }
+            runCatching { openPackingBoxUseCase(deviceId = DeviceIdentity.clientDeviceId) }
                 .onSuccess(::handleOpenBoxResult)
                 .onFailure { error ->
                     audioFeedbackPlayer.playError()
@@ -325,7 +326,7 @@ class ScanViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            runCatching { closePackingBoxUseCase(boxId) }
+            runCatching { closePackingBoxUseCase(boxId, deviceId = DeviceIdentity.clientDeviceId) }
                 .onSuccess(::handleCloseBoxResult)
                 .onFailure { error ->
                     audioFeedbackPlayer.playError()
