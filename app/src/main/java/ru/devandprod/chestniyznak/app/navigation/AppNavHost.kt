@@ -128,7 +128,6 @@ private fun AuthenticatedNavHost(
                         navController.navigate(AppDestination.boxesRoute("empty"))
                     },
                     onOpenSettings = { navController.navigate(AppDestination.Settings.route) },
-                    onOpenPrinterSettings = { navController.navigate(AppDestination.PrinterSettings.route) },
                     onOpenSoundSettings = { navController.navigate(AppDestination.SoundSettings.route) },
                     onOpenThemeSelection = { navController.navigate(AppDestination.ThemeSelection.route) },
                     onLogoutRequest = onLogoutRequest,

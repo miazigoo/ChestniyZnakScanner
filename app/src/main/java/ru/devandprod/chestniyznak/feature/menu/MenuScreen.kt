@@ -33,7 +33,6 @@ fun MenuRoute(
     onOpenBoxesList: () -> Unit,
     onOpenEmptyBoxes: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenPrinterSettings: () -> Unit,
     onOpenSoundSettings: () -> Unit,
     onOpenThemeSelection: () -> Unit,
     onLogoutRequest: () -> Unit,
@@ -46,7 +45,6 @@ fun MenuRoute(
         onOpenBoxesList = onOpenBoxesList,
         onOpenEmptyBoxes = onOpenEmptyBoxes,
         onOpenSettings = onOpenSettings,
-        onOpenPrinterSettings = onOpenPrinterSettings,
         onOpenSoundSettings = onOpenSoundSettings,
         onOpenThemeSelection = onOpenThemeSelection,
         onLogoutRequest = onLogoutRequest,
@@ -63,7 +61,6 @@ fun MenuScreen(
     onOpenBoxesList: () -> Unit,
     onOpenEmptyBoxes: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenPrinterSettings: () -> Unit,
     onOpenSoundSettings: () -> Unit,
     onOpenThemeSelection: () -> Unit,
     onLogoutRequest: () -> Unit,
@@ -138,12 +135,6 @@ fun MenuScreen(
                     subtitle = "Сменить палитру, фон и визуальный стиль интерфейса.",
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
                     onClick = onOpenThemeSelection,
-                )
-                MenuItemCard(
-                    title = "Принтер",
-                    subtitle = "Выбрать активный принтер для этого ТСД перед печатью коробок.",
-                    panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                    onClick = onOpenPrinterSettings,
                 )
                 MenuItemCard(
                     title = "Звук",
