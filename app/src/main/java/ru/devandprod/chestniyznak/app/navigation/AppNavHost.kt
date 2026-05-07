@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -270,18 +271,33 @@ private fun AuthenticatedNavHost(
                 title = { Text("Доступно обновление") },
                 text = {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = buildString {
-                                append("Текущая версия: ${apkUpdateState.currentVersion}\n")
-                                append("Новая версия: ${apkUpdateState.latestVersion}")
-                                if (apkUpdateState.originalFilename.isNotBlank()) {
-                                    append("\nФайл: ${apkUpdateState.originalFilename}")
-                                }
-                                apkUpdateState.errorText?.let {
-                                    append("\n$it")
-                                }
-                            },
-                        )
+                        androidx.compose.foundation.layout.Column(
+                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text(
+                                text = buildString {
+                                    append("Текущая версия: ${apkUpdateState.currentVersion}\n")
+                                    append("Новая версия: ${apkUpdateState.latestVersion}")
+                                    if (apkUpdateState.originalFilename.isNotBlank()) {
+                                        append("\nФайл: ${apkUpdateState.originalFilename}")
+                                    }
+                                    apkUpdateState.errorText?.let {
+                                        append("\n$it")
+                                    }
+                                },
+                            )
+                            if (apkUpdateState.isDownloading) {
+                                LinearProgressIndicator(
+                                    progress = { apkUpdateState.downloadProgress },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                Text(
+                                    text = "Скачано ${formatBytes(apkUpdateState.downloadedBytes)} из ${formatBytes(apkUpdateState.fileSize)} " +
+                                        "(${(apkUpdateState.downloadProgress * 100).toInt()}%)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
                     }
                 },
                 confirmButton = {
@@ -299,5 +315,16 @@ private fun AuthenticatedNavHost(
                 },
             )
         }
+    }
+}
+
+private fun formatBytes(bytes: Long): String {
+    if (bytes <= 0L) return "0 B"
+    val kb = 1024.0
+    val mb = kb * 1024.0
+    return when {
+        bytes >= mb -> String.format("%.1f MB", bytes / mb)
+        bytes >= kb -> String.format("%.1f KB", bytes / kb)
+        else -> "$bytes B"
     }
 }

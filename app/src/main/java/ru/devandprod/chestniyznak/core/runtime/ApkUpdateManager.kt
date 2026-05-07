@@ -9,6 +9,7 @@ import android.provider.Settings
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
@@ -89,7 +90,7 @@ class ApkUpdateManager @Inject constructor(
         if (state.isDownloading || state.downloadUrl.isBlank()) return
 
         scope.launch {
-            _state.update { it.copy(isDownloading = true, errorText = null) }
+            _state.update { it.copy(isDownloading = true, downloadedBytes = 0L, errorText = null) }
             runCatching {
                 val request = Request.Builder()
                     .url(state.downloadUrl)
@@ -102,18 +103,30 @@ class ApkUpdateManager @Inject constructor(
                     val apkVersion = response.header("X-APK-Version").orEmpty()
                     val targetFile = File(context.cacheDir, "chz-update-${apkVersion.ifBlank { state.latestVersion }}.apk")
                     response.body?.byteStream()?.use { input ->
-                        targetFile.outputStream().use { output ->
-                            input.copyTo(output)
+                        FileOutputStream(targetFile).use { output ->
+                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                            var totalRead = 0L
+                            while (true) {
+                                val bytesRead = input.read(buffer)
+                                if (bytesRead <= 0) break
+                                output.write(buffer, 0, bytesRead)
+                                totalRead += bytesRead
+                                _state.update { current ->
+                                    current.copy(downloadedBytes = totalRead)
+                                }
+                            }
+                            output.flush()
                         }
                     } ?: throw IllegalStateException("Пустой ответ APK")
                     installDownloadedApk(targetFile)
                 }
             }.onSuccess {
-                _state.update { it.copy(isDownloading = false, errorText = null) }
+                _state.update { it.copy(isDownloading = false, downloadedBytes = it.fileSize, errorText = null) }
             }.onFailure { error ->
                 _state.update {
                     it.copy(
                         isDownloading = false,
+                        downloadedBytes = 0L,
                         errorText = error.message ?: "Не удалось обновить приложение",
                     )
                 }
