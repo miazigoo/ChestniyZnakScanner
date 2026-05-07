@@ -33,7 +33,7 @@ class AppRuntimeViewModel @Inject constructor(
     val updateStatusDialogText: StateFlow<String?> = _updateStatusDialogText.asStateFlow()
 
     private var cooldownJob: Job? = null
-    private var wasDisconnected = false
+    private var hadReconnectInterruption = false
     private var manualUpdateCheckPending = false
 
     val connectionState: StateFlow<ConnectionState> = connectionMonitor.state
@@ -53,10 +53,10 @@ class AppRuntimeViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             connectionMonitor.state.collect { state ->
-                if (state.isBlocking) {
-                    wasDisconnected = true
-                } else if (state.isConnected && wasDisconnected) {
-                    wasDisconnected = false
+                if (state.isBlocking && state.reconnectDelaySec > 0) {
+                    hadReconnectInterruption = true
+                } else if (state.isConnected && hadReconnectInterruption) {
+                    hadReconnectInterruption = false
                     _showConnectionRestored.value = true
                 }
             }
