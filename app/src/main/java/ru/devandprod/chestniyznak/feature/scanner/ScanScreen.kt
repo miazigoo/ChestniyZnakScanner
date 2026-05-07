@@ -80,7 +80,7 @@ fun ScanRoute(
             context,
             Manifest.permission.CAMERA,
         ) == PackageManager.PERMISSION_GRANTED
-        if (state.scanMode == ScanMode.CameraVerify) {
+        if (state.scanMode == ScanMode.PackingCamera) {
             if (granted) {
                 viewModel.onCameraPermissionChanged(true)
             } else {
@@ -101,7 +101,7 @@ fun ScanRoute(
         ScannerCommandBus.commands().collect { command ->
             when (command) {
                 ScannerCommand.OpenBox -> viewModel.onOpenBoxRequested()
-                ScannerCommand.SwitchToCamera -> viewModel.onScanModeSelected(ScanMode.CameraVerify)
+                ScannerCommand.SwitchToCamera -> viewModel.onScanModeSelected(ScanMode.PackingCamera)
                 ScannerCommand.SwitchToTsd -> viewModel.onScanModeSelected(ScanMode.PackingTsd)
             }
         }
@@ -164,16 +164,16 @@ fun ScanScreen(
                     TextButton(
                         onClick = {
                             onScanModeSelected(
-                                if (state.scanMode == ScanMode.CameraVerify) {
+                                if (state.scanMode == ScanMode.PackingCamera) {
                                     ScanMode.PackingTsd
                                 } else {
-                                    ScanMode.CameraVerify
+                                    ScanMode.PackingCamera
                                 },
                             )
                         },
                     ) {
                         Text(
-                            text = if (state.scanMode == ScanMode.CameraVerify) "Камера" else "ТСД",
+                            text = if (state.scanMode == ScanMode.PackingCamera) "Камера" else "ТСД",
                             style = MaterialTheme.typography.titleMedium,
                         )
                     }
@@ -237,22 +237,22 @@ fun ScanScreen(
                     HidScannerInputField(modifier = Modifier.size(1.dp))
                 }
 
-                val activeResult = if (state.scanMode == ScanMode.CameraVerify) {
-                    state.verify.resultCard
-                } else {
-                    state.packing.resultCard
-                }
+                val activeResult = state.packing.resultCard
 
                 activeResult?.let { card ->
                     StatusCard(result = card)
                 }
 
                 when (state.scanMode) {
-                    ScanMode.CameraVerify -> {
-                        CameraVerifyContent(
-                            state = state.verify,
+                    ScanMode.CameraVerify -> Unit
+                    ScanMode.PackingCamera -> {
+                        PackingCameraContent(
+                            verifyState = state.verify,
+                            packingState = state.packing,
                             onCodeScanned = onCameraCodeScanned,
                             onRetryPermission = onRetryPermission,
+                            onOpenBoxRequested = onOpenBoxRequested,
+                            onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
                         )
                     }
@@ -268,6 +268,32 @@ fun ScanScreen(
             }
         }
     }
+}
+
+@Composable
+private fun PackingCameraContent(
+    verifyState: VerifyPaneUiState,
+    packingState: PackingPaneUiState,
+    onCodeScanned: (String) -> Unit,
+    onRetryPermission: () -> Unit,
+    onOpenBoxRequested: () -> Unit,
+    onCloseBoxRequested: () -> Unit,
+    onScanNextRequested: () -> Unit,
+) {
+    ScannerViewport(
+        hasCameraPermission = verifyState.hasCameraPermission,
+        isLoading = verifyState.isProcessing,
+        isScannerEnabled = verifyState.isScannerEnabled,
+        onCodeScanned = onCodeScanned,
+        onRetryPermission = onRetryPermission,
+    )
+
+    CurrentBoxPanel(
+        state = packingState,
+        onOpenBoxRequested = onOpenBoxRequested,
+        onCloseBoxRequested = onCloseBoxRequested,
+        onScanNextRequested = onScanNextRequested,
+    )
 }
 
 @Composable

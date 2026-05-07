@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,7 +52,7 @@ class ScanViewModel @Inject constructor(
                         state.copy(
                             isLoading = false,
                             verify = state.verify.copy(
-                                isScannerEnabled = state.verify.hasCameraPermission && state.scanMode == ScanMode.CameraVerify,
+                                isScannerEnabled = state.verify.hasCameraPermission && isCameraMode(state.scanMode),
                             ),
                         )
                     }
@@ -96,11 +97,11 @@ class ScanViewModel @Inject constructor(
             state.copy(
                 scanMode = mode,
                 verify = state.verify.copy(
-                    isScannerEnabled = mode == ScanMode.CameraVerify && state.verify.hasCameraPermission && !state.verify.isProcessing && !state.isLoading,
+                    isScannerEnabled = isCameraMode(mode) && state.verify.hasCameraPermission && !state.verify.isProcessing && !state.isLoading,
                 ),
             )
         }
-        if (mode == ScanMode.PackingTsd) {
+        if (mode == ScanMode.PackingTsd || mode == ScanMode.PackingCamera) {
             loadCurrentBox()
         }
     }
@@ -110,7 +111,7 @@ class ScanViewModel @Inject constructor(
             state.copy(
                 verify = state.verify.copy(
                     hasCameraPermission = isGranted,
-                    isScannerEnabled = isGranted && state.scanMode == ScanMode.CameraVerify && !state.isLoading && !state.verify.isProcessing,
+                    isScannerEnabled = isGranted && isCameraMode(state.scanMode) && !state.isLoading && !state.verify.isProcessing,
                 ),
             )
         }
@@ -118,7 +119,22 @@ class ScanViewModel @Inject constructor(
 
     fun onCameraCodeScanned(rawCode: String) {
         val state = _uiState.value
-        if (state.isLoading || state.scanMode != ScanMode.CameraVerify || state.verify.isProcessing) return
+        if (state.isLoading || state.verify.isProcessing) return
+
+        when (state.scanMode) {
+            ScanMode.CameraVerify -> handleVerifyCameraScan(rawCode)
+            ScanMode.PackingCamera -> processPackingScan(
+                rawCode = rawCode,
+                scannerId = "android-camera-packing",
+                requiredMode = ScanMode.PackingCamera,
+            )
+            ScanMode.PackingTsd -> return
+        }
+    }
+
+    private fun handleVerifyCameraScan(rawCode: String) {
+        val state = _uiState.value
+        if (state.scanMode != ScanMode.CameraVerify) return
 
         _uiState.update {
             it.copy(
@@ -157,72 +173,18 @@ class ScanViewModel @Inject constructor(
     }
 
     fun onHardwareCodeScanned(rawCode: String) {
-        val state = _uiState.value
-        val box = state.packing.currentBox ?: run {
-            audioFeedbackPlayer.playError()
-            _uiState.update {
-                it.copy(
-                    packing = it.packing.copy(
-                        resultCard = ScanResultCardUi(
-                            headline = "NO",
-                            message = "Сначала откройте коробку",
-                            tone = ScanResultTone.Error,
-                        ),
-                        statusText = "Открытая коробка не выбрана",
-                        errorText = "Сначала откройте коробку",
-                        lastScannedCode = rawCode,
-                    ),
-                )
-            }
-            return
-        }
-        if (state.isLoading || state.scanMode != ScanMode.PackingTsd || state.packing.isBusy) return
-
-        _uiState.update {
-            it.copy(
-                packing = it.packing.copy(
-                    isBusy = true,
-                    errorText = null,
-                    lastScannedCode = rawCode,
-                ),
-            )
-        }
-
-        viewModelScope.launch {
-            runCatching {
-                scanCodeToPackingBoxUseCase(
-                    boxId = box.boxId,
-                    rawCode = rawCode,
-                    scannerId = "android-hid",
-                )
-            }.onSuccess { result ->
-                handlePackingScanResult(result)
-                runCatching { refreshCatalogStatsUseCase() }
-            }.onFailure { error ->
-                audioFeedbackPlayer.playError()
-                _uiState.update {
-                    it.copy(
-                        packing = it.packing.copy(
-                            isBusy = false,
-                            resultCard = ScanResultCardUi(
-                                headline = "NO",
-                                message = error.message ?: "Не удалось добавить код в коробку",
-                                tone = ScanResultTone.Error,
-                            ),
-                            statusText = "Ошибка упаковки",
-                            errorText = error.message,
-                        ),
-                    )
-                }
-            }
-        }
+        processPackingScan(
+            rawCode = rawCode,
+            scannerId = "android-hid",
+            requiredMode = ScanMode.PackingTsd,
+        )
     }
 
     fun onScanNextRequested() {
         _uiState.update { state ->
             state.copy(
                 verify = state.verify.copy(
-                    isScannerEnabled = state.scanMode == ScanMode.CameraVerify && state.verify.hasCameraPermission && !state.isLoading,
+                    isScannerEnabled = isCameraMode(state.scanMode) && state.verify.hasCameraPermission && !state.isLoading,
                     isProcessing = false,
                     resultCard = null,
                     orderName = null,
@@ -296,6 +258,99 @@ class ScanViewModel @Inject constructor(
                         ),
                     ),
                 )
+            }
+        }
+    }
+
+    private fun processPackingScan(
+        rawCode: String,
+        scannerId: String,
+        requiredMode: ScanMode,
+    ) {
+        val state = _uiState.value
+        val box = state.packing.currentBox ?: run {
+            audioFeedbackPlayer.playError()
+            _uiState.update {
+                it.copy(
+                    packing = it.packing.copy(
+                        resultCard = ScanResultCardUi(
+                            headline = "NO",
+                            message = "Сначала откройте коробку",
+                            tone = ScanResultTone.Error,
+                        ),
+                        statusText = "Открытая коробка не выбрана",
+                        errorText = "Сначала откройте коробку",
+                        lastScannedCode = rawCode,
+                    ),
+                    verify = it.verify.copy(
+                        isProcessing = false,
+                        isScannerEnabled = it.scanMode == ScanMode.PackingCamera && it.verify.hasCameraPermission,
+                    ),
+                )
+            }
+            return
+        }
+        if (state.isLoading || state.scanMode != requiredMode || state.packing.isBusy) return
+
+        _uiState.update {
+            it.copy(
+                packing = it.packing.copy(
+                    isBusy = true,
+                    errorText = null,
+                    lastScannedCode = rawCode,
+                ),
+                verify = it.verify.copy(
+                    isProcessing = requiredMode == ScanMode.PackingCamera,
+                    isScannerEnabled = false,
+                ),
+            )
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                scanCodeToPackingBoxUseCase(
+                    boxId = box.boxId,
+                    rawCode = rawCode,
+                    scannerId = scannerId,
+                )
+            }.onSuccess { result ->
+                handlePackingScanResult(result)
+                runCatching { refreshCatalogStatsUseCase() }
+                if (requiredMode == ScanMode.PackingCamera) {
+                    delay(900)
+                    _uiState.update { current ->
+                        if (current.scanMode == ScanMode.PackingCamera) {
+                            current.copy(
+                                verify = current.verify.copy(
+                                    isProcessing = false,
+                                    isScannerEnabled = current.verify.hasCameraPermission,
+                                ),
+                            )
+                        } else {
+                            current
+                        }
+                    }
+                }
+            }.onFailure { error ->
+                audioFeedbackPlayer.playError()
+                _uiState.update {
+                    it.copy(
+                        packing = it.packing.copy(
+                            isBusy = false,
+                            resultCard = ScanResultCardUi(
+                                headline = "NO",
+                                message = error.message ?: "Не удалось добавить код в коробку",
+                                tone = ScanResultTone.Error,
+                            ),
+                            statusText = "Ошибка упаковки",
+                            errorText = error.message,
+                        ),
+                        verify = it.verify.copy(
+                            isProcessing = false,
+                            isScannerEnabled = it.scanMode == ScanMode.PackingCamera && it.verify.hasCameraPermission,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -576,4 +631,7 @@ class ScanViewModel @Inject constructor(
         printOk = printOk,
         printError = printError,
     )
+
+    private fun isCameraMode(mode: ScanMode): Boolean =
+        mode == ScanMode.CameraVerify || mode == ScanMode.PackingCamera
 }

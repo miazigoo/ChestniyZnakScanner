@@ -55,6 +55,7 @@ data class CloseBoxDialogUi(
 
 enum class ScanMode {
     CameraVerify,
+    PackingCamera,
     PackingTsd,
 }
 
