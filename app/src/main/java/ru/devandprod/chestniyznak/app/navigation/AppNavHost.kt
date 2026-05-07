@@ -89,6 +89,7 @@ private fun AuthenticatedNavHost(
     val apkUpdateState by runtimeViewModel.apkUpdateState.collectAsState()
     val retryCooldownSec by runtimeViewModel.retryCooldownSec.collectAsState()
     val showConnectionRestored by runtimeViewModel.showConnectionRestored.collectAsState()
+    val updateStatusDialogText by runtimeViewModel.updateStatusDialogText.collectAsState()
     val navController = rememberNavController()
     DisposableEffect(Unit) {
         runtimeViewModel.startRuntime()
@@ -190,11 +191,11 @@ private fun AuthenticatedNavHost(
             }
             composable(AppDestination.Settings.route) {
                 SettingsRoute(
-                    currentTheme = selectedTheme,
                     onBack = { navController.popBackStack() },
                     onOpenPrinterSettings = { navController.navigate(AppDestination.PrinterSettings.route) },
-                    onOpenSoundSettings = { navController.navigate(AppDestination.SoundSettings.route) },
-                    onOpenThemeSelection = { navController.navigate(AppDestination.ThemeSelection.route) },
+                    currentVersion = apkUpdateState.currentVersion.ifBlank { "unknown" },
+                    isCheckingForUpdates = apkUpdateState.isChecking,
+                    onCheckForUpdates = runtimeViewModel::checkForUpdates,
                 )
             }
             composable(AppDestination.PrinterSettings.route) {
@@ -259,6 +260,19 @@ private fun AuthenticatedNavHost(
                 text = { Text("Связь с сервером восстановлена, можете продолжать работу.") },
                 confirmButton = {
                     Button(onClick = runtimeViewModel::dismissConnectionRestored) {
+                        Text("ОК")
+                    }
+                },
+            )
+        }
+
+        updateStatusDialogText?.let { message ->
+            AlertDialog(
+                onDismissRequest = runtimeViewModel::dismissUpdateStatusDialog,
+                title = { Text("Проверка обновления") },
+                text = { Text(message) },
+                confirmButton = {
+                    Button(onClick = runtimeViewModel::dismissUpdateStatusDialog) {
                         Text("ОК")
                     }
                 },

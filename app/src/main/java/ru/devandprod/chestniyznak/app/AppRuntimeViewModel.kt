@@ -29,8 +29,12 @@ class AppRuntimeViewModel @Inject constructor(
     private val _showConnectionRestored = MutableStateFlow(false)
     val showConnectionRestored: StateFlow<Boolean> = _showConnectionRestored.asStateFlow()
 
+    private val _updateStatusDialogText = MutableStateFlow<String?>(null)
+    val updateStatusDialogText: StateFlow<String?> = _updateStatusDialogText.asStateFlow()
+
     private var cooldownJob: Job? = null
     private var wasDisconnected = false
+    private var manualUpdateCheckPending = false
 
     val connectionState: StateFlow<ConnectionState> = connectionMonitor.state
         .stateIn(
@@ -57,6 +61,17 @@ class AppRuntimeViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch {
+            apkUpdateManager.state.collect { state ->
+                if (!manualUpdateCheckPending || state.isChecking) return@collect
+                manualUpdateCheckPending = false
+                _updateStatusDialogText.value = when {
+                    state.errorText != null -> state.errorText
+                    state.shouldShowDialog -> null
+                    else -> "Установлена актуальная версия ${state.currentVersion}"
+                }
+            }
+        }
     }
 
     fun startRuntime() {
@@ -75,6 +90,7 @@ class AppRuntimeViewModel @Inject constructor(
     }
 
     fun checkForUpdates() {
+        manualUpdateCheckPending = true
         apkUpdateManager.checkForUpdates()
     }
 
@@ -88,6 +104,10 @@ class AppRuntimeViewModel @Inject constructor(
 
     fun dismissConnectionRestored() {
         _showConnectionRestored.value = false
+    }
+
+    fun dismissUpdateStatusDialog() {
+        _updateStatusDialogText.value = null
     }
 
     private fun startRetryCooldown() {

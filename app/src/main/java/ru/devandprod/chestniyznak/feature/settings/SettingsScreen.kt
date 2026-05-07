@@ -22,33 +22,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
-import ru.devandprod.chestniyznak.domain.model.AppThemeOption
-
 @Composable
 fun SettingsRoute(
-    currentTheme: AppThemeOption,
     onBack: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
-    onOpenSoundSettings: () -> Unit,
-    onOpenThemeSelection: () -> Unit,
+    currentVersion: String,
+    isCheckingForUpdates: Boolean,
+    onCheckForUpdates: () -> Unit,
 ) {
     SettingsScreen(
-        currentTheme = currentTheme,
         onBack = onBack,
         onOpenPrinterSettings = onOpenPrinterSettings,
-        onOpenSoundSettings = onOpenSoundSettings,
-        onOpenThemeSelection = onOpenThemeSelection,
+        currentVersion = currentVersion,
+        isCheckingForUpdates = isCheckingForUpdates,
+        onCheckForUpdates = onCheckForUpdates,
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    currentTheme: AppThemeOption,
     onBack: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
-    onOpenSoundSettings: () -> Unit,
-    onOpenThemeSelection: () -> Unit,
+    currentVersion: String,
+    isCheckingForUpdates: Boolean,
+    onCheckForUpdates: () -> Unit,
 ) {
     val decor = CurrentAppDecorColors
     Scaffold(
@@ -85,14 +83,6 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 SettingsSectionCard(
-                    title = "Оформление",
-                    subtitle = "Текущая тема: ${currentTheme.title}",
-                    description = "Сменить палитру, фон, настроение интерфейса и общий визуальный язык сканера.",
-                    actionLabel = "Выбрать тему",
-                    panelColor = decor.panelSurface,
-                    onClick = onOpenThemeSelection,
-                )
-                SettingsSectionCard(
                     title = "Принтер",
                     subtitle = "Настраивается",
                     description = "Выбор активного принтера для текущего ТСД. Этот выбор используется при закрытии коробки и повторной печати.",
@@ -101,12 +91,13 @@ fun SettingsScreen(
                     onClick = onOpenPrinterSettings,
                 )
                 SettingsSectionCard(
-                    title = "Звук и оповещения",
-                    subtitle = "Настраивается",
-                    description = "Сигналы успеха и ошибки, громкость, silent mode, сценарии предупреждений.",
-                    actionLabel = "Открыть",
-                    panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                    onClick = onOpenSoundSettings,
+                    title = "Проверить обновление",
+                    subtitle = "Текущая версия: $currentVersion",
+                    description = "Запросить сервер, проверить наличие новой APK-версии и при необходимости запустить обновление.",
+                    actionLabel = if (isCheckingForUpdates) "Проверяем..." else "Проверить",
+                    panelColor = decor.panelSurface,
+                    enabled = !isCheckingForUpdates,
+                    onClick = onCheckForUpdates,
                 )
                 SettingsSectionCard(
                     title = "Профиль устройства",
