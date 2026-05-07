@@ -276,6 +276,7 @@ internal fun CameraVerifyContent(
     onCodeScanned: (String) -> Unit,
     onRetryPermission: () -> Unit,
     onScanNextRequested: () -> Unit,
+    showScanNextButton: Boolean = true,
 ) {
     ScannerViewport(
         hasCameraPermission = state.hasCameraPermission,
@@ -304,9 +305,9 @@ internal fun CameraVerifyContent(
             }
         }.takeIf(String::isNotBlank),
         warnings = state.warnings,
-        buttonLabel = "Сканировать следующий",
-        isButtonEnabled = state.hasCameraPermission && !state.isProcessing,
-        onButtonClick = onScanNextRequested,
+        buttonLabel = if (showScanNextButton) "Сканировать следующий" else null,
+        isButtonEnabled = showScanNextButton && state.hasCameraPermission && !state.isProcessing,
+        onButtonClick = if (showScanNextButton) onScanNextRequested else null,
     )
 }
 
@@ -485,9 +486,9 @@ internal fun ResultPanel(
     mainText: String,
     secondaryText: String?,
     warnings: List<String>,
-    buttonLabel: String,
+    buttonLabel: String?,
     isButtonEnabled: Boolean,
-    onButtonClick: () -> Unit,
+    onButtonClick: (() -> Unit)?,
 ) {
     val themeSpec = CurrentAppThemeSpec
     Surface(
@@ -528,16 +529,18 @@ internal fun ResultPanel(
                     color = MaterialTheme.colorScheme.secondary,
                 )
             }
-            Button(
-                onClick = onButtonClick,
-                enabled = isButtonEnabled,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            ) {
-                Text(buttonLabel)
+            if (buttonLabel != null && onButtonClick != null) {
+                Button(
+                    onClick = onButtonClick,
+                    enabled = isButtonEnabled,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) {
+                    Text(buttonLabel)
+                }
             }
         }
     }

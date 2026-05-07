@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.delay
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 
@@ -65,6 +66,21 @@ fun DataMatrixVerifyRoute(
             } else {
                 permissionLauncher.launch(Manifest.permission.CAMERA)
             }
+        }
+    }
+
+    LaunchedEffect(
+        state.verify.resultCard,
+        state.verify.isProcessing,
+        state.verify.hasCameraPermission,
+    ) {
+        if (
+            state.verify.resultCard != null &&
+            !state.verify.isProcessing &&
+            state.verify.hasCameraPermission
+        ) {
+            delay(900)
+            viewModel.onScanNextRequested()
         }
     }
 
@@ -168,6 +184,7 @@ fun DataMatrixVerifyScreen(
                     onCodeScanned = onCameraCodeScanned,
                     onRetryPermission = onRetryPermission,
                     onScanNextRequested = onScanNextRequested,
+                    showScanNextButton = false,
                 )
             }
         }
