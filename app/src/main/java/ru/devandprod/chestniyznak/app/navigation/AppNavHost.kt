@@ -86,6 +86,8 @@ private fun AuthenticatedNavHost(
 ) {
     val connectionState by runtimeViewModel.connectionState.collectAsState()
     val apkUpdateState by runtimeViewModel.apkUpdateState.collectAsState()
+    val retryCooldownSec by runtimeViewModel.retryCooldownSec.collectAsState()
+    val showConnectionRestored by runtimeViewModel.showConnectionRestored.collectAsState()
     val navController = rememberNavController()
     DisposableEffect(Unit) {
         runtimeViewModel.startRuntime()
@@ -217,11 +219,42 @@ private fun AuthenticatedNavHost(
                 onDismissRequest = {},
                 title = { Text("Нет связи с сервером") },
                 text = {
-                    Text(connectionState.statusText.ifBlank { "Соединение потеряно. Работа временно заблокирована." })
+                    Text(
+                        buildString {
+                            append(connectionState.statusText.ifBlank { "Соединение потеряно. Работа временно заблокирована." })
+                            if (retryCooldownSec > 0) {
+                                append("\n\nПовторное подключение будет доступно через $retryCooldownSec сек.")
+                            } else if (connectionState.reconnectDelaySec > 0) {
+                                append("\n\nАвтоподключение настроено. Можно повторить вручную.")
+                            }
+                        },
+                    )
                 },
                 confirmButton = {
-                    Button(onClick = runtimeViewModel::retryConnection) {
-                        Text("Повторить")
+                    Button(
+                        onClick = runtimeViewModel::retryConnection,
+                        enabled = retryCooldownSec == 0,
+                    ) {
+                        Text(
+                            if (retryCooldownSec > 0) {
+                                "Повторить через $retryCooldownSec"
+                            } else {
+                                "Повторить подключение"
+                            },
+                        )
+                    }
+                },
+            )
+        }
+
+        if (showConnectionRestored) {
+            AlertDialog(
+                onDismissRequest = runtimeViewModel::dismissConnectionRestored,
+                title = { Text("Связь восстановлена") },
+                text = { Text("Связь с сервером восстановлена, можете продолжать работу.") },
+                confirmButton = {
+                    Button(onClick = runtimeViewModel::dismissConnectionRestored) {
+                        Text("ОК")
                     }
                 },
             )

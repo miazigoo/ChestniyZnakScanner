@@ -5,4 +5,5 @@ data class ConnectionState(
     val isConnected: Boolean = false,
     val isBlocking: Boolean = false,
     val statusText: String = "Соединение не запущено",
+    val reconnectDelaySec: Int = 0,
 )

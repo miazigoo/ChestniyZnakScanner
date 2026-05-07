@@ -30,6 +30,8 @@ class ChzConnectionMonitor @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val json: Json,
 ) {
+    private val baseReconnectDelayMs = 5_000L
+    private val maxReconnectDelayMs = 30_000L
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _state = MutableStateFlow(ConnectionState())
     val state: StateFlow<ConnectionState> = _state.asStateFlow()
@@ -37,6 +39,8 @@ class ChzConnectionMonitor @Inject constructor(
     private var socket: WebSocket? = null
     private var maintenanceJob: Job? = null
     private var lastInboundAt: Long = 0L
+    private var reconnectJob: Job? = null
+    private var reconnectDelayMs: Long = baseReconnectDelayMs
     @Volatile private var started = false
     @Volatile private var connecting = false
 
@@ -48,6 +52,7 @@ class ChzConnectionMonitor @Inject constructor(
             isConnected = false,
             isBlocking = true,
             statusText = "Подключаемся к серверу...",
+            reconnectDelaySec = 0,
         )
         openSocket()
         maintenanceJob = scope.launch {
@@ -55,11 +60,9 @@ class ChzConnectionMonitor @Inject constructor(
                 delay(5_000)
                 val now = System.currentTimeMillis()
                 val inboundAge = now - lastInboundAt
-                if (socket == null && !connecting) {
-                    openSocket()
-                } else if (lastInboundAt > 0L && inboundAge > 45_000) {
+                if (lastInboundAt > 0L && inboundAge > 45_000) {
                     markDisconnected("Нет heartbeat от сервера")
-                    reconnect()
+                    scheduleReconnect()
                 } else if (socket != null) {
                     sendHeartbeat()
                 }
@@ -71,22 +74,51 @@ class ChzConnectionMonitor @Inject constructor(
         started = false
         maintenanceJob?.cancel()
         maintenanceJob = null
+        reconnectJob?.cancel()
+        reconnectJob = null
         socket?.close(1000, "stop")
         socket = null
         connecting = false
+        reconnectDelayMs = baseReconnectDelayMs
         _state.value = ConnectionState()
     }
 
     fun retry() {
         if (!started) return
-        reconnect()
+        reconnectDelayMs = baseReconnectDelayMs
+        reconnectNow()
     }
 
-    private fun reconnect() {
+    private fun reconnectNow() {
+        reconnectJob?.cancel()
+        reconnectJob = null
         socket?.cancel()
         socket = null
         connecting = false
         if (started) openSocket()
+    }
+
+    private fun scheduleReconnect() {
+        if (!started || reconnectJob?.isActive == true) return
+        socket?.cancel()
+        socket = null
+        connecting = false
+        val delayMs = reconnectDelayMs
+        _state.value = _state.value.copy(
+            isStarted = true,
+            isConnected = false,
+            isBlocking = true,
+            reconnectDelaySec = (delayMs / 1000L).toInt(),
+            statusText = "Связь потеряна. Автоподключение через ${(delayMs / 1000L).toInt()} сек.",
+        )
+        reconnectJob = scope.launch {
+            delay(delayMs)
+            reconnectJob = null
+            if (started) {
+                openSocket()
+            }
+        }
+        reconnectDelayMs = (reconnectDelayMs * 2).coerceAtMost(maxReconnectDelayMs)
     }
 
     private fun openSocket() {
@@ -100,17 +132,21 @@ class ChzConnectionMonitor @Inject constructor(
         } ?: return
 
         connecting = true
+        reconnectJob?.cancel()
+        reconnectJob = null
         _state.value = _state.value.copy(
             isStarted = true,
             isConnected = false,
             isBlocking = true,
             statusText = "Подключаемся к серверу...",
+            reconnectDelaySec = 0,
         )
         socket = okHttpClient.newWebSocket(
             Request.Builder().url(websocketUrl).build(),
             object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     connecting = false
+                    reconnectDelayMs = baseReconnectDelayMs
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
@@ -119,28 +155,34 @@ class ChzConnectionMonitor @Inject constructor(
                     val type = payload?.jsonObject?.get("type")?.jsonPrimitive?.content.orEmpty()
                     when (type) {
                         "connected" -> {
+                            reconnectDelayMs = baseReconnectDelayMs
                             _state.value = ConnectionState(
                                 isStarted = true,
                                 isConnected = true,
                                 isBlocking = false,
                                 statusText = "Соединение с сервером активно",
+                                reconnectDelaySec = 0,
                             )
                         }
                         "heartbeat" -> {
                             webSocket.send(buildHeartbeatPayload())
+                            reconnectDelayMs = baseReconnectDelayMs
                             _state.value = _state.value.copy(
                                 isStarted = true,
                                 isConnected = true,
                                 isBlocking = false,
                                 statusText = "Соединение с сервером активно",
+                                reconnectDelaySec = 0,
                             )
                         }
                         "pong" -> {
+                            reconnectDelayMs = baseReconnectDelayMs
                             _state.value = _state.value.copy(
                                 isStarted = true,
                                 isConnected = true,
                                 isBlocking = false,
                                 statusText = "Соединение с сервером активно",
+                                reconnectDelaySec = 0,
                             )
                         }
                     }
@@ -153,12 +195,14 @@ class ChzConnectionMonitor @Inject constructor(
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     markDisconnected("Соединение с сервером разорвано")
                     socket = null
+                    scheduleReconnect()
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     markDisconnected(t.message ?: "Ошибка WebSocket")
                     socket = null
                     connecting = false
+                    scheduleReconnect()
                 }
             },
         )
@@ -178,6 +222,7 @@ class ChzConnectionMonitor @Inject constructor(
             isConnected = false,
             isBlocking = started,
             statusText = reason,
+            reconnectDelaySec = _state.value.reconnectDelaySec,
         )
     }
 }
