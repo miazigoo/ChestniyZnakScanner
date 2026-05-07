@@ -124,11 +124,19 @@ class ChzConnectionMonitor @Inject constructor(
     private fun openSocket() {
         if (!started || connecting) return
         val websocketUrl = BuildConfig.API_BASE_URL.toHttpUrlOrNull()?.let { apiUrl ->
-            apiUrl.newBuilder()
-                .scheme(if (apiUrl.isHttps) "wss" else "ws")
-                .encodedPath("/ws/chestniy-znak/client/")
-                .setQueryParameter("device_id", DeviceIdentity.clientDeviceId)
-                .build()
+            val scheme = if (apiUrl.isHttps) "wss" else "ws"
+            val defaultPort = if (apiUrl.isHttps) 443 else 80
+            buildString {
+                append(scheme)
+                append("://")
+                append(apiUrl.host)
+                if (apiUrl.port != defaultPort) {
+                    append(':')
+                    append(apiUrl.port)
+                }
+                append("/ws/chestniy-znak/client/?device_id=")
+                append(DeviceIdentity.clientDeviceId)
+            }
         } ?: return
 
         connecting = true
