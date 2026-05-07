@@ -39,6 +39,7 @@ import ru.devandprod.chestniyznak.feature.boxlookup.BoxLookupRoute
 import ru.devandprod.chestniyznak.feature.boxes.BoxesListRoute
 import ru.devandprod.chestniyznak.feature.menu.MenuRoute
 import ru.devandprod.chestniyznak.feature.printer.PrinterSettingsRoute
+import ru.devandprod.chestniyznak.feature.scanner.DataMatrixVerifyRoute
 import ru.devandprod.chestniyznak.feature.scanner.ScanRoute
 import ru.devandprod.chestniyznak.feature.settings.SettingsRoute
 import ru.devandprod.chestniyznak.feature.sound.SoundSettingsRoute
@@ -110,8 +111,7 @@ private fun AuthenticatedNavHost(
                 MenuRoute(
                     onBack = { navController.popBackStack() },
                     onOpenDataMatrixVerify = {
-                        ScannerCommandBus.send(ScannerCommand.SwitchToCamera)
-                        navController.popBackStack()
+                        navController.navigate(AppDestination.DataMatrixVerify.route)
                     },
                     onOpenBox = {
                         ScannerCommandBus.send(ScannerCommand.SwitchToTsd)
@@ -131,6 +131,12 @@ private fun AuthenticatedNavHost(
                     onOpenSoundSettings = { navController.navigate(AppDestination.SoundSettings.route) },
                     onOpenThemeSelection = { navController.navigate(AppDestination.ThemeSelection.route) },
                     onLogoutRequest = onLogoutRequest,
+                )
+            }
+            composable(AppDestination.DataMatrixVerify.route) {
+                DataMatrixVerifyRoute(
+                    currentUserName = currentUserName,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(AppDestination.BoxLookup.route) {

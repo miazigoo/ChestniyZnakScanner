@@ -271,7 +271,7 @@ fun ScanScreen(
 }
 
 @Composable
-private fun CameraVerifyContent(
+internal fun CameraVerifyContent(
     state: VerifyPaneUiState,
     onCodeScanned: (String) -> Unit,
     onRetryPermission: () -> Unit,
@@ -326,7 +326,7 @@ private fun PackingContent(
 }
 
 @Composable
-private fun ScannerViewport(
+internal fun ScannerViewport(
     hasCameraPermission: Boolean,
     isLoading: Boolean,
     isScannerEnabled: Boolean,
@@ -480,7 +480,7 @@ private fun CurrentBoxPanel(
 }
 
 @Composable
-private fun ResultPanel(
+internal fun ResultPanel(
     title: String,
     mainText: String,
     secondaryText: String?,
@@ -616,7 +616,7 @@ private fun HidScannerInputField(
 }
 
 @Composable
-private fun PermissionStub(
+internal fun PermissionStub(
     onRetryPermission: () -> Unit,
 ) {
     Column(
@@ -644,7 +644,7 @@ private fun PermissionStub(
 }
 
 @Composable
-private fun ScannerOverlay(
+internal fun ScannerOverlay(
     isLoading: Boolean,
     scannerEnabled: Boolean,
 ) {

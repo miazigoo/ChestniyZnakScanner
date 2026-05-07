@@ -10,6 +10,7 @@ enum class AppDestination(val route: String) {
     PrinterSettings("printer-settings"),
     SoundSettings("sound-settings"),
     ThemeSelection("theme-selection"),
+    DataMatrixVerify("data-matrix-verify"),
     Login("login"),
     Scanner("scanner");
 
