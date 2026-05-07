@@ -107,6 +107,10 @@ private fun AuthenticatedNavHost(
             composable(AppDestination.Menu.route) {
                 MenuRoute(
                     onBack = { navController.popBackStack() },
+                    onOpenDataMatrixVerify = {
+                        ScannerCommandBus.send(ScannerCommand.SwitchToCamera)
+                        navController.popBackStack()
+                    },
                     onOpenBox = {
                         ScannerCommandBus.send(ScannerCommand.SwitchToTsd)
                         ScannerCommandBus.send(ScannerCommand.OpenBox)

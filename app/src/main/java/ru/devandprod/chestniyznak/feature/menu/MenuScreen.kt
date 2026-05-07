@@ -27,6 +27,7 @@ import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 @Composable
 fun MenuRoute(
     onBack: () -> Unit,
+    onOpenDataMatrixVerify: () -> Unit,
     onOpenBox: () -> Unit,
     onShowCurrentBox: () -> Unit,
     onOpenBoxesList: () -> Unit,
@@ -39,6 +40,7 @@ fun MenuRoute(
 ) {
     MenuScreen(
         onBack = onBack,
+        onOpenDataMatrixVerify = onOpenDataMatrixVerify,
         onOpenBox = onOpenBox,
         onShowCurrentBox = onShowCurrentBox,
         onOpenBoxesList = onOpenBoxesList,
@@ -55,6 +57,7 @@ fun MenuRoute(
 @Composable
 fun MenuScreen(
     onBack: () -> Unit,
+    onOpenDataMatrixVerify: () -> Unit,
     onOpenBox: () -> Unit,
     onShowCurrentBox: () -> Unit,
     onOpenBoxesList: () -> Unit,
@@ -92,6 +95,12 @@ fun MenuScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 MenuSectionTitle("Коробки")
+                MenuItemCard(
+                    title = "Проверка DataMatrix",
+                    subtitle = "Переключиться в режим камеры и проверить, есть ли код в базе.",
+                    panelColor = decor.panelSurface,
+                    onClick = onOpenDataMatrixVerify,
+                )
                 MenuItemCard(
                     title = "Открыть коробку",
                     subtitle = "Сразу открыть новую коробку и вернуться к упаковке ТСД.",
