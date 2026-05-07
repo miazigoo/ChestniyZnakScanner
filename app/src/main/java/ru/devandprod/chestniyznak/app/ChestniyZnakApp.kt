@@ -10,9 +10,13 @@ import ru.devandprod.chestniyznak.core.designsystem.theme.ChestniyZnakTheme
 @Composable
 fun ChestniyZnakApp() {
     val themeViewModel: AppThemeViewModel = hiltViewModel()
+    val runtimeViewModel: AppRuntimeViewModel = hiltViewModel()
     val selectedTheme by themeViewModel.selectedTheme.collectAsState()
 
     ChestniyZnakTheme(selectedTheme = selectedTheme) {
-        AppNavHost(selectedTheme = selectedTheme)
+        AppNavHost(
+            selectedTheme = selectedTheme,
+            runtimeViewModel = runtimeViewModel,
+        )
     }
 }
