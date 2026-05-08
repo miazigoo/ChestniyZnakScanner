@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
+import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
 
 @Composable
 fun DataMatrixVerifyRoute(
@@ -53,6 +55,12 @@ fun DataMatrixVerifyRoute(
 
     LaunchedEffect(Unit) {
         viewModel.onScanModeSelected(ScanMode.CameraVerify)
+    }
+
+    LaunchedEffect(viewModel) {
+        HidScannerInputBus.scannedCodes().collect { code ->
+            viewModel.onVerificationHidCodeScanned(code)
+        }
     }
 
     LaunchedEffect(state.scanMode) {
@@ -140,6 +148,8 @@ fun DataMatrixVerifyScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                HidScannerInputField(modifier = Modifier.size(1.dp))
+
                 Surface(
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
                     tonalElevation = 0.dp,

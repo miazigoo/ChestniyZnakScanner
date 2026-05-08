@@ -573,7 +573,7 @@ internal fun ResultPanel(
 }
 
 @Composable
-private fun HidScannerInputField(
+internal fun HidScannerInputField(
     modifier: Modifier = Modifier,
 ) {
     AndroidView(

@@ -122,7 +122,7 @@ class ScanViewModel @Inject constructor(
         if (state.isLoading || state.verify.isProcessing) return
 
         when (state.scanMode) {
-            ScanMode.CameraVerify -> handleVerifyCameraScan(rawCode)
+            ScanMode.CameraVerify -> handleVerifyScan(rawCode, "android-camera")
             ScanMode.PackingCamera -> processPackingScan(
                 rawCode = rawCode,
                 scannerId = "android-camera-packing",
@@ -132,7 +132,13 @@ class ScanViewModel @Inject constructor(
         }
     }
 
-    private fun handleVerifyCameraScan(rawCode: String) {
+    fun onVerificationHidCodeScanned(rawCode: String) {
+        val state = _uiState.value
+        if (state.isLoading || state.verify.isProcessing) return
+        handleVerifyScan(rawCode, "android-hid-verify")
+    }
+
+    private fun handleVerifyScan(rawCode: String, scannerId: String) {
         val state = _uiState.value
         if (state.scanMode != ScanMode.CameraVerify) return
 
@@ -148,7 +154,7 @@ class ScanViewModel @Inject constructor(
         viewModelScope.launch {
             val result = verifyCodeExistsUseCase(
                 rawInput = rawCode,
-                scannerId = "android-camera",
+                scannerId = scannerId,
             )
             if (result.isSuccess) {
                 audioFeedbackPlayer.playSuccess()
