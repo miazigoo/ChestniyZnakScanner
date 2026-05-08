@@ -10,6 +10,7 @@ import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteErrorParser
 import ru.devandprod.chestniyznak.data.remote.dto.ClientPrinterSelectionRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.CloseBoxResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.CountInPackingRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.CurrentBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.EditBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxRequestDto
@@ -111,13 +112,33 @@ class RemotePackingRepository @Inject constructor(
             ?: throw RuntimeException(errorParser.message(response))
     }
 
-    override suspend fun openBox(deviceId: String): OpenPackingBoxResult = withContext(ioDispatcher) {
+    override suspend fun openBox(deviceId: String, countInPacking: Boolean): OpenPackingBoxResult = withContext(ioDispatcher) {
         val response = runCatching {
             packingApi.openBox(
-                OpenBoxRequestDto(deviceId = deviceId),
+                OpenBoxRequestDto(
+                    deviceId = deviceId,
+                    countInPacking = countInPacking,
+                ),
             )
         }.getOrElse {
             throw RuntimeException(it.message ?: "Не удалось открыть коробку")
+        }
+
+        mapResponse(response)?.toDomain()
+            ?: throw RuntimeException(errorParser.message(response))
+    }
+
+    override suspend fun setBoxCountInPacking(
+        boxId: Long,
+        countInPacking: Boolean,
+    ): PackingBoxActionResult = withContext(ioDispatcher) {
+        val response = runCatching {
+            packingApi.setBoxCountInPacking(
+                boxId = boxId,
+                request = CountInPackingRequestDto(countInPacking = countInPacking),
+            )
+        }.getOrElse {
+            throw RuntimeException(it.message ?: "Не удалось обновить режим учета упаковки")
         }
 
         mapResponse(response)?.toDomain()

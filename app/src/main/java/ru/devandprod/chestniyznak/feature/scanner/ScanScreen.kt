@@ -38,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -120,6 +121,7 @@ fun ScanRoute(
         onDismissCloseDialog = viewModel::onDismissCloseDialog,
         onActiveBoxSelected = viewModel::onActiveBoxSelected,
         onDismissActiveBoxesDialog = viewModel::onDismissActiveBoxesDialog,
+        onCountInPackingChanged = viewModel::onCountInPackingChanged,
     )
 }
 
@@ -138,6 +140,7 @@ fun ScanScreen(
     onDismissCloseDialog: () -> Unit,
     onActiveBoxSelected: (Long) -> Unit,
     onDismissActiveBoxesDialog: () -> Unit,
+    onCountInPackingChanged: (Boolean) -> Unit,
 ) {
     val themeSpec = CurrentAppThemeSpec
     val scrollState = rememberScrollState()
@@ -254,6 +257,7 @@ fun ScanScreen(
                             onOpenBoxRequested = onOpenBoxRequested,
                             onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
+                            onCountInPackingChanged = onCountInPackingChanged,
                         )
                     }
                     ScanMode.PackingTsd -> {
@@ -262,6 +266,7 @@ fun ScanScreen(
                             onOpenBoxRequested = onOpenBoxRequested,
                             onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
+                            onCountInPackingChanged = onCountInPackingChanged,
                         )
                     }
                 }
@@ -279,6 +284,7 @@ private fun PackingCameraContent(
     onOpenBoxRequested: () -> Unit,
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
+    onCountInPackingChanged: (Boolean) -> Unit,
 ) {
     ScannerViewport(
         hasCameraPermission = verifyState.hasCameraPermission,
@@ -293,6 +299,7 @@ private fun PackingCameraContent(
         onOpenBoxRequested = onOpenBoxRequested,
         onCloseBoxRequested = onCloseBoxRequested,
         onScanNextRequested = onScanNextRequested,
+        onCountInPackingChanged = onCountInPackingChanged,
     )
 }
 
@@ -343,12 +350,14 @@ private fun PackingContent(
     onOpenBoxRequested: () -> Unit,
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
+    onCountInPackingChanged: (Boolean) -> Unit,
 ) {
     CurrentBoxPanel(
         state = state,
         onOpenBoxRequested = onOpenBoxRequested,
         onCloseBoxRequested = onCloseBoxRequested,
         onScanNextRequested = onScanNextRequested,
+        onCountInPackingChanged = onCountInPackingChanged,
     )
 }
 
@@ -397,6 +406,7 @@ private fun CurrentBoxPanel(
     onOpenBoxRequested: () -> Unit,
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
+    onCountInPackingChanged: (Boolean) -> Unit,
 ) {
     val themeSpec = CurrentAppThemeSpec
     Surface(
@@ -453,6 +463,36 @@ private fun CurrentBoxPanel(
                         color = MaterialTheme.colorScheme.secondary,
                     )
                 }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = "Учитывать в упаковке",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = if (state.countInPacking) {
+                            "Закрытие коробки увеличит счетчик упаковки"
+                        } else {
+                            "Коробка закроется и напечатается без учета этапа упаковки"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                }
+                Switch(
+                    checked = state.countInPacking,
+                    onCheckedChange = onCountInPackingChanged,
+                    enabled = !state.isBusy,
+                )
             }
 
             state.errorText?.takeIf(String::isNotBlank)?.let { error ->

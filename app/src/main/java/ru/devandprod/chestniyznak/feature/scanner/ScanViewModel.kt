@@ -25,6 +25,7 @@ import ru.devandprod.chestniyznak.domain.usecase.ObserveCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RefreshCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ScanCodeToPackingBoxUseCase
+import ru.devandprod.chestniyznak.domain.usecase.SetPackingBoxCountInPackingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.VerifyCodeExistsUseCase
 
 @HiltViewModel
@@ -38,6 +39,7 @@ class ScanViewModel @Inject constructor(
     private val openPackingBoxUseCase: OpenPackingBoxUseCase,
     private val scanCodeToPackingBoxUseCase: ScanCodeToPackingBoxUseCase,
     private val closePackingBoxUseCase: ClosePackingBoxUseCase,
+    private val setPackingBoxCountInPackingUseCase: SetPackingBoxCountInPackingUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScanUiState())
@@ -222,7 +224,12 @@ class ScanViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            runCatching { openPackingBoxUseCase(deviceId = DeviceIdentity.clientDeviceId) }
+            runCatching {
+                openPackingBoxUseCase(
+                    deviceId = DeviceIdentity.clientDeviceId,
+                    countInPacking = state.packing.countInPacking,
+                )
+            }
                 .onSuccess(::handleOpenBoxResult)
                 .onFailure { error ->
                     audioFeedbackPlayer.playError()
@@ -244,6 +251,84 @@ class ScanViewModel @Inject constructor(
         }
     }
 
+    fun onCountInPackingChanged(countInPacking: Boolean) {
+        val state = _uiState.value
+        val currentBox = state.packing.currentBox
+        if (state.isLoading || state.packing.isBusy) return
+
+        if (currentBox == null) {
+            _uiState.update {
+                it.copy(
+                    packing = it.packing.copy(
+                        countInPacking = countInPacking,
+                        resultCard = null,
+                        errorText = null,
+                    ),
+                )
+            }
+            return
+        }
+
+        if (currentBox.countInPacking == countInPacking) return
+
+        _uiState.update {
+            it.copy(
+                packing = it.packing.copy(
+                    isBusy = true,
+                    errorText = null,
+                    statusText = "Обновляем режим учета упаковки...",
+                ),
+            )
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                setPackingBoxCountInPackingUseCase(
+                    boxId = currentBox.boxId,
+                    countInPacking = countInPacking,
+                )
+            }.onSuccess { result ->
+                audioFeedbackPlayer.playSuccess()
+                _uiState.update {
+                    it.copy(
+                        packing = it.packing.copy(
+                            isBusy = false,
+                            currentBox = result.box.box.toUi(),
+                            countInPacking = result.box.box.countInPacking,
+                            resultCard = ScanResultCardUi(
+                                headline = "OK",
+                                message = if (result.box.box.countInPacking) {
+                                    "Учет упаковки включен"
+                                } else {
+                                    "Учет упаковки выключен"
+                                },
+                                tone = ScanResultTone.Success,
+                            ),
+                            statusText = "Настройка коробки обновлена",
+                            errorText = result.error,
+                        ),
+                    )
+                }
+            }.onFailure { error ->
+                audioFeedbackPlayer.playError()
+                _uiState.update {
+                    it.copy(
+                        packing = it.packing.copy(
+                            isBusy = false,
+                            resultCard = ScanResultCardUi(
+                                headline = "NO",
+                                message = error.message ?: "Не удалось обновить режим учета упаковки",
+                                tone = ScanResultTone.Error,
+                            ),
+                            statusText = "Настройка коробки не обновлена",
+                            errorText = error.message,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
     fun onActiveBoxSelected(boxId: Long) {
         _uiState.update { state ->
             val selected = state.packing.activeBoxesDialog?.boxes?.firstOrNull { it.boxId == boxId }
@@ -254,6 +339,7 @@ class ScanViewModel @Inject constructor(
                     packing = state.packing.copy(
                         activeBoxesDialog = null,
                         currentBox = selected,
+                        countInPacking = selected.countInPacking,
                         isBusy = false,
                         statusText = "Продолжайте упаковку в коробку #${selected.boxId}",
                         errorText = null,
@@ -427,6 +513,7 @@ class ScanViewModel @Inject constructor(
                         state.copy(
                             packing = state.packing.copy(
                                 currentBox = detail?.box?.toUi(),
+                                countInPacking = detail?.box?.countInPacking ?: state.packing.countInPacking,
                                 statusText = if (detail == null) {
                                     "Открытая коробка не найдена"
                                 } else {
@@ -463,6 +550,7 @@ class ScanViewModel @Inject constructor(
                     packing = state.packing.copy(
                         isBusy = false,
                         currentBox = result.box.toUi(),
+                        countInPacking = result.box.countInPacking,
                         statusText = "Коробка #${result.box.boxId} открыта",
                         errorText = null,
                         resultCard = ScanResultCardUi(
@@ -476,6 +564,7 @@ class ScanViewModel @Inject constructor(
                     packing = state.packing.copy(
                         isBusy = false,
                         currentBox = result.box.toUi(),
+                        countInPacking = result.box.countInPacking,
                         activeBoxesDialog = ActiveBoxesDialogUi(result.boxes.map { it.toUi() }),
                         statusText = "У вас уже есть открытая коробка",
                         errorText = null,
@@ -490,6 +579,7 @@ class ScanViewModel @Inject constructor(
                     packing = state.packing.copy(
                         isBusy = false,
                         currentBox = result.box.toUi(),
+                        countInPacking = result.box.countInPacking,
                         statusText = "Продолжайте работу с коробкой #${result.box.boxId}",
                         errorText = null,
                         resultCard = ScanResultCardUi(
@@ -517,6 +607,7 @@ class ScanViewModel @Inject constructor(
                 packing = state.packing.copy(
                     isBusy = false,
                     currentBox = result.box.toUi(),
+                    countInPacking = result.box.countInPacking,
                     resultCard = result.toPackingCard(),
                     statusText = result.toPackingStatusText(),
                     errorText = result.error,
@@ -538,6 +629,7 @@ class ScanViewModel @Inject constructor(
                 packing = state.packing.copy(
                     isBusy = false,
                     currentBox = if (result.ok) null else boxUi,
+                    countInPacking = boxUi.countInPacking,
                     closeDialog = if (result.ok) {
                         CloseBoxDialogUi(
                             boxId = result.box.boxId,
@@ -633,6 +725,7 @@ class ScanViewModel @Inject constructor(
         filled = filled,
         capacity = capacity,
         allowDuplicateScans = allowDuplicateScans,
+        countInPacking = countInPacking,
         activeUserName = activeUserName,
         printOk = printOk,
         printError = printError,

@@ -23,6 +23,7 @@ data class VerifyPaneUiState(
 data class PackingPaneUiState(
     val isBusy: Boolean = false,
     val currentBox: PackingBoxUi? = null,
+    val countInPacking: Boolean = true,
     val resultCard: ScanResultCardUi? = null,
     val statusText: String = "Открытая коробка не найдена",
     val errorText: String? = null,
@@ -37,6 +38,7 @@ data class PackingBoxUi(
     val sscc: String? = null,
     val filled: Int,
     val capacity: Int,
+    val countInPacking: Boolean = true,
     val allowDuplicateScans: Boolean,
     val activeUserName: String = "",
     val printOk: Boolean = false,

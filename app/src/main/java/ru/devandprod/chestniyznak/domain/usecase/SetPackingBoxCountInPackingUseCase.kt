@@ -1,17 +1,17 @@
 package ru.devandprod.chestniyznak.domain.usecase
 
 import javax.inject.Inject
-import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
+import ru.devandprod.chestniyznak.domain.model.PackingBoxActionResult
 import ru.devandprod.chestniyznak.domain.repository.PackingRepository
 
-class OpenPackingBoxUseCase @Inject constructor(
+class SetPackingBoxCountInPackingUseCase @Inject constructor(
     private val repository: PackingRepository,
 ) {
     suspend operator fun invoke(
-        deviceId: String = "",
-        countInPacking: Boolean = true,
-    ): OpenPackingBoxResult = repository.openBox(
-        deviceId = deviceId,
+        boxId: Long,
+        countInPacking: Boolean,
+    ): PackingBoxActionResult = repository.setBoxCountInPacking(
+        boxId = boxId,
         countInPacking = countInPacking,
     )
 }

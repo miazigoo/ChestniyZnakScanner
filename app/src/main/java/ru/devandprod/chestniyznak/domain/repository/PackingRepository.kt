@@ -14,7 +14,8 @@ interface PackingRepository {
     suspend fun getCurrentBox(): PackingBoxDetail?
     suspend fun getBox(boxId: Long): PackingBoxDetail
     suspend fun listBoxes(status: String = "all", query: String = "", limit: Int = 50, offset: Int = 0): PackingBoxPage
-    suspend fun openBox(deviceId: String = ""): OpenPackingBoxResult
+    suspend fun openBox(deviceId: String = "", countInPacking: Boolean = true): OpenPackingBoxResult
+    suspend fun setBoxCountInPacking(boxId: Long, countInPacking: Boolean): PackingBoxActionResult
     suspend fun openBoxEdit(boxId: Long, reason: String = ""): PackingBoxActionResult
     suspend fun removeBoxItem(boxId: Long, itemId: Long): PackingBoxActionResult
     suspend fun clearBox(boxId: Long): PackingBoxActionResult

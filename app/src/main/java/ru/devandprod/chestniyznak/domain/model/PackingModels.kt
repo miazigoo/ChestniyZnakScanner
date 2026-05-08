@@ -7,6 +7,7 @@ data class PackingBox(
     val sscc: String? = null,
     val capacity: Int,
     val filled: Int,
+    val countInPacking: Boolean = true,
     val allowDuplicateScans: Boolean,
     val isClosed: Boolean,
     val isEditMode: Boolean,

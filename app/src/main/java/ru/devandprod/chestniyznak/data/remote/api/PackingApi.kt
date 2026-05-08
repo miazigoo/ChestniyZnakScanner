@@ -4,10 +4,12 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 import ru.devandprod.chestniyznak.data.remote.dto.BoxActionResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.CountInPackingRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ClientPrinterSelectionRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ClientPrinterSelectionResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.CloseBoxResponseDto
@@ -51,6 +53,12 @@ interface PackingApi {
     suspend fun openBox(
         @Body request: OpenBoxRequestDto,
     ): Response<OpenBoxResponseDto>
+
+    @PATCH("chestniy-znak/packing/boxes/{boxId}/count-in-packing")
+    suspend fun setBoxCountInPacking(
+        @Path("boxId") boxId: Long,
+        @Body request: CountInPackingRequestDto,
+    ): Response<BoxActionResponseDto>
 
     @POST("chestniy-znak/packing/boxes/{boxId}/scan")
     suspend fun scanToBox(

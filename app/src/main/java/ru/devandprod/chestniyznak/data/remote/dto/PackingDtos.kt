@@ -20,11 +20,19 @@ data class OpenBoxRequestDto(
     val allowDuplicateScans: Boolean? = null,
     @SerialName("device_id")
     val deviceId: String = "",
+    @SerialName("count_in_packing")
+    val countInPacking: Boolean = true,
 )
 
 @Serializable
 data class EditBoxRequestDto(
     val reason: String = "",
+)
+
+@Serializable
+data class CountInPackingRequestDto(
+    @SerialName("count_in_packing")
+    val countInPacking: Boolean,
 )
 
 @Serializable
@@ -85,6 +93,8 @@ data class BoxDto(
     val sscc: String? = null,
     val capacity: Int,
     val filled: Int,
+    @SerialName("count_in_packing")
+    val countInPacking: Boolean = true,
     @SerialName("allow_duplicate_scans")
     val allowDuplicateScans: Boolean,
     @SerialName("is_closed")
@@ -130,6 +140,8 @@ data class BoxDetailDto(
     val sscc: String? = null,
     val capacity: Int,
     val filled: Int,
+    @SerialName("count_in_packing")
+    val countInPacking: Boolean = true,
     @SerialName("allow_duplicate_scans")
     val allowDuplicateScans: Boolean,
     @SerialName("is_closed")
@@ -179,6 +191,8 @@ data class CurrentBoxResponseDto(
     val sscc: String? = null,
     val capacity: Int,
     val filled: Int,
+    @SerialName("count_in_packing")
+    val countInPacking: Boolean = true,
     @SerialName("allow_duplicate_scans")
     val allowDuplicateScans: Boolean,
     @SerialName("is_closed")
@@ -296,6 +310,7 @@ private fun CurrentBoxResponseDto.toBox(): BoxDto = BoxDto(
     sscc = sscc,
     capacity = capacity,
     filled = filled,
+    countInPacking = countInPacking,
     allowDuplicateScans = allowDuplicateScans,
     isClosed = isClosed,
     isEditMode = isEditMode,
@@ -312,6 +327,7 @@ private fun BoxDto.toDomain(): PackingBox = PackingBox(
     sscc = sscc,
     capacity = capacity,
     filled = filled,
+    countInPacking = countInPacking,
     allowDuplicateScans = allowDuplicateScans,
     isClosed = isClosed,
     isEditMode = isEditMode,
