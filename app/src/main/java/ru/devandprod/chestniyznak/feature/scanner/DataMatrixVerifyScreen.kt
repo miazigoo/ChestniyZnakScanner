@@ -222,13 +222,41 @@ internal fun DataMatrixVerifyScreen(
                     StatusCard(result = card)
                 }
 
+                ResultPanel(
+                    title = "Последний код",
+                    mainText = if (state.verify.visibleCode.isBlank()) {
+                        if (inputMode == VerifyInputMode.Camera) {
+                            "Сканируйте Data Matrix камерой"
+                        } else {
+                            "Сканируйте Data Matrix встроенным сканером"
+                        }
+                    } else {
+                        state.verify.visibleCode
+                    },
+                    secondaryText = buildString {
+                        state.verify.technicalStatus.takeIf(String::isNotBlank)?.let {
+                            append("Статус проверки: ")
+                            append(it)
+                        }
+                        state.verify.orderName?.takeIf(String::isNotBlank)?.let { orderName ->
+                            if (isNotEmpty()) append('\n')
+                            append("Заказ: ")
+                            append(orderName)
+                        }
+                    }.takeIf(String::isNotBlank),
+                    warnings = state.verify.warnings,
+                    buttonLabel = null,
+                    isButtonEnabled = false,
+                    onButtonClick = null,
+                )
+
                 if (inputMode == VerifyInputMode.Camera) {
-                    CameraVerifyContent(
-                        state = state.verify,
+                    ScannerViewport(
+                        hasCameraPermission = state.verify.hasCameraPermission,
+                        isLoading = state.verify.isProcessing,
+                        isScannerEnabled = state.verify.isScannerEnabled,
                         onCodeScanned = onCameraCodeScanned,
                         onRetryPermission = onRetryPermission,
-                        onScanNextRequested = onScanNextRequested,
-                        showScanNextButton = false,
                     )
                 }
             }
