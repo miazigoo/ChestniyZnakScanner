@@ -27,6 +27,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -40,6 +43,11 @@ import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
 
+internal enum class VerifyInputMode {
+    Camera,
+    Tsd,
+}
+
 @Composable
 fun DataMatrixVerifyRoute(
     currentUserName: String,
@@ -48,6 +56,7 @@ fun DataMatrixVerifyRoute(
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    var inputMode by rememberSaveable { mutableStateOf(VerifyInputMode.Camera) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = viewModel::onCameraPermissionChanged,
@@ -57,35 +66,39 @@ fun DataMatrixVerifyRoute(
         viewModel.onScanModeSelected(ScanMode.CameraVerify)
     }
 
-    LaunchedEffect(viewModel) {
+    LaunchedEffect(viewModel, inputMode) {
         HidScannerInputBus.scannedCodes().collect { code ->
-            viewModel.onVerificationHidCodeScanned(code)
+            if (inputMode == VerifyInputMode.Tsd) {
+                viewModel.onVerificationHidCodeScanned(code)
+            }
         }
     }
 
-    LaunchedEffect(state.scanMode) {
+    LaunchedEffect(inputMode) {
         val granted = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.CAMERA,
         ) == PackageManager.PERMISSION_GRANTED
-        if (state.scanMode == ScanMode.CameraVerify) {
+        if (inputMode == VerifyInputMode.Camera) {
             if (granted) {
                 viewModel.onCameraPermissionChanged(true)
             } else {
                 permissionLauncher.launch(Manifest.permission.CAMERA)
             }
+        } else {
+            viewModel.onCameraPermissionChanged(false)
         }
     }
 
     LaunchedEffect(
+        inputMode,
         state.verify.resultCard,
         state.verify.isProcessing,
-        state.verify.hasCameraPermission,
     ) {
         if (
+            inputMode == VerifyInputMode.Camera &&
             state.verify.resultCard != null &&
-            !state.verify.isProcessing &&
-            state.verify.hasCameraPermission
+            !state.verify.isProcessing
         ) {
             delay(900)
             viewModel.onScanNextRequested()
@@ -96,6 +109,8 @@ fun DataMatrixVerifyRoute(
         state = state,
         currentUserName = currentUserName,
         onBack = onBack,
+        inputMode = inputMode,
+        onInputModeChanged = { inputMode = it },
         onCameraCodeScanned = viewModel::onCameraCodeScanned,
         onRetryPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
         onScanNextRequested = viewModel::onScanNextRequested,
@@ -104,10 +119,12 @@ fun DataMatrixVerifyRoute(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DataMatrixVerifyScreen(
+internal fun DataMatrixVerifyScreen(
     state: ScanUiState,
     currentUserName: String,
     onBack: () -> Unit,
+    inputMode: VerifyInputMode,
+    onInputModeChanged: (VerifyInputMode) -> Unit,
     onCameraCodeScanned: (String) -> Unit,
     onRetryPermission: () -> Unit,
     onScanNextRequested: () -> Unit,
@@ -118,7 +135,21 @@ fun DataMatrixVerifyScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Проверка DataMatrix") },
+                title = {
+                    TextButton(
+                        onClick = {
+                            onInputModeChanged(
+                                if (inputMode == VerifyInputMode.Camera) {
+                                    VerifyInputMode.Tsd
+                                } else {
+                                    VerifyInputMode.Camera
+                                },
+                            )
+                        },
+                    ) {
+                        Text(if (inputMode == VerifyInputMode.Camera) "Камера" else "ТСД")
+                    }
+                },
                 navigationIcon = {
                     TextButton(onClick = onBack) {
                         Text("Назад")
@@ -148,7 +179,9 @@ fun DataMatrixVerifyScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                HidScannerInputField(modifier = Modifier.size(1.dp))
+                if (inputMode == VerifyInputMode.Tsd) {
+                    HidScannerInputField(modifier = Modifier.size(1.dp))
+                }
 
                 Surface(
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
@@ -189,13 +222,15 @@ fun DataMatrixVerifyScreen(
                     StatusCard(result = card)
                 }
 
-                CameraVerifyContent(
-                    state = state.verify,
-                    onCodeScanned = onCameraCodeScanned,
-                    onRetryPermission = onRetryPermission,
-                    onScanNextRequested = onScanNextRequested,
-                    showScanNextButton = false,
-                )
+                if (inputMode == VerifyInputMode.Camera) {
+                    CameraVerifyContent(
+                        state = state.verify,
+                        onCodeScanned = onCameraCodeScanned,
+                        onRetryPermission = onRetryPermission,
+                        onScanNextRequested = onScanNextRequested,
+                        showScanNextButton = false,
+                    )
+                }
             }
         }
     }
