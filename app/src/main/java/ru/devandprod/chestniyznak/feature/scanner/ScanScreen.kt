@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
+import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
@@ -632,8 +633,14 @@ internal fun HidScannerInputField(
                 showSoftInputOnFocus = false
                 isCursorVisible = false
                 background = null
+                importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
                 setTextColor(android.graphics.Color.TRANSPARENT)
                 setHintTextColor(android.graphics.Color.TRANSPARENT)
+                setOnClickListener { hideKeyboard() }
+                setOnLongClickListener {
+                    hideKeyboard()
+                    true
+                }
                 requestFocus()
                 post { hideKeyboard() }
                 setOnFocusChangeListener { view, hasFocus ->
