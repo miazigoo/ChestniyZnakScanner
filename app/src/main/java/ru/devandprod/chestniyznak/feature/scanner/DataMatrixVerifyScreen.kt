@@ -177,6 +177,16 @@ internal fun DataMatrixVerifyScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                if (inputMode == VerifyInputMode.Camera) {
+                    ScannerViewport(
+                        hasCameraPermission = state.verify.hasCameraPermission,
+                        isLoading = state.verify.isProcessing,
+                        isScannerEnabled = state.verify.isScannerEnabled,
+                        onCodeScanned = onCameraCodeScanned,
+                        onRetryPermission = onRetryPermission,
+                    )
+                }
+
                 if (inputMode == VerifyInputMode.Tsd) {
                     HidScannerInputField(modifier = Modifier.size(1.dp))
                 }
@@ -253,16 +263,6 @@ internal fun DataMatrixVerifyScreen(
                     DeviceInfoPanel(
                         deviceName = deviceName,
                         modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-
-                if (inputMode == VerifyInputMode.Camera) {
-                    ScannerViewport(
-                        hasCameraPermission = state.verify.hasCameraPermission,
-                        isLoading = state.verify.isProcessing,
-                        isScannerEnabled = state.verify.isScannerEnabled,
-                        onCodeScanned = onCameraCodeScanned,
-                        onRetryPermission = onRetryPermission,
                     )
                 }
             }
