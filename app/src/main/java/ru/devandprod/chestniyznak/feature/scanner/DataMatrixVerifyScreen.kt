@@ -101,7 +101,7 @@ fun DataMatrixVerifyRoute(
             !state.verify.isProcessing
         ) {
             delay(900)
-            viewModel.onScanNextRequested()
+            viewModel.onResumeVerifyScanningRequested()
         }
     }
 
@@ -113,7 +113,6 @@ fun DataMatrixVerifyRoute(
         onInputModeChanged = { inputMode = it },
         onCameraCodeScanned = viewModel::onCameraCodeScanned,
         onRetryPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-        onScanNextRequested = viewModel::onScanNextRequested,
     )
 }
 
@@ -127,7 +126,6 @@ internal fun DataMatrixVerifyScreen(
     onInputModeChanged: (VerifyInputMode) -> Unit,
     onCameraCodeScanned: (String) -> Unit,
     onRetryPermission: () -> Unit,
-    onScanNextRequested: () -> Unit,
 ) {
     val themeSpec = CurrentAppThemeSpec
     val scrollState = rememberScrollState()
@@ -218,9 +216,10 @@ internal fun DataMatrixVerifyScreen(
                     }
                 }
 
-                state.verify.resultCard?.let { card ->
-                    StatusCard(result = card)
-                }
+                VerifyStatusPanel(
+                    result = state.verify.resultCard,
+                    isCameraMode = inputMode == VerifyInputMode.Camera,
+                )
 
                 ResultPanel(
                     title = "Последний код",
@@ -267,6 +266,57 @@ internal fun DataMatrixVerifyScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun VerifyStatusPanel(
+    result: ScanResultCardUi?,
+    isCameraMode: Boolean,
+) {
+    val themeSpec = CurrentAppThemeSpec
+    val tone = result?.tone ?: ScanResultTone.Warning
+    val (containerColor, textColor) = when (tone) {
+        ScanResultTone.Success -> themeSpec.decorColors.successContainer to themeSpec.decorColors.success
+        ScanResultTone.Error -> themeSpec.decorColors.dangerContainer to themeSpec.decorColors.danger
+        ScanResultTone.Warning -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.secondary
+    }
+    val headline = result?.headline ?: "Готово"
+    val message = result?.message ?: if (isCameraMode) {
+        "Сканируйте Data Matrix камерой"
+    } else {
+        "Сканируйте Data Matrix встроенным сканером"
+    }
+
+    Surface(
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        color = containerColor,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+                    androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                )
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = headline,
+                style = MaterialTheme.typography.headlineLarge,
+                color = textColor,
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+            )
         }
     }
 }

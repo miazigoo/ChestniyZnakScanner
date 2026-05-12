@@ -212,6 +212,21 @@ class ScanViewModel @Inject constructor(
         }
     }
 
+    fun onResumeVerifyScanningRequested() {
+        _uiState.update { state ->
+            if (state.scanMode != ScanMode.CameraVerify) {
+                state
+            } else {
+                state.copy(
+                    verify = state.verify.copy(
+                        isScannerEnabled = state.verify.hasCameraPermission && !state.isLoading,
+                        isProcessing = false,
+                    ),
+                )
+            }
+        }
+    }
+
     fun onOpenBoxRequested() {
         val state = _uiState.value
         if (state.isLoading || state.packing.isBusy) return
