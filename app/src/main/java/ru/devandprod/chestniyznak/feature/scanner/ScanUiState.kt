@@ -15,6 +15,7 @@ data class VerifyPaneUiState(
     val isProcessing: Boolean = false,
     val resultCard: ScanResultCardUi? = null,
     val orderName: String? = null,
+    val deviceName: String? = null,
     val visibleCode: String = "",
     val technicalStatus: String = "",
     val warnings: List<String> = emptyList(),

@@ -243,6 +243,11 @@ internal fun DataMatrixVerifyScreen(
                             append("Заказ: ")
                             append(orderName)
                         }
+                        state.verify.deviceName?.takeIf(String::isNotBlank)?.let { deviceName ->
+                            if (isNotEmpty()) append('\n')
+                            append("Устройство: ")
+                            append(deviceName)
+                        }
                     }.takeIf(String::isNotBlank),
                     warnings = state.verify.warnings,
                     buttonLabel = null,

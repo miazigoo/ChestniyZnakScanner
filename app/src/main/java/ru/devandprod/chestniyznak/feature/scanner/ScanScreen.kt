@@ -206,36 +206,10 @@ fun ScanScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    color = themeSpec.decorColors.panelSurface.copy(alpha = 0.88f),
+                PackingSummaryBar(
+                    state = state.packing,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(20.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = currentUserName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            text = "${state.statsLabel}  •  ${state.scansLabel}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        )
-                    }
-                }
+                )
 
                 if (state.scanMode == ScanMode.PackingTsd) {
                     HidScannerInputField(modifier = Modifier.size(1.dp))
@@ -272,6 +246,43 @@ fun ScanScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PackingSummaryBar(
+    state: PackingPaneUiState,
+    modifier: Modifier = Modifier,
+) {
+    val themeSpec = CurrentAppThemeSpec
+    val box = state.currentBox
+    val packingLabel = if (box == null || box.filled <= 0) {
+        "Упаковано: 0"
+    } else {
+        "Упаковано: ${box.filled}/${box.capacity}"
+    }
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        color = themeSpec.decorColors.panelSurface.copy(alpha = 0.88f),
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(20.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = packingLabel,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
@@ -336,6 +347,11 @@ internal fun CameraVerifyContent(
                 if (isNotEmpty()) append('\n')
                 append("Заказ: ")
                 append(orderName)
+            }
+            state.deviceName?.takeIf(String::isNotBlank)?.let { deviceName ->
+                if (isNotEmpty()) append('\n')
+                append("Устройство: ")
+                append(deviceName)
             }
         }.takeIf(String::isNotBlank),
         warnings = state.warnings,

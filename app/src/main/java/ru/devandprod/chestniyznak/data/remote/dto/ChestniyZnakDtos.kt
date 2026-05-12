@@ -49,6 +49,8 @@ data class VerifyExistsResponseDto(
     val message: String,
     @SerialName("order_name")
     val orderName: String? = null,
+    @SerialName("device_name")
+    val deviceName: String? = null,
     @SerialName("scan_id")
     val scanId: Long? = null,
     val code: RemoteCodeDto? = null,
@@ -86,6 +88,8 @@ data class RemoteCodeDto(
     val orderNumber: String = "",
     @SerialName("order_name")
     val orderName: String = "",
+    @SerialName("device_name")
+    val deviceName: String = "",
 )
 
 @Serializable
@@ -104,6 +108,7 @@ fun VerifyResponseDto.toDomain(): VerificationResult = VerificationResult(
     parsed = parsed?.toDomain(),
     code = code?.toDomain(),
     orderName = code?.orderName?.takeIf(String::isNotBlank),
+    deviceName = code?.deviceName?.takeIf(String::isNotBlank),
     warnings = warnings,
 )
 
@@ -115,6 +120,7 @@ fun VerifyExistsResponseDto.toDomain(): VerificationResult = VerificationResult(
     parsed = null,
     code = code?.toDomain(),
     orderName = orderName?.takeIf(String::isNotBlank) ?: code?.orderName?.takeIf(String::isNotBlank),
+    deviceName = deviceName?.takeIf(String::isNotBlank) ?: code?.deviceName?.takeIf(String::isNotBlank),
     warnings = warnings,
 )
 
@@ -144,4 +150,5 @@ private fun RemoteCodeDto.toDomain(): MarkingCode = MarkingCode(
     appStatus = appStatus,
     orderNumber = orderNumber,
     orderName = orderName,
+    deviceName = deviceName,
 )

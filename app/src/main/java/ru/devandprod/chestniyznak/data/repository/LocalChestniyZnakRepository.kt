@@ -179,6 +179,7 @@ class LocalChestniyZnakRepository @Inject constructor(
         appStatus = appStatus,
         orderNumber = orderNumber,
         orderName = orderNumber,
+        deviceName = "",
     )
 
     private fun rawHash(rawCode: String): String {

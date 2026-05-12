@@ -17,6 +17,7 @@ data class VerificationResult(
     val parsed: ParsedMarkingCode? = null,
     val code: MarkingCode? = null,
     val orderName: String? = null,
+    val deviceName: String? = null,
     val warnings: List<String> = emptyList(),
 ) {
     val isSuccess: Boolean

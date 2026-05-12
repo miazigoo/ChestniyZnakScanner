@@ -171,6 +171,8 @@ class ScanViewModel @Inject constructor(
                         resultCard = result.toVerifyCard(),
                         orderName = result.orderName?.takeIf(String::isNotBlank)
                             ?: result.code?.orderName?.takeIf(String::isNotBlank),
+                        deviceName = result.deviceName?.takeIf(String::isNotBlank)
+                            ?: result.code?.deviceName?.takeIf(String::isNotBlank),
                         visibleCode = result.parsed?.visibleCode ?: rawCode,
                         technicalStatus = result.status.name,
                         warnings = result.warnings,
@@ -196,6 +198,7 @@ class ScanViewModel @Inject constructor(
                     isProcessing = false,
                     resultCard = null,
                     orderName = null,
+                    deviceName = null,
                     visibleCode = "",
                     technicalStatus = "",
                     warnings = emptyList(),
