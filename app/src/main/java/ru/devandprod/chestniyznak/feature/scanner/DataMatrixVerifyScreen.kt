@@ -243,17 +243,19 @@ internal fun DataMatrixVerifyScreen(
                             append("Заказ: ")
                             append(orderName)
                         }
-                        state.verify.deviceName?.takeIf(String::isNotBlank)?.let { deviceName ->
-                            if (isNotEmpty()) append('\n')
-                            append("Устройство: ")
-                            append(deviceName)
-                        }
                     }.takeIf(String::isNotBlank),
                     warnings = state.verify.warnings,
                     buttonLabel = null,
                     isButtonEnabled = false,
                     onButtonClick = null,
                 )
+
+                state.verify.deviceName?.takeIf(String::isNotBlank)?.let { deviceName ->
+                    DeviceInfoPanel(
+                        deviceName = deviceName,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
 
                 if (inputMode == VerifyInputMode.Camera) {
                     ScannerViewport(

@@ -348,17 +348,19 @@ internal fun CameraVerifyContent(
                 append("Заказ: ")
                 append(orderName)
             }
-            state.deviceName?.takeIf(String::isNotBlank)?.let { deviceName ->
-                if (isNotEmpty()) append('\n')
-                append("Устройство: ")
-                append(deviceName)
-            }
         }.takeIf(String::isNotBlank),
         warnings = state.warnings,
         buttonLabel = if (showScanNextButton) "Сканировать следующий" else null,
         isButtonEnabled = showScanNextButton && state.hasCameraPermission && !state.isProcessing,
         onButtonClick = if (showScanNextButton) onScanNextRequested else null,
     )
+
+    state.deviceName?.takeIf(String::isNotBlank)?.let { deviceName ->
+        DeviceInfoPanel(
+            deviceName = deviceName,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable
@@ -625,6 +627,40 @@ internal fun ResultPanel(
                     Text(buttonLabel)
                 }
             }
+        }
+    }
+}
+
+@Composable
+internal fun DeviceInfoPanel(
+    deviceName: String,
+    modifier: Modifier = Modifier,
+) {
+    val themeSpec = CurrentAppThemeSpec
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        color = themeSpec.decorColors.panelSurface.copy(alpha = 0.92f),
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(28.dp))
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = "Устройство",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+            )
+            Text(
+                text = deviceName,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
