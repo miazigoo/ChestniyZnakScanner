@@ -11,15 +11,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -27,7 +29,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
@@ -58,18 +62,30 @@ fun ThemeSelectionScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text("Выбор темы", style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            "Палитра сохраняется сразу и применяется ко всему приложению",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        )
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            Text("ТЕМА", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Палитра и визуальный характер интерфейса",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Назад")
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Text("←", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
                     }
                 },
             )
@@ -87,6 +103,9 @@ fun ThemeSelectionScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                item {
+                    ThemeHeroCard()
+                }
                 items(state.availableThemes) { theme ->
                     ThemePreviewCard(
                         theme = theme,
@@ -94,6 +113,59 @@ fun ThemeSelectionScreen(
                         onClick = { onThemeSelected(theme) },
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeHeroCard() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(30.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.42f), RoundedCornerShape(30.dp))
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(78.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                Color.Transparent,
+                            ),
+                        ),
+                        CircleShape,
+                    ),
+            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "VISUAL SYSTEM",
+                    style = MaterialTheme.typography.labelMedium,
+                    letterSpacing = 1.2.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Подберите характер интерфейса",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+                Text(
+                    text = "Палитра применяется сразу ко всему приложению, поэтому здесь лучше выбирать не просто цвет, а ощущение рабочего инструмента.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                )
             }
         }
     }
@@ -126,6 +198,12 @@ private fun ThemePreviewCard(
                 .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            Text(
+                text = if (selected) "ACTIVE STYLE" else "THEME PREVIEW",
+                style = MaterialTheme.typography.labelMedium,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                letterSpacing = 1.sp,
+            )
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -211,11 +289,17 @@ private fun ThemePreviewCard(
                     )
                 }
                 if (selected) {
-                    Text(
-                        text = "Активна",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
+                    ) {
+                        Text(
+                            text = "Активна",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        )
+                    }
                 }
             }
         }

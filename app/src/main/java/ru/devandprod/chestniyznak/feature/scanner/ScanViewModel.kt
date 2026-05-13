@@ -13,17 +13,21 @@ import kotlinx.coroutines.launch
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import ru.devandprod.chestniyznak.core.device.DeviceIdentity
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
+import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
+import ru.devandprod.chestniyznak.domain.model.PackingBoxItem
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackingBox
 import ru.devandprod.chestniyznak.domain.model.PackingScanResult
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
 import ru.devandprod.chestniyznak.domain.usecase.ClosePackingBoxUseCase
+import ru.devandprod.chestniyznak.domain.usecase.DeleteEmptyPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.EnsureSeedDataUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetCurrentPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ObserveCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RefreshCatalogStatsUseCase
+import ru.devandprod.chestniyznak.domain.usecase.RemovePackingBoxItemUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ScanCodeToPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.SetPackingBoxCountInPackingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.VerifyCodeExistsUseCase
@@ -40,6 +44,8 @@ class ScanViewModel @Inject constructor(
     private val scanCodeToPackingBoxUseCase: ScanCodeToPackingBoxUseCase,
     private val closePackingBoxUseCase: ClosePackingBoxUseCase,
     private val setPackingBoxCountInPackingUseCase: SetPackingBoxCountInPackingUseCase,
+    private val removePackingBoxItemUseCase: RemovePackingBoxItemUseCase,
+    private val deleteEmptyPackingBoxUseCase: DeleteEmptyPackingBoxUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScanUiState())
@@ -311,7 +317,7 @@ class ScanViewModel @Inject constructor(
                     it.copy(
                         packing = it.packing.copy(
                             isBusy = false,
-                            currentBox = result.box.box.toUi(),
+                            currentBox = result.box.toUi(),
                             countInPacking = result.box.box.countInPacking,
                             resultCard = ScanResultCardUi(
                                 headline = "OK",
@@ -344,6 +350,179 @@ class ScanViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun onItemLongPressed(itemId: Long) {
+        _uiState.update { state ->
+            state.copy(
+                packing = state.packing.copy(itemMenuItemId = itemId),
+            )
+        }
+    }
+
+    fun onDismissItemMenu() {
+        _uiState.update { state ->
+            state.copy(
+                packing = state.packing.copy(itemMenuItemId = null),
+            )
+        }
+    }
+
+    fun onRemoveItemRequested(itemId: Long) {
+        val box = _uiState.value.packing.currentBox ?: return
+        if (_uiState.value.packing.isBusy) return
+
+        _uiState.update {
+            it.copy(
+                packing = it.packing.copy(
+                    isBusy = true,
+                    itemMenuItemId = null,
+                    errorText = null,
+                    statusText = "Удаляем код из коробки...",
+                ),
+            )
+        }
+
+        viewModelScope.launch {
+            runCatching { removePackingBoxItemUseCase(box.boxId, itemId) }
+                .onSuccess { result ->
+                    if (result.ok) {
+                        audioFeedbackPlayer.playSuccess()
+                        refreshCurrentBoxSnapshot(
+                            statusText = "Код удален из коробки",
+                            resultCard = ScanResultCardUi(
+                                headline = "OK",
+                                message = "Код удален из текущей коробки",
+                                tone = ScanResultTone.Success,
+                            ),
+                        )
+                    } else {
+                        audioFeedbackPlayer.playError()
+                        _uiState.update { state ->
+                            state.copy(
+                                packing = state.packing.copy(
+                                    isBusy = false,
+                                    statusText = result.error ?: "Код не удален",
+                                    errorText = result.error,
+                                    resultCard = ScanResultCardUi(
+                                        headline = "NO",
+                                        message = result.error ?: "Код не удален",
+                                        tone = ScanResultTone.Error,
+                                    ),
+                                ),
+                            )
+                        }
+                    }
+                }
+                .onFailure { error ->
+                    audioFeedbackPlayer.playError()
+                    _uiState.update { state ->
+                        state.copy(
+                            packing = state.packing.copy(
+                                isBusy = false,
+                                statusText = "Ошибка удаления кода",
+                                errorText = error.message ?: "Не удалось удалить код",
+                                resultCard = ScanResultCardUi(
+                                    headline = "NO",
+                                    message = error.message ?: "Не удалось удалить код",
+                                    tone = ScanResultTone.Error,
+                                ),
+                            ),
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onDeleteEmptyBoxRequested() {
+        val box = _uiState.value.packing.currentBox ?: return
+        if (box.items.isNotEmpty()) return
+        _uiState.update { state ->
+            state.copy(
+                packing = state.packing.copy(confirmDeleteEmptyBoxDialog = true),
+            )
+        }
+    }
+
+    fun onDismissDeleteEmptyBoxDialog() {
+        _uiState.update { state ->
+            state.copy(
+                packing = state.packing.copy(confirmDeleteEmptyBoxDialog = false),
+            )
+        }
+    }
+
+    fun onConfirmDeleteEmptyBox() {
+        val box = _uiState.value.packing.currentBox ?: return
+        if (_uiState.value.packing.isBusy || box.items.isNotEmpty()) return
+
+        _uiState.update {
+            it.copy(
+                packing = it.packing.copy(
+                    isBusy = true,
+                    confirmDeleteEmptyBoxDialog = false,
+                    errorText = null,
+                    statusText = "Удаляем пустую коробку...",
+                ),
+            )
+        }
+
+        viewModelScope.launch {
+            runCatching { deleteEmptyPackingBoxUseCase(box.boxId) }
+                .onSuccess { result ->
+                    if (result.ok) {
+                        audioFeedbackPlayer.playSuccess()
+                        _uiState.update { state ->
+                            state.copy(
+                                packing = state.packing.copy(
+                                    isBusy = false,
+                                    currentBox = null,
+                                    resultCard = ScanResultCardUi(
+                                        headline = "OK",
+                                        message = "Пустая коробка удалена",
+                                        tone = ScanResultTone.Success,
+                                    ),
+                                    statusText = "Открытая коробка не найдена",
+                                    errorText = null,
+                                ),
+                            )
+                        }
+                    } else {
+                        audioFeedbackPlayer.playError()
+                        _uiState.update { state ->
+                            state.copy(
+                                packing = state.packing.copy(
+                                    isBusy = false,
+                                    statusText = result.error ?: "Коробка не удалена",
+                                    errorText = result.error,
+                                    resultCard = ScanResultCardUi(
+                                        headline = "NO",
+                                        message = result.error ?: "Коробка не удалена",
+                                        tone = ScanResultTone.Error,
+                                    ),
+                                ),
+                            )
+                        }
+                    }
+                }
+                .onFailure { error ->
+                    audioFeedbackPlayer.playError()
+                    _uiState.update { state ->
+                        state.copy(
+                            packing = state.packing.copy(
+                                isBusy = false,
+                                statusText = "Ошибка удаления коробки",
+                                errorText = error.message ?: "Не удалось удалить коробку",
+                                resultCard = ScanResultCardUi(
+                                    headline = "NO",
+                                    message = error.message ?: "Не удалось удалить коробку",
+                                    tone = ScanResultTone.Error,
+                                ),
+                            ),
+                        )
+                    }
+                }
         }
     }
 
@@ -524,20 +703,29 @@ class ScanViewModel @Inject constructor(
     }
 
     private fun loadCurrentBox() {
+        refreshCurrentBoxSnapshot()
+    }
+
+    private fun refreshCurrentBoxSnapshot(
+        statusText: String? = null,
+        resultCard: ScanResultCardUi? = null,
+    ) {
         viewModelScope.launch {
             runCatching { getCurrentPackingBoxUseCase() }
                 .onSuccess { detail ->
                     _uiState.update { state ->
                         state.copy(
                             packing = state.packing.copy(
-                                currentBox = detail?.box?.toUi(),
+                                isBusy = false,
+                                currentBox = detail?.toUi(),
                                 countInPacking = detail?.box?.countInPacking ?: state.packing.countInPacking,
-                                statusText = if (detail == null) {
+                                statusText = statusText ?: if (detail == null) {
                                     "Открытая коробка не найдена"
                                 } else {
                                     "Текущая коробка #${detail.box.boxId}"
                                 },
                                 errorText = null,
+                                resultCard = resultCard ?: state.packing.resultCard,
                             ),
                         )
                     }
@@ -546,6 +734,7 @@ class ScanViewModel @Inject constructor(
                     _uiState.update { state ->
                         state.copy(
                             packing = state.packing.copy(
+                                isBusy = false,
                                 currentBox = null,
                                 statusText = "Не удалось получить текущую коробку",
                                 errorText = error.message,
@@ -624,7 +813,7 @@ class ScanViewModel @Inject constructor(
             state.copy(
                 packing = state.packing.copy(
                     isBusy = false,
-                    currentBox = result.box.toUi(),
+                    currentBox = result.box.toUi(items = state.packing.currentBox?.items.orEmpty()),
                     countInPacking = result.box.countInPacking,
                     resultCard = result.toPackingCard(),
                     statusText = result.toPackingStatusText(),
@@ -632,6 +821,10 @@ class ScanViewModel @Inject constructor(
                 ),
             )
         }
+        refreshCurrentBoxSnapshot(
+            statusText = result.toPackingStatusText(),
+            resultCard = result.toPackingCard(),
+        )
     }
 
     private fun handleCloseBoxResult(result: ClosePackingBoxResult) {
@@ -718,6 +911,11 @@ class ScanViewModel @Inject constructor(
                 message = verify.message,
                 tone = ScanResultTone.Warning,
             )
+            !ok && box.filled >= box.capacity -> ScanResultCardUi(
+                headline = "ЗАПОЛНЕНА",
+                message = error ?: verify?.message ?: "Коробка заполнена",
+                tone = ScanResultTone.Warning,
+            )
             else -> ScanResultCardUi(
                 headline = "NO",
                 message = error ?: verify?.message ?: "Код не добавлен в коробку",
@@ -736,7 +934,7 @@ class ScanViewModel @Inject constructor(
         else -> "Код не добавлен"
     }
 
-    private fun PackingBox.toUi(): PackingBoxUi = PackingBoxUi(
+    private fun PackingBox.toUi(items: List<PackingBoxItemUi> = emptyList()): PackingBoxUi = PackingBoxUi(
         boxId = boxId,
         orderName = orderName,
         sscc = sscc,
@@ -747,6 +945,18 @@ class ScanViewModel @Inject constructor(
         activeUserName = activeUserName,
         printOk = printOk,
         printError = printError,
+        items = items,
+    )
+
+    private fun PackingBoxDetail.toUi(): PackingBoxUi = box.toUi(
+        items = items.map { it.toUi() },
+    )
+
+    private fun PackingBoxItem.toUi(): PackingBoxItemUi = PackingBoxItemUi(
+        id = id,
+        gtin = gtin,
+        serial = serial,
+        visibleCode = visibleCode,
     )
 
     private fun isCameraMode(mode: ScanMode): Boolean =

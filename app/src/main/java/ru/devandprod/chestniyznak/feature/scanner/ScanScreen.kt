@@ -11,9 +11,12 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +24,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,13 +32,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -51,8 +59,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -123,6 +135,12 @@ fun ScanRoute(
         onActiveBoxSelected = viewModel::onActiveBoxSelected,
         onDismissActiveBoxesDialog = viewModel::onDismissActiveBoxesDialog,
         onCountInPackingChanged = viewModel::onCountInPackingChanged,
+        onItemLongPressed = viewModel::onItemLongPressed,
+        onDismissItemMenu = viewModel::onDismissItemMenu,
+        onRemoveItemRequested = viewModel::onRemoveItemRequested,
+        onDeleteEmptyBoxRequested = viewModel::onDeleteEmptyBoxRequested,
+        onDismissDeleteEmptyBoxDialog = viewModel::onDismissDeleteEmptyBoxDialog,
+        onConfirmDeleteEmptyBox = viewModel::onConfirmDeleteEmptyBox,
     )
 }
 
@@ -142,6 +160,12 @@ fun ScanScreen(
     onActiveBoxSelected: (Long) -> Unit,
     onDismissActiveBoxesDialog: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
+    onItemLongPressed: (Long) -> Unit,
+    onDismissItemMenu: () -> Unit,
+    onRemoveItemRequested: (Long) -> Unit,
+    onDeleteEmptyBoxRequested: () -> Unit,
+    onDismissDeleteEmptyBoxDialog: () -> Unit,
+    onConfirmDeleteEmptyBox: () -> Unit,
 ) {
     val themeSpec = CurrentAppThemeSpec
     val scrollState = rememberScrollState()
@@ -161,33 +185,76 @@ fun ScanScreen(
         )
     }
 
+    if (state.packing.confirmDeleteEmptyBoxDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissDeleteEmptyBoxDialog,
+            title = { Text("Удалить пустую коробку?") },
+            text = { Text("Пустая открытая коробка будет удалена без возможности восстановления.") },
+            confirmButton = {
+                TextButton(onClick = onConfirmDeleteEmptyBox) {
+                    Text("Удалить")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissDeleteEmptyBoxDialog) {
+                    Text("Отмена")
+                }
+            },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    TextButton(
-                        onClick = {
-                            onScanModeSelected(
-                                if (state.scanMode == ScanMode.PackingCamera) {
-                                    ScanMode.PackingTsd
-                                } else {
-                                    ScanMode.PackingCamera
-                                },
-                            )
-                        },
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp,
                     ) {
-                        Text(
-                            text = if (state.scanMode == ScanMode.PackingCamera) "Камера" else "ТСД",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
+                        TextButton(
+                            onClick = {
+                                onScanModeSelected(
+                                    if (state.scanMode == ScanMode.PackingCamera) {
+                                        ScanMode.PackingTsd
+                                    } else {
+                                        ScanMode.PackingCamera
+                                    },
+                                )
+                            },
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.Start,
+                            ) {
+                                Text(
+                                    text = if (state.scanMode == ScanMode.PackingCamera) "КАМЕРА" else "ТСД",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    text = "Режим сканирования",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                                )
+                            }
+                        }
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenMenu) {
-                        Icon(
-                            painter = painterResource(id = android.R.drawable.ic_menu_sort_by_size),
-                            contentDescription = "Меню",
-                        )
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp,
+                    ) {
+                        IconButton(onClick = onOpenMenu) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_menu_sort_by_size),
+                                contentDescription = "Меню",
+                            )
+                        }
                     }
                 },
             )
@@ -233,6 +300,10 @@ fun ScanScreen(
                             onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
                             onCountInPackingChanged = onCountInPackingChanged,
+                            onItemLongPressed = onItemLongPressed,
+                            onDismissItemMenu = onDismissItemMenu,
+                            onRemoveItemRequested = onRemoveItemRequested,
+                            onDeleteEmptyBoxRequested = onDeleteEmptyBoxRequested,
                         )
                     }
                     ScanMode.PackingTsd -> {
@@ -242,6 +313,10 @@ fun ScanScreen(
                             onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
                             onCountInPackingChanged = onCountInPackingChanged,
+                            onItemLongPressed = onItemLongPressed,
+                            onDismissItemMenu = onDismissItemMenu,
+                            onRemoveItemRequested = onRemoveItemRequested,
+                            onDeleteEmptyBoxRequested = onDeleteEmptyBoxRequested,
                         )
                     }
                 }
@@ -262,27 +337,63 @@ private fun PackingSummaryBar(
     } else {
         "Упаковано: ${box.filled}/${box.capacity}"
     }
+    val contextLabel = when {
+        box == null -> "Коробка не открыта"
+        !box.orderName.isNullOrBlank() -> "Коробка #${box.boxId}  •  ${box.orderName}"
+        else -> "Коробка #${box.boxId}"
+    }
 
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(28.dp),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         color = themeSpec.decorColors.panelSurface.copy(alpha = 0.88f),
         modifier = modifier,
     ) {
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(20.dp))
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(28.dp))
+                .padding(horizontal = 20.dp, vertical = 18.dp),
         ) {
-            Text(
-                text = packingLabel,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 10.dp, y = (-8).dp)
+                    .size(if (maxWidth > 360.dp) 72.dp else 56.dp)
+                    .background(Brush.radialGradient(listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.02f),
+                    )), CircleShape),
             )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "PACKING FLOW",
+                    style = MaterialTheme.typography.labelMedium,
+                    letterSpacing = 1.4.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = packingLabel,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = contextLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = if (box == null) "Готово к открытию новой коробки" else "Поток сканирования активен",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.84f),
+                )
+            }
         }
     }
 }
@@ -297,6 +408,10 @@ private fun PackingCameraContent(
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
+    onItemLongPressed: (Long) -> Unit,
+    onDismissItemMenu: () -> Unit,
+    onRemoveItemRequested: (Long) -> Unit,
+    onDeleteEmptyBoxRequested: () -> Unit,
 ) {
     ScannerViewport(
         hasCameraPermission = verifyState.hasCameraPermission,
@@ -312,6 +427,10 @@ private fun PackingCameraContent(
         onCloseBoxRequested = onCloseBoxRequested,
         onScanNextRequested = onScanNextRequested,
         onCountInPackingChanged = onCountInPackingChanged,
+        onItemLongPressed = onItemLongPressed,
+        onDismissItemMenu = onDismissItemMenu,
+        onRemoveItemRequested = onRemoveItemRequested,
+        onDeleteEmptyBoxRequested = onDeleteEmptyBoxRequested,
     )
 }
 
@@ -370,6 +489,10 @@ private fun PackingContent(
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
+    onItemLongPressed: (Long) -> Unit,
+    onDismissItemMenu: () -> Unit,
+    onRemoveItemRequested: (Long) -> Unit,
+    onDeleteEmptyBoxRequested: () -> Unit,
 ) {
     CurrentBoxPanel(
         state = state,
@@ -377,6 +500,10 @@ private fun PackingContent(
         onCloseBoxRequested = onCloseBoxRequested,
         onScanNextRequested = onScanNextRequested,
         onCountInPackingChanged = onCountInPackingChanged,
+        onItemLongPressed = onItemLongPressed,
+        onDismissItemMenu = onDismissItemMenu,
+        onRemoveItemRequested = onRemoveItemRequested,
+        onDeleteEmptyBoxRequested = onDeleteEmptyBoxRequested,
     )
 }
 
@@ -419,6 +546,7 @@ internal fun ScannerViewport(
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CurrentBoxPanel(
     state: PackingPaneUiState,
@@ -426,8 +554,13 @@ private fun CurrentBoxPanel(
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
+    onItemLongPressed: (Long) -> Unit,
+    onDismissItemMenu: () -> Unit,
+    onRemoveItemRequested: (Long) -> Unit,
+    onDeleteEmptyBoxRequested: () -> Unit,
 ) {
     val themeSpec = CurrentAppThemeSpec
+    val box = state.currentBox
     Surface(
         shape = RoundedCornerShape(28.dp),
         tonalElevation = 0.dp,
@@ -439,42 +572,90 @@ private fun CurrentBoxPanel(
             modifier = Modifier
                 .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(28.dp))
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(
-                text = "Текущая коробка",
-                style = MaterialTheme.typography.titleLarge,
-            )
-            val box = state.currentBox
             if (box == null) {
-                Text(
-                    text = state.statusText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
-                )
+                Surface(
+                    shape = RoundedCornerShape(22.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.32f),
+                                RoundedCornerShape(22.dp),
+                            )
+                            .padding(horizontal = 16.dp, vertical = 18.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = "Новый коробочный цикл",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "Откройте коробку и начинайте поток сканирования без лишних шагов.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                        )
+                    }
+                }
             } else {
-                Text(
-                    text = "ID: ${box.boxId}",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    text = "Наполнение: ${box.filled}/${box.capacity}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                box.orderName?.takeIf(String::isNotBlank)?.let { orderName ->
-                    Text(
-                        text = "Заказ: $orderName",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = "Активная коробка",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "Сканируйте изделия в текущую коробку",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(100.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    ) {
+                        Text(
+                            text = "${box.filled}/${box.capacity}",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
-                box.sscc?.takeIf(String::isNotBlank)?.let { sscc ->
-                    Text(
-                        text = "SSCC: $sscc",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                    )
-                }
+                LinearProgressIndicator(
+                    progress = { if (box.capacity > 0) box.filled.toFloat() / box.capacity.toFloat() else 0f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                )
+                MetricRow(
+                    leftTitle = "ID",
+                    leftValue = box.boxId.toString(),
+                    rightTitle = "Заполнение",
+                    rightValue = "${box.filled}/${box.capacity}",
+                )
+                MetricRow(
+                    leftTitle = "Заказ",
+                    leftValue = box.orderName?.takeIf(String::isNotBlank) ?: "Не привязан",
+                    rightTitle = "SSCC",
+                    rightValue = box.sscc?.takeIf(String::isNotBlank) ?: "Еще не присвоен",
+                )
                 if (box.printError.isNotBlank()) {
                     Text(
                         text = box.printError,
@@ -489,29 +670,51 @@ private fun CurrentBoxPanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(
+                Surface(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
                 ) {
-                    Text(
-                        text = "Учитывать в упаковке",
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        text = if (state.countInPacking) {
-                            "Закрытие коробки увеличит счетчик упаковки"
-                        } else {
-                            "Коробка закроется и напечатается без учета этапа упаковки"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.28f),
+                                RoundedCornerShape(20.dp),
+                            )
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                text = "Учитывать в упаковке",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = if (state.countInPacking) {
+                                    "Закрытие коробки увеличит счетчик упаковки"
+                                } else {
+                                    "Коробка закроется и напечатается без увеличения счетчика упаковки"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                        }
+                        Switch(
+                            checked = state.countInPacking,
+                            onCheckedChange = onCountInPackingChanged,
+                            enabled = !state.isBusy,
+                        )
+                    }
                 }
-                Switch(
-                    checked = state.countInPacking,
-                    onCheckedChange = onCountInPackingChanged,
-                    enabled = !state.isBusy,
-                )
             }
 
             state.errorText?.takeIf(String::isNotBlank)?.let { error ->
@@ -523,13 +726,94 @@ private fun CurrentBoxPanel(
             }
 
             if (state.lastScannedCode.isNotBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.28f),
+                                RoundedCornerShape(20.dp),
+                            )
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "Последний код",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                        )
+                        Text(
+                            text = state.lastScannedCode,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+
+            box?.items?.takeIf { it.isNotEmpty() }?.let { items ->
                 Text(
-                    text = state.lastScannedCode,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
+                    text = "Коды в коробке",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                 )
+                items.forEach { item ->
+                    Box {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = {},
+                                    onLongClick = { onItemLongPressed(item.id) },
+                                )
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.32f),
+                                    RoundedCornerShape(20.dp),
+                                ),
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Text(
+                                    text = item.visibleCode,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = "GTIN: ${item.gtin}  •  SN: ${item.serial}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = state.itemMenuItemId == item.id,
+                            onDismissRequest = onDismissItemMenu,
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Удалить") },
+                                onClick = { onRemoveItemRequested(item.id) },
+                            )
+                        }
+                    }
+                }
             }
 
             Row(
@@ -541,6 +825,10 @@ private fun CurrentBoxPanel(
                         onClick = onOpenBoxRequested,
                         enabled = !state.isBusy,
                         modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
                     ) {
                         Text("Открыть коробку")
                     }
@@ -549,18 +837,85 @@ private fun CurrentBoxPanel(
                         onClick = onCloseBoxRequested,
                         enabled = !state.isBusy,
                         modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
                     ) {
                         Text("Закрыть коробку")
                     }
                     OutlinedButton(
-                        onClick = onScanNextRequested,
+                        onClick = if (box.items.isEmpty()) onDeleteEmptyBoxRequested else onScanNextRequested,
                         enabled = !state.isBusy,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Сбросить статус")
+                        Text(if (box.items.isEmpty()) "Удалить коробку" else "Сбросить статус")
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MetricRow(
+    leftTitle: String,
+    leftValue: String,
+    rightTitle: String,
+    rightValue: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        MetricTile(
+            title = leftTitle,
+            value = leftValue,
+            modifier = Modifier.weight(1f),
+        )
+        MetricTile(
+            title = rightTitle,
+            value = rightValue,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun MetricTile(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                    RoundedCornerShape(20.dp),
+                )
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

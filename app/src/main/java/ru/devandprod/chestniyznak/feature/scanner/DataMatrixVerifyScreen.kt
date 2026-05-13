@@ -5,6 +5,8 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -134,31 +136,61 @@ internal fun DataMatrixVerifyScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    TextButton(
-                        onClick = {
-                            onInputModeChanged(
-                                if (inputMode == VerifyInputMode.Camera) {
-                                    VerifyInputMode.Tsd
-                                } else {
-                                    VerifyInputMode.Camera
-                                },
-                            )
-                        },
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp,
                     ) {
-                        Text(if (inputMode == VerifyInputMode.Camera) "Камера" else "ТСД")
+                        IconButton(
+                            onClick = {
+                                onInputModeChanged(
+                                    if (inputMode == VerifyInputMode.Camera) {
+                                        VerifyInputMode.Tsd
+                                    } else {
+                                        VerifyInputMode.Camera
+                                    },
+                                )
+                            },
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.Start,
+                            ) {
+                                Text(
+                                    if (inputMode == VerifyInputMode.Camera) "КАМЕРА" else "ТСД",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    "Проверка DataMatrix",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                                )
+                            }
+                        }
                     }
                 },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Назад")
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Text("←", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
                     }
                 },
                 actions = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
-                            contentDescription = "Закрыть",
-                        )
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
+                                contentDescription = "Закрыть",
+                            )
+                        }
                     }
                 },
             )

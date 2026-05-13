@@ -1,21 +1,27 @@
 package ru.devandprod.chestniyznak.feature.boxdetail
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -28,10 +34,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
@@ -69,14 +78,25 @@ fun BoxDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(state.title)
-                        state.statusText.takeIf(String::isNotBlank)?.let {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
                             Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                text = state.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
                             )
+                            state.statusText.takeIf(String::isNotBlank)?.let {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                                )
+                            }
                         }
                     }
                 },
@@ -125,6 +145,9 @@ fun BoxDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         item {
+                            BoxHeroCard(box = box)
+                        }
+                        item {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -133,6 +156,10 @@ fun BoxDetailScreen(
                                     onClick = onOpenEdit,
                                     enabled = !state.isActionBusy && box.isClosed,
                                     modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    ),
                                 ) {
                                     Text("Редактировать", maxLines = 1)
                                 }
@@ -140,48 +167,21 @@ fun BoxDetailScreen(
                                     onClick = onPrintLabel,
                                     enabled = !state.isActionBusy && box.isClosed,
                                     modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    ),
                                 ) {
                                     Text("Распечатать", maxLines = 1)
                                 }
                             }
                         }
                         item {
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f), RoundedCornerShape(26.dp)),
-                                shape = RoundedCornerShape(26.dp),
-                                color = decor.panelSurface.copy(alpha = 0.92f),
-                                tonalElevation = 0.dp,
-                                shadowElevation = 0.dp,
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(18.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Text("ID: ${box.boxId}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                    Text(
-                                        text = when {
-                                            box.isEditMode -> "Статус: редактирование"
-                                            box.isClosed -> "Статус: закрыта"
-                                            else -> "Статус: открыта"
-                                        },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                    Text("Наполнение: ${box.filled}/${box.capacity}", style = MaterialTheme.typography.bodyMedium)
-                                    box.orderName?.takeIf(String::isNotBlank)?.let { Text("Заказ: $it", style = MaterialTheme.typography.bodyMedium) }
-                                    box.sscc?.takeIf(String::isNotBlank)?.let { Text("SSCC: $it", style = MaterialTheme.typography.bodyMedium) }
-                                    box.activeUserName.takeIf(String::isNotBlank)?.let { Text("Оператор: $it", style = MaterialTheme.typography.bodySmall) }
-                                    if (box.printError.isNotBlank()) {
-                                        Text(box.printError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                                    }
-                                    state.errorText?.takeIf(String::isNotBlank)?.let {
-                                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                                    }
-                                }
-                            }
+                            BoxMetricsCard(
+                                box = box,
+                                errorText = state.errorText,
+                                decor = decor,
+                            )
                         }
                         item {
                             Text(
@@ -225,6 +225,189 @@ fun BoxDetailScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BoxHeroCard(
+    box: BoxDetailUi,
+) {
+    Surface(
+        shape = RoundedCornerShape(30.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.42f), RoundedCornerShape(30.dp))
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(78.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                Color.Transparent,
+                            ),
+                        ),
+                        CircleShape,
+                    ),
+            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "BOX FLOW",
+                    style = MaterialTheme.typography.labelMedium,
+                    letterSpacing = 1.2.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Коробка #${box.boxId}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+                Text(
+                    text = when {
+                        box.isEditMode -> "Коробка открыта в режиме редактирования"
+                        box.isClosed -> "Коробка закрыта и готова к контролю"
+                        else -> "Коробка активна и готова к сканированию"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxMetricsCard(
+    box: BoxDetailUi,
+    errorText: String?,
+    decor: ru.devandprod.chestniyznak.core.designsystem.theme.AppDecorColors,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = decor.panelSurface.copy(alpha = 0.92f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f), RoundedCornerShape(28.dp))
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(100.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            ) {
+                Text(
+                    text = "${box.filled}/${box.capacity}",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            LinearProgressIndicator(
+                progress = { if (box.capacity > 0) box.filled.toFloat() / box.capacity.toFloat() else 0f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+            )
+            BoxMetricRow(
+                leftTitle = "Заказ",
+                leftValue = box.orderName?.takeIf(String::isNotBlank) ?: "Не привязан",
+                rightTitle = "SSCC",
+                rightValue = box.sscc?.takeIf(String::isNotBlank) ?: "Еще не присвоен",
+            )
+            BoxMetricRow(
+                leftTitle = "Статус",
+                leftValue = when {
+                    box.isEditMode -> "Редактирование"
+                    box.isClosed -> "Закрыта"
+                    else -> "Открыта"
+                },
+                rightTitle = "Оператор",
+                rightValue = box.activeUserName.ifBlank { "Не указан" },
+            )
+            if (box.printError.isNotBlank()) {
+                Text(box.printError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            errorText?.takeIf(String::isNotBlank)?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxMetricRow(
+    leftTitle: String,
+    leftValue: String,
+    rightTitle: String,
+    rightValue: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        BoxMetricTile(
+            title = leftTitle,
+            value = leftValue,
+            modifier = Modifier.weight(1f),
+        )
+        BoxMetricTile(
+            title = rightTitle,
+            value = rightValue,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun BoxMetricTile(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.32f), RoundedCornerShape(20.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

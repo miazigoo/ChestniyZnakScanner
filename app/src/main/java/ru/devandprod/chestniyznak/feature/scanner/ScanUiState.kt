@@ -31,6 +31,8 @@ data class PackingPaneUiState(
     val lastScannedCode: String = "",
     val activeBoxesDialog: ActiveBoxesDialogUi? = null,
     val closeDialog: CloseBoxDialogUi? = null,
+    val itemMenuItemId: Long? = null,
+    val confirmDeleteEmptyBoxDialog: Boolean = false,
 )
 
 data class PackingBoxUi(
@@ -44,6 +46,14 @@ data class PackingBoxUi(
     val activeUserName: String = "",
     val printOk: Boolean = false,
     val printError: String = "",
+    val items: List<PackingBoxItemUi> = emptyList(),
+)
+
+data class PackingBoxItemUi(
+    val id: Long,
+    val gtin: String,
+    val serial: String,
+    val visibleCode: String,
 )
 
 data class ActiveBoxesDialogUi(

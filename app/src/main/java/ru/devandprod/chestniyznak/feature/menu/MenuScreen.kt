@@ -2,25 +2,34 @@ package ru.devandprod.chestniyznak.feature.menu
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 
@@ -69,10 +78,35 @@ fun MenuScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Меню") },
+                title = {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                text = "МЕНЮ",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = "Навигация по рабочим сценариям",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Назад")
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Text("←", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
                     }
                 },
             )
@@ -91,6 +125,7 @@ fun MenuScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                MenuHeroCard()
                 MenuSectionTitle("Коробки")
                 MenuItemCard(
                     title = "Проверка DataMatrix",
@@ -154,6 +189,59 @@ fun MenuScreen(
 }
 
 @Composable
+private fun MenuHeroCard() {
+    Surface(
+        shape = RoundedCornerShape(30.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.42f), RoundedCornerShape(30.dp))
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(78.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                Color.Transparent,
+                            ),
+                        ),
+                        CircleShape,
+                    ),
+            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "WORKSPACE",
+                    style = MaterialTheme.typography.labelMedium,
+                    letterSpacing = 1.2.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Выберите сценарий работы",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+                Text(
+                    text = "Быстрый доступ к проверке DataMatrix, коробкам и сервисным настройкам устройства.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun MenuSectionTitle(
     title: String,
 ) {
@@ -177,33 +265,48 @@ private fun MenuItemCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(26.dp),
-            )
             .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(26.dp),
         color = panelColor,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.44f),
+                    shape = RoundedCornerShape(26.dp),
+                )
                 .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+            Box(
+                modifier = Modifier
+                    .size(14.dp)
+                    .background(
+                        if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.82f)
+                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.42f),
+                        CircleShape,
+                    ),
             )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 0.76f else 0.42f),
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 0.76f else 0.42f),
+                )
+            }
         }
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -30,6 +31,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -43,9 +46,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
@@ -131,20 +137,36 @@ fun BoxEditScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(state.title)
-                        state.statusText.takeIf(String::isNotBlank)?.let {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
                             Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                text = state.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
                             )
+                            state.statusText.takeIf(String::isNotBlank)?.let {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                                )
+                            }
                         }
                     }
                 },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Назад")
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Text("←", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
                     }
                 },
             )
@@ -174,6 +196,9 @@ fun BoxEditScreen(
                     HidScannerInputField(modifier = Modifier.size(1.dp))
                 }
                 item {
+                    EditHeroCard(box = box)
+                }
+                item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -199,58 +224,15 @@ fun BoxEditScreen(
                     }
                 }
                 item {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f), RoundedCornerShape(26.dp)),
-                        shape = RoundedCornerShape(26.dp),
-                        color = decor.panelSurface.copy(alpha = 0.92f),
-                        tonalElevation = 0.dp,
-                        shadowElevation = 0.dp,
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(18.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text("ID: ${box.boxId}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                            box.orderName?.takeIf(String::isNotBlank)?.let { Text("Заказ: $it", style = MaterialTheme.typography.bodyMedium) }
-                            box.sscc?.takeIf(String::isNotBlank)?.let { Text("SSCC: $it", style = MaterialTheme.typography.bodyMedium) }
-                            Text("Наполнение: ${box.filled}/${box.capacity}", style = MaterialTheme.typography.bodyMedium)
-                            if (state.lastScannedCode.isNotBlank()) {
-                                Text(
-                                    text = state.lastScannedCode,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                                    maxLines = 3,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            state.errorText?.takeIf(String::isNotBlank)?.let {
-                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                    }
+                    EditMetricsCard(
+                        box = box,
+                        lastScannedCode = state.lastScannedCode,
+                        errorText = state.errorText,
+                        decor = decor,
+                    )
                 }
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(108.dp)
-                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(24.dp))
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = if (state.isAwaitingScan) {
-                                "Ожидание сканирования встроенным сканером"
-                            } else {
-                                "Нажмите \"Добавить\", чтобы разрешить сканирование"
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
+                    EditScannerStateCard(isAwaitingScan = state.isAwaitingScan)
                 }
                 item {
                     Text(
@@ -316,6 +298,222 @@ fun BoxEditScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EditHeroCard(
+    box: EditableBoxUi,
+) {
+    Surface(
+        shape = RoundedCornerShape(30.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.42f), RoundedCornerShape(30.dp))
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(78.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                Color.Transparent,
+                            ),
+                        ),
+                        CircleShape,
+                    ),
+            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "EDIT FLOW",
+                    style = MaterialTheme.typography.labelMedium,
+                    letterSpacing = 1.2.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Коробка #${box.boxId}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+                Text(
+                    text = "Редактируйте состав коробки, удаляйте лишние позиции и добавляйте новые сканы.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditMetricsCard(
+    box: EditableBoxUi,
+    lastScannedCode: String,
+    errorText: String?,
+    decor: ru.devandprod.chestniyznak.core.designsystem.theme.AppDecorColors,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = decor.panelSurface.copy(alpha = 0.92f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f), RoundedCornerShape(28.dp))
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(100.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            ) {
+                Text(
+                    text = "${box.filled}/${box.capacity}",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            LinearProgressIndicator(
+                progress = { if (box.capacity > 0) box.filled.toFloat() / box.capacity.toFloat() else 0f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                EditMetricTile(
+                    title = "Заказ",
+                    value = box.orderName?.takeIf(String::isNotBlank) ?: "Не привязан",
+                    modifier = Modifier.weight(1f),
+                )
+                EditMetricTile(
+                    title = "SSCC",
+                    value = box.sscc?.takeIf(String::isNotBlank) ?: "Еще не присвоен",
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (lastScannedCode.isNotBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.32f), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "Последний код",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                        )
+                        Text(
+                            text = lastScannedCode,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+            errorText?.takeIf(String::isNotBlank)?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditMetricTile(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.32f), RoundedCornerShape(20.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditScannerStateCard(
+    isAwaitingScan: Boolean,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(24.dp))
+                .padding(horizontal = 18.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = if (isAwaitingScan) "Сканирование разрешено" else "Ожидание команды на добавление",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = if (isAwaitingScan) {
+                    "Считывайте коды встроенным сканером и они будут добавляться в коробку."
+                } else {
+                    "Нажмите \"Добавить\", чтобы открыть короткое окно для приема нового скана."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            )
         }
     }
 }

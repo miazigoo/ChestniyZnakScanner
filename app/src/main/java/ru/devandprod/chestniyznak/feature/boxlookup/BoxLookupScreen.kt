@@ -17,15 +17,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -78,10 +79,34 @@ fun BoxLookupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Просмотреть коробку") },
+                title = {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                "ПРОСМОТР",
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                            Text(
+                                "Поиск коробки по SSCC или ID",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Назад")
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Text("←", style = MaterialTheme.typography.titleMedium)
+                        }
                     }
                 },
             )
