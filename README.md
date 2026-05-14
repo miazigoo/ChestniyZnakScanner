@@ -341,7 +341,7 @@ adb logcat | grep ChestniyZnakWS
 ## Сетевые и runtime-особенности
 
 - приложение работает с backend по `HTTP`;
-- тестовый токен сейчас захардкожен в `BuildConfig.AUTH_TOKEN`;
+- авторизация выполняется по токену, который считывается с QR-кода или встроенным сканером ТСД;
 - WebSocket поднимается автоматически при старте authenticated-flow;
 - при потере связи показывается блокирующая модалка;
 - есть ручной retry с cooldown;
@@ -399,7 +399,6 @@ adb logcat | grep ChestniyZnakWS
 
 ## Что важно знать перед релизом
 
-- сейчас в debug и release конфигурации используется `AUTH_TOKEN = "testtokentablet"`;
 - backend URL зашит как `http://srv-dnp.argos.loc/api/v2/`;
 - release signing в этом README не описан, потому что keystore не включен в репозиторий;
 - перед production-релизом стоит:

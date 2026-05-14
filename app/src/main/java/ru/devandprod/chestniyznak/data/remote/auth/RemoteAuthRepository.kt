@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import ru.devandprod.chestniyznak.BuildConfig
 import ru.devandprod.chestniyznak.core.common.IoDispatcher
 import ru.devandprod.chestniyznak.data.remote.api.AccountApi
 import ru.devandprod.chestniyznak.data.remote.dto.AccountDto
@@ -32,10 +31,7 @@ class RemoteAuthRepository @Inject constructor(
 
     override suspend fun restoreSession() = withContext(ioDispatcher) {
         if (!cookieStore.hasSessionCookie()) {
-            runCatching { login(BuildConfig.AUTH_TOKEN) }
-                .onFailure {
-                    sessionState.value = AuthSession(isLoading = false)
-                }
+            sessionState.value = AuthSession(isLoading = false)
             return@withContext
         }
 
@@ -56,10 +52,7 @@ class RemoteAuthRepository @Inject constructor(
             }
         } else {
             cookieStore.clear()
-            runCatching { login(BuildConfig.AUTH_TOKEN) }
-                .onFailure {
-                    sessionState.value = AuthSession(isLoading = false)
-                }
+            sessionState.value = AuthSession(isLoading = false)
         }
     }
 

@@ -11,13 +11,19 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class BarcodeFrameAnalyzer(
     private val scanGate: AtomicBoolean,
+    barcodeFormats: IntArray = intArrayOf(Barcode.FORMAT_DATA_MATRIX),
     private val onBarcodeDetected: (String) -> Unit,
 ) : ImageAnalysis.Analyzer, Closeable {
 
     private val frameInFlight = AtomicBoolean(false)
     private val scanner = BarcodeScanning.getClient(
         BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_DATA_MATRIX)
+            .apply {
+                setBarcodeFormats(
+                    barcodeFormats.firstOrNull() ?: Barcode.FORMAT_DATA_MATRIX,
+                    *barcodeFormats.drop(1).toIntArray(),
+                )
+            }
             .build(),
     )
 

@@ -88,6 +88,8 @@ fun AppNavHost(
             AuthRoute(
                 state = authState,
                 onLoginClicked = authViewModel::onLoginClicked,
+                onTokenScanned = authViewModel::onTokenScanned,
+                onCameraScannerRearmRequested = authViewModel::onCameraScannerRearmRequested,
             )
         }
     }

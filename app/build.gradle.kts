@@ -15,15 +15,14 @@ android {
         applicationId = "ru.devandprod.chestniyznak"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.0.7"
+        versionCode = 9
+        versionName = "1.0.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
         buildConfigField("String", "API_BASE_URL", "\"http://srv-dnp.argos.loc/api/v2/\"")
         buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
-        buildConfigField("String", "AUTH_TOKEN", "\"testtokentablet\"")
     }
 
     buildTypes {
@@ -31,14 +30,12 @@ android {
             isMinifyEnabled = false
             buildConfigField("String", "API_BASE_URL", "\"http://srv-dnp.argos.loc/api/v2/\"")
             buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
-            buildConfigField("String", "AUTH_TOKEN", "\"testtokentablet\"")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             buildConfigField("String", "API_BASE_URL", "\"http://srv-dnp.argos.loc/api/v2/\"")
             buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "false")
-            buildConfigField("String", "AUTH_TOKEN", "\"testtokentablet\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
