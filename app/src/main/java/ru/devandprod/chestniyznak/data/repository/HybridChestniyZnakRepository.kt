@@ -13,10 +13,12 @@ import ru.devandprod.chestniyznak.data.remote.api.ChestniyZnakApi
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteErrorParser
 import ru.devandprod.chestniyznak.data.remote.dto.StatsResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.DefectRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.VerifyExistsRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.VerifyRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.toDomain
 import ru.devandprod.chestniyznak.domain.model.CatalogStats
+import ru.devandprod.chestniyznak.domain.model.DefectMarkResult
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
 import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
@@ -129,6 +131,48 @@ class HybridChestniyZnakRepository @Inject constructor(
                     warnings = local.warnings + errorParser.message(response),
                 )
             }
+        }
+    }
+
+    override suspend fun markDefect(
+        rawInput: String,
+        scannerId: String,
+    ): DefectMarkResult = withContext(ioDispatcher) {
+        val response = try {
+            remoteApi.markDefect(
+                DefectRequestDto(
+                    code = rawInput,
+                    scannerId = scannerId,
+                ),
+            )
+        } catch (_: IOException) {
+            return@withContext localRepository.markDefect(rawInput, scannerId)
+        } catch (exception: Exception) {
+            return@withContext DefectMarkResult(
+                ok = false,
+                reasonCode = "internal_error",
+                error = exception.message ?: "Не удалось отправить код в брак",
+            )
+        }
+
+        when {
+            response.isSuccessful && response.body() != null -> {
+                refreshStats()
+                response.body()!!.toDomain()
+            }
+            response.code() == 401 || response.code() == 403 -> {
+                authRepository.invalidateSession()
+                DefectMarkResult(
+                    ok = false,
+                    reasonCode = "unauthorized",
+                    error = "Сессия истекла. Войдите снова.",
+                )
+            }
+            else -> DefectMarkResult(
+                ok = false,
+                reasonCode = "api_error",
+                error = errorParser.message(response),
+            )
         }
     }
 

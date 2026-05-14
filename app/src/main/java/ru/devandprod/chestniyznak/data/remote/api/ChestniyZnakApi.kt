@@ -5,6 +5,8 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import ru.devandprod.chestniyznak.data.remote.dto.StatsResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.DefectRequestDto
+import ru.devandprod.chestniyznak.data.remote.dto.DefectResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.VerifyExistsRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.VerifyExistsResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.VerifyRequestDto
@@ -20,6 +22,11 @@ interface ChestniyZnakApi {
     suspend fun verifyExists(
         @Body request: VerifyExistsRequestDto,
     ): Response<VerifyExistsResponseDto>
+
+    @POST("chestniy-znak/laser/defect")
+    suspend fun markDefect(
+        @Body request: DefectRequestDto,
+    ): Response<DefectResponseDto>
 
     @GET("chestniy-znak/catalog/stats")
     suspend fun stats(): Response<StatsResponseDto>

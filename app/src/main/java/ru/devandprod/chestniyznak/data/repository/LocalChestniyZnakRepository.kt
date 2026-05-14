@@ -16,6 +16,7 @@ import ru.devandprod.chestniyznak.data.local.entity.MarkingCodeEntity
 import ru.devandprod.chestniyznak.data.local.entity.ScanLogEntity
 import ru.devandprod.chestniyznak.data.local.seed.SeedAssetLoader
 import ru.devandprod.chestniyznak.domain.model.CatalogStats
+import ru.devandprod.chestniyznak.domain.model.DefectMarkResult
 import ru.devandprod.chestniyznak.domain.model.MarkingCode
 import ru.devandprod.chestniyznak.domain.model.ParsedMarkingCode
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
@@ -148,6 +149,15 @@ class LocalChestniyZnakRepository @Inject constructor(
         rawInput = rawInput,
         scannerId = scannerId,
         allowDuplicate = allowDuplicate,
+    )
+
+    override suspend fun markDefect(
+        rawInput: String,
+        scannerId: String,
+    ): DefectMarkResult = DefectMarkResult(
+        ok = false,
+        reasonCode = "unsupported_offline",
+        error = "Отметка брака доступна только при подключении к серверу",
     )
 
     override fun observeStats(): Flow<CatalogStats> = combine(

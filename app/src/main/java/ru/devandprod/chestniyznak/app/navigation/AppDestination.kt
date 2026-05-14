@@ -11,6 +11,7 @@ enum class AppDestination(val route: String) {
     SoundSettings("sound-settings"),
     ThemeSelection("theme-selection"),
     DataMatrixVerify("data-matrix-verify"),
+    DefectMark("defect-mark"),
     Login("login"),
     Scanner("scanner");
 

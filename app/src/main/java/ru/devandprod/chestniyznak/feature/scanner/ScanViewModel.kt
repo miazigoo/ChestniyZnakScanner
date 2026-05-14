@@ -878,11 +878,23 @@ class ScanViewModel @Inject constructor(
         }
     }
 
-    private fun VerificationResult.toVerifyCard(): ScanResultCardUi = ScanResultCardUi(
-        headline = if (isSuccess) "OK" else "NO",
-        message = message,
-        tone = if (isSuccess) ScanResultTone.Success else ScanResultTone.Error,
-    )
+    private fun VerificationResult.toVerifyCard(): ScanResultCardUi = when (status) {
+        VerificationStatus.DUPLICATE_SCAN -> ScanResultCardUi(
+            headline = "ДУБЛИКАТ",
+            message = message,
+            tone = ScanResultTone.Warning,
+        )
+        VerificationStatus.OK, VerificationStatus.OK_GS_RESTORED -> ScanResultCardUi(
+            headline = "OK",
+            message = message,
+            tone = ScanResultTone.Success,
+        )
+        else -> ScanResultCardUi(
+            headline = "NO",
+            message = message,
+            tone = ScanResultTone.Error,
+        )
+    }
 
     private fun PackingScanResult.toPackingCard(): ScanResultCardUi {
         return when {

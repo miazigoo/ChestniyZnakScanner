@@ -3,6 +3,8 @@ package ru.devandprod.chestniyznak.data.remote.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import ru.devandprod.chestniyznak.domain.model.CatalogStats
+import ru.devandprod.chestniyznak.domain.model.DefectMarkResult
+import ru.devandprod.chestniyznak.domain.model.DefectRemovedBox
 import ru.devandprod.chestniyznak.domain.model.MarkingCode
 import ru.devandprod.chestniyznak.domain.model.ParsedMarkingCode
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
@@ -31,6 +33,13 @@ data class VerifyExistsRequestDto(
 )
 
 @Serializable
+data class DefectRequestDto(
+    val code: String,
+    @SerialName("scanner_id")
+    val scannerId: String = "",
+)
+
+@Serializable
 data class VerifyResponseDto(
     val status: String,
     val message: String,
@@ -55,6 +64,25 @@ data class VerifyExistsResponseDto(
     val scanId: Long? = null,
     val code: RemoteCodeDto? = null,
     val warnings: List<String> = emptyList(),
+)
+
+@Serializable
+data class DefectResponseDto(
+    val ok: Boolean,
+    @SerialName("reason_code")
+    val reasonCode: String,
+    val error: String? = null,
+    val verify: VerifyResponseDto? = null,
+    @SerialName("removed_from_box")
+    val removedFromBox: DefectRemovedBoxDto? = null,
+)
+
+@Serializable
+data class DefectRemovedBoxDto(
+    @SerialName("box_id")
+    val boxId: Long,
+    val sscc: String? = null,
+    val filled: Int = 0,
 )
 
 @Serializable
@@ -124,6 +152,14 @@ fun VerifyExistsResponseDto.toDomain(): VerificationResult = VerificationResult(
     warnings = warnings,
 )
 
+fun DefectResponseDto.toDomain(): DefectMarkResult = DefectMarkResult(
+    ok = ok,
+    reasonCode = reasonCode,
+    error = error,
+    verify = verify?.toDomain(),
+    removedFromBox = removedFromBox?.toDomain(),
+)
+
 fun StatsResponseDto.toDomain(): CatalogStats = CatalogStats(
     totalCodes = codesCount,
     totalScans = scansCount,
@@ -151,4 +187,10 @@ private fun RemoteCodeDto.toDomain(): MarkingCode = MarkingCode(
     orderNumber = orderNumber,
     orderName = orderName,
     deviceName = deviceName,
+)
+
+private fun DefectRemovedBoxDto.toDomain(): DefectRemovedBox = DefectRemovedBox(
+    boxId = boxId,
+    sscc = sscc,
+    filled = filled,
 )

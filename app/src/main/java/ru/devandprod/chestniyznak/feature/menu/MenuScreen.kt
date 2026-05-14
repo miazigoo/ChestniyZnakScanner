@@ -37,6 +37,7 @@ import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 fun MenuRoute(
     onBack: () -> Unit,
     onOpenDataMatrixVerify: () -> Unit,
+    onOpenDefectMark: () -> Unit,
     onOpenBox: () -> Unit,
     onShowCurrentBox: () -> Unit,
     onOpenBoxesList: () -> Unit,
@@ -49,6 +50,7 @@ fun MenuRoute(
     MenuScreen(
         onBack = onBack,
         onOpenDataMatrixVerify = onOpenDataMatrixVerify,
+        onOpenDefectMark = onOpenDefectMark,
         onOpenBox = onOpenBox,
         onShowCurrentBox = onShowCurrentBox,
         onOpenBoxesList = onOpenBoxesList,
@@ -65,6 +67,7 @@ fun MenuRoute(
 fun MenuScreen(
     onBack: () -> Unit,
     onOpenDataMatrixVerify: () -> Unit,
+    onOpenDefectMark: () -> Unit,
     onOpenBox: () -> Unit,
     onShowCurrentBox: () -> Unit,
     onOpenBoxesList: () -> Unit,
@@ -132,6 +135,12 @@ fun MenuScreen(
                     subtitle = "Переключиться в режим камеры и проверить, есть ли код в базе.",
                     panelColor = decor.panelSurface,
                     onClick = onOpenDataMatrixVerify,
+                )
+                MenuItemCard(
+                    title = "Брак",
+                    subtitle = "Сканировать код и отправить его в брак через серверный сценарий.",
+                    panelColor = decor.panelSurface,
+                    onClick = onOpenDefectMark,
                 )
                 MenuItemCard(
                     title = "Открыть коробку",
