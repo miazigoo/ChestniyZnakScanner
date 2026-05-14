@@ -226,15 +226,27 @@ fun ScanScreen(
                             modifier = Modifier.padding(horizontal = 4.dp),
                         ) {
                             Column(
-                                horizontalAlignment = Alignment.Start,
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                Text(
-                                    text = if (state.scanMode == ScanMode.PackingCamera) "КАМЕРА" else "ТСД",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (state.scanMode == ScanMode.PackingCamera) {
+                                            R.drawable.ic_mode_camera
+                                        } else {
+                                            R.drawable.ic_mode_tsd
+                                        },
+                                    ),
+                                    contentDescription = if (state.scanMode == ScanMode.PackingCamera) {
+                                        "Режим камеры"
+                                    } else {
+                                        "Режим ТСД"
+                                    },
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(22.dp),
                                 )
                                 Text(
-                                    text = "Режим сканирования",
+                                    text = "Режим",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                                 )

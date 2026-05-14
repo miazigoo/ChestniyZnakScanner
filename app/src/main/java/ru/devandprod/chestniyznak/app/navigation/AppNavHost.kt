@@ -1,10 +1,16 @@
 package ru.devandprod.chestniyznak.app.navigation
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -17,16 +23,23 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.app.AppRuntimeViewModel
 import ru.devandprod.chestniyznak.core.scanner.ScannerCommand
 import ru.devandprod.chestniyznak.core.scanner.ScannerCommandBus
@@ -92,6 +105,19 @@ private fun AuthenticatedNavHost(
     val showConnectionRestored by runtimeViewModel.showConnectionRestored.collectAsState()
     val updateStatusDialogText by runtimeViewModel.updateStatusDialogText.collectAsState()
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val context = LocalContext.current
+    val activity = context as? Activity
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    BackHandler {
+        if (navController.previousBackStackEntry != null) {
+            navController.popBackStack()
+        } else {
+            showExitDialog = true
+        }
+    }
+
     DisposableEffect(Unit) {
         runtimeViewModel.startRuntime()
         onDispose { runtimeViewModel.stopRuntime() }
@@ -218,6 +244,36 @@ private fun AuthenticatedNavHost(
                     onBack = { navController.popBackStack() },
                 )
             }
+        }
+
+        if (showExitDialog) {
+            AlertDialog(
+                onDismissRequest = { showExitDialog = false },
+                title = { Text("Точно уходите?") },
+                text = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.exit_soul_dialog),
+                            contentDescription = "Подтверждение выхода",
+                            modifier = Modifier.size(150.dp),
+                        )
+                        Text("Если выйти сейчас, приложение закроется и душа рабочего потока ненадолго покинет это ТСД.")
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { activity?.finish() }) {
+                        Text("Выйти")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showExitDialog = false }) {
+                        Text("Остаться")
+                    }
+                },
+            )
         }
 
         if (connectionState.isBlocking) {
