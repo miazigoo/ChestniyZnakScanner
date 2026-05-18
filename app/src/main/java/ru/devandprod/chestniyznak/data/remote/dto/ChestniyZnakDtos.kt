@@ -7,6 +7,7 @@ import ru.devandprod.chestniyznak.domain.model.DefectMarkResult
 import ru.devandprod.chestniyznak.domain.model.DefectRemovedBox
 import ru.devandprod.chestniyznak.domain.model.MarkingCode
 import ru.devandprod.chestniyznak.domain.model.ParsedMarkingCode
+import ru.devandprod.chestniyznak.domain.model.VerificationBoxInfo
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
 
@@ -47,6 +48,7 @@ data class VerifyResponseDto(
     val scanId: Long? = null,
     val parsed: ParsedCodeDto? = null,
     val code: RemoteCodeDto? = null,
+    val box: VerifyBoxDto? = null,
     val warnings: List<String> = emptyList(),
 )
 
@@ -63,7 +65,17 @@ data class VerifyExistsResponseDto(
     @SerialName("scan_id")
     val scanId: Long? = null,
     val code: RemoteCodeDto? = null,
+    val box: VerifyBoxDto? = null,
     val warnings: List<String> = emptyList(),
+)
+
+@Serializable
+data class VerifyBoxDto(
+    @SerialName("box_id")
+    val boxId: Long,
+    val sscc: String? = null,
+    @SerialName("is_closed")
+    val isClosed: Boolean,
 )
 
 @Serializable
@@ -135,6 +147,7 @@ fun VerifyResponseDto.toDomain(): VerificationResult = VerificationResult(
     scanId = scanId,
     parsed = parsed?.toDomain(),
     code = code?.toDomain(),
+    boxInfo = box?.toDomain(),
     orderName = code?.orderName?.takeIf(String::isNotBlank),
     deviceName = code?.deviceName?.takeIf(String::isNotBlank),
     warnings = warnings,
@@ -147,6 +160,7 @@ fun VerifyExistsResponseDto.toDomain(): VerificationResult = VerificationResult(
     scanId = scanId,
     parsed = null,
     code = code?.toDomain(),
+    boxInfo = box?.toDomain(),
     orderName = orderName?.takeIf(String::isNotBlank) ?: code?.orderName?.takeIf(String::isNotBlank),
     deviceName = deviceName?.takeIf(String::isNotBlank) ?: code?.deviceName?.takeIf(String::isNotBlank),
     warnings = warnings,
@@ -193,4 +207,10 @@ private fun DefectRemovedBoxDto.toDomain(): DefectRemovedBox = DefectRemovedBox(
     boxId = boxId,
     sscc = sscc,
     filled = filled,
+)
+
+private fun VerifyBoxDto.toDomain(): VerificationBoxInfo = VerificationBoxInfo(
+    boxId = boxId,
+    sscc = sscc,
+    isClosed = isClosed,
 )

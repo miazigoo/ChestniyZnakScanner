@@ -175,6 +175,7 @@ class ScanViewModel @Inject constructor(
                         isProcessing = false,
                         isScannerEnabled = false,
                         resultCard = result.toVerifyCard(),
+                        boxInfo = result.boxInfo,
                         orderName = result.orderName?.takeIf(String::isNotBlank)
                             ?: result.code?.orderName?.takeIf(String::isNotBlank),
                         deviceName = result.deviceName?.takeIf(String::isNotBlank)
@@ -203,6 +204,7 @@ class ScanViewModel @Inject constructor(
                     isScannerEnabled = isCameraMode(state.scanMode) && state.verify.hasCameraPermission && !state.isLoading,
                     isProcessing = false,
                     resultCard = null,
+                    boxInfo = null,
                     orderName = null,
                     deviceName = null,
                     visibleCode = "",

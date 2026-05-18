@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import ru.devandprod.chestniyznak.domain.model.VerificationBoxInfo
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
 import ru.devandprod.chestniyznak.domain.model.DefectRemovedBox
 
@@ -46,6 +47,30 @@ class ChestniyZnakDtosTest {
 
         assertEquals("Заказ 26-0666/6938", result.orderName)
         assertEquals("Заказ 26-0666/6938", result.code?.orderName)
+    }
+
+    @Test
+    fun `verify response maps box info`() {
+        val dto = VerifyResponseDto(
+            status = "OK",
+            message = "Код найден в базе",
+            box = VerifyBoxDto(
+                boxId = 15,
+                sscc = "046306261900000012",
+                isClosed = true,
+            ),
+        )
+
+        val result = dto.toDomain()
+
+        assertEquals(
+            VerificationBoxInfo(
+                boxId = 15,
+                sscc = "046306261900000012",
+                isClosed = true,
+            ),
+            result.boxInfo,
+        )
     }
 
     @Test

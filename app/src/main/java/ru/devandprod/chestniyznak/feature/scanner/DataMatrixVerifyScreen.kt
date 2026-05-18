@@ -284,6 +284,14 @@ internal fun DataMatrixVerifyScreen(
                             append("Заказ: ")
                             append(orderName)
                         }
+                        state.verify.boxInfo?.let { boxInfo ->
+                            if (isNotEmpty()) append('\n')
+                            append("Коробка: ШК ")
+                            append(boxInfo.sscc?.takeIf(String::isNotBlank) ?: "не присвоен")
+                            append(", ID ")
+                            append(boxInfo.boxId)
+                            append(if (boxInfo.isClosed) " (закрыта)" else " (открыта)")
+                        }
                     }.takeIf(String::isNotBlank),
                     warnings = state.verify.warnings,
                     buttonLabel = null,

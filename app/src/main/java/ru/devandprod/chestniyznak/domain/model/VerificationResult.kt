@@ -10,12 +10,19 @@ enum class VerificationStatus {
     INTERNAL_ERROR,
 }
 
+data class VerificationBoxInfo(
+    val boxId: Long,
+    val sscc: String? = null,
+    val isClosed: Boolean,
+)
+
 data class VerificationResult(
     val status: VerificationStatus,
     val message: String,
     val scanId: Long? = null,
     val parsed: ParsedMarkingCode? = null,
     val code: MarkingCode? = null,
+    val boxInfo: VerificationBoxInfo? = null,
     val orderName: String? = null,
     val deviceName: String? = null,
     val warnings: List<String> = emptyList(),

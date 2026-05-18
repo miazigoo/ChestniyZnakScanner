@@ -1,5 +1,7 @@
 package ru.devandprod.chestniyznak.feature.scanner
 
+import ru.devandprod.chestniyznak.domain.model.VerificationBoxInfo
+
 data class ScanUiState(
     val isLoading: Boolean = true,
     val statsLabel: String = "В базе 0 кодов",
@@ -14,6 +16,7 @@ data class VerifyPaneUiState(
     val isScannerEnabled: Boolean = false,
     val isProcessing: Boolean = false,
     val resultCard: ScanResultCardUi? = null,
+    val boxInfo: VerificationBoxInfo? = null,
     val orderName: String? = null,
     val deviceName: String? = null,
     val visibleCode: String = "",
