@@ -770,6 +770,44 @@ private fun CurrentBoxPanel(
                 }
             }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (box == null) {
+                    Button(
+                        onClick = onOpenBoxRequested,
+                        enabled = !state.isBusy,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    ) {
+                        Text("Открыть коробку")
+                    }
+                } else {
+                    Button(
+                        onClick = onCloseBoxRequested,
+                        enabled = !state.isBusy,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    ) {
+                        Text("Закрыть коробку")
+                    }
+                    OutlinedButton(
+                        onClick = if (box.items.isEmpty()) onDeleteEmptyBoxRequested else onScanNextRequested,
+                        enabled = !state.isBusy,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(if (box.items.isEmpty()) "Удалить коробку" else "Сбросить статус")
+                    }
+                }
+            }
+
             box?.items?.takeIf { it.isNotEmpty() }?.let { items ->
                 Text(
                     text = "Коды в коробке",
@@ -824,44 +862,6 @@ private fun CurrentBoxPanel(
                                 onClick = { onRemoveItemRequested(item.id) },
                             )
                         }
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (box == null) {
-                    Button(
-                        onClick = onOpenBoxRequested,
-                        enabled = !state.isBusy,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Text("Открыть коробку")
-                    }
-                } else {
-                    Button(
-                        onClick = onCloseBoxRequested,
-                        enabled = !state.isBusy,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Text("Закрыть коробку")
-                    }
-                    OutlinedButton(
-                        onClick = if (box.items.isEmpty()) onDeleteEmptyBoxRequested else onScanNextRequested,
-                        enabled = !state.isBusy,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(if (box.items.isEmpty()) "Удалить коробку" else "Сбросить статус")
                     }
                 }
             }
