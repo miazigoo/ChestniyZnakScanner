@@ -12,16 +12,23 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.domain.usecase.ListPackingBoxesUseCase
 
 @HiltViewModel
 class BoxLookupViewModel @Inject constructor(
     private val audioFeedbackPlayer: AudioFeedbackPlayer,
+    private val strings: AppStringProvider,
     private val listPackingBoxesUseCase: ListPackingBoxesUseCase,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(BoxLookupUiState())
+    private val _uiState = MutableStateFlow(
+        BoxLookupUiState(
+            statusText = strings.get(R.string.box_lookup_scan_prompt),
+        ),
+    )
     val uiState: StateFlow<BoxLookupUiState> = _uiState.asStateFlow()
 
     private val _openBoxEvents = MutableSharedFlow<Long>(extraBufferCapacity = 1)
@@ -39,7 +46,7 @@ class BoxLookupViewModel @Inject constructor(
                 isBusy = true,
                 errorText = null,
                 lastScannedCode = normalized,
-                statusText = "Ищем коробку...",
+                statusText = strings.get(R.string.box_lookup_searching),
             )
         }
 
@@ -63,8 +70,8 @@ class BoxLookupViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isBusy = false,
-                            errorText = "Коробка не найдена",
-                            statusText = "Коробка не найдена",
+                            errorText = strings.get(R.string.box_lookup_not_found),
+                            statusText = strings.get(R.string.box_lookup_not_found),
                         )
                     }
                 } else {
@@ -72,7 +79,7 @@ class BoxLookupViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isBusy = false,
-                            statusText = "Коробка #$boxId найдена",
+                            statusText = strings.get(R.string.box_lookup_found, boxId),
                         )
                     }
                     _openBoxEvents.tryEmit(boxId)
@@ -82,8 +89,8 @@ class BoxLookupViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isBusy = false,
-                        errorText = error.message ?: "Не удалось найти коробку",
-                        statusText = "Ошибка поиска коробки",
+                        errorText = error.message ?: strings.get(R.string.box_lookup_failed),
+                        statusText = strings.get(R.string.box_lookup_error),
                     )
                 }
             }
@@ -116,7 +123,7 @@ class BoxLookupViewModel @Inject constructor(
             it.copy(
                 errorText = null,
                 lastScannedCode = "",
-                statusText = "Сканируйте штрихкод коробки",
+                statusText = strings.get(R.string.box_lookup_scan_prompt),
             )
         }
     }

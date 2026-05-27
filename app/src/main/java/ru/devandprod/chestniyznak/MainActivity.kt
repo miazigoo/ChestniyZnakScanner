@@ -1,5 +1,6 @@
 package ru.devandprod.chestniyznak
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.WindowManager
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (HidScannerInputBus.onKeyEvent(event)) {
             return true

@@ -3,7 +3,7 @@ package ru.devandprod.chestniyznak.feature.boxdetail
 data class BoxDetailUiState(
     val isLoading: Boolean = true,
     val isActionBusy: Boolean = false,
-    val title: String = "Карточка коробки",
+    val title: String = "",
     val errorText: String? = null,
     val box: BoxDetailUi? = null,
     val statusText: String = "",
@@ -18,8 +18,6 @@ data class BoxDetailUi(
     val isClosed: Boolean,
     val isEditMode: Boolean,
     val activeUserName: String,
-    val printOk: Boolean,
-    val printError: String,
     val items: List<BoxDetailItemUi>,
 )
 

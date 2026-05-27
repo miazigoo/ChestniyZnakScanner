@@ -14,23 +14,23 @@ object SoundCatalog {
     const val DEFAULT_SUCCESS = "victory"
 
     val errorChoices = listOf(
-        SoundChoice("error", "Ошибка — стандарт"),
-        SoundChoice("error_02", "Ошибка 02"),
-        SoundChoice("error_03", "Ошибка 03"),
-        SoundChoice("error_04", "Ошибка 04"),
-        SoundChoice("error_05", "Ошибка 05"),
-        SoundChoice("error_06", "Ошибка 06"),
-        SoundChoice("error_07", "Ошибка 07"),
-        SoundChoice("error_08", "Ошибка 08"),
-        SoundChoice("error_09", "Ошибка 09"),
-        SoundChoice("error_10", "Ошибка 10"),
-        SoundChoice("error_11", "Ошибка 11"),
-        SoundChoice("error_12", "Ошибка 12"),
-        SoundChoice("error_13", "Ошибка 13"),
+        SoundChoice("error", "error"),
+        SoundChoice("error_02", "error_02"),
+        SoundChoice("error_03", "error_03"),
+        SoundChoice("error_04", "error_04"),
+        SoundChoice("error_05", "error_05"),
+        SoundChoice("error_06", "error_06"),
+        SoundChoice("error_07", "error_07"),
+        SoundChoice("error_08", "error_08"),
+        SoundChoice("error_09", "error_09"),
+        SoundChoice("error_10", "error_10"),
+        SoundChoice("error_11", "error_11"),
+        SoundChoice("error_12", "error_12"),
+        SoundChoice("error_13", "error_13"),
     )
 
     val warningChoices = listOf(
-        SoundChoice("other", "Warning — стандарт"),
+        SoundChoice("other", "other"),
         SoundChoice("ver_02", "Warning 02"),
         SoundChoice("ver_03", "Warning 03"),
         SoundChoice("ver_04", "Warning 04"),
@@ -48,42 +48,42 @@ object SoundCatalog {
     )
 
     val otherOrderChoices = listOf(
-        SoundChoice("other_order", "Другой заказ — основной"),
-        SoundChoice("other_order_2", "Другой заказ 02"),
-        SoundChoice("other_order_3", "Другой заказ 03"),
-        SoundChoice("other_order_4", "Другой заказ 04"),
-        SoundChoice("other_order_5", "Другой заказ 05"),
-        SoundChoice("other_order_6", "Другой заказ 06"),
-        SoundChoice("other_order_7", "Другой заказ 07"),
-        SoundChoice("other_order_8", "Другой заказ 08"),
-        SoundChoice("other_order_9", "Другой заказ 09"),
-        SoundChoice("other_order_10", "Другой заказ 10"),
-        SoundChoice("other", "Другой заказ — резерв"),
+        SoundChoice("other_order", "other_order"),
+        SoundChoice("other_order_2", "other_order_2"),
+        SoundChoice("other_order_3", "other_order_3"),
+        SoundChoice("other_order_4", "other_order_4"),
+        SoundChoice("other_order_5", "other_order_5"),
+        SoundChoice("other_order_6", "other_order_6"),
+        SoundChoice("other_order_7", "other_order_7"),
+        SoundChoice("other_order_8", "other_order_8"),
+        SoundChoice("other_order_9", "other_order_9"),
+        SoundChoice("other_order_10", "other_order_10"),
+        SoundChoice("other", "other"),
     )
 
     val successChoices = listOf(
-        SoundChoice("victory", "Успех — стандарт"),
-        SoundChoice("ok_02", "Успех 02"),
-        SoundChoice("ok_03", "Успех 03"),
-        SoundChoice("ok_04", "Успех 04"),
-        SoundChoice("ok_05", "Успех 05"),
-        SoundChoice("ok_06", "Успех 06"),
-        SoundChoice("ok_07", "Успех 07"),
-        SoundChoice("ok_08", "Успех 08"),
-        SoundChoice("ok_09", "Успех 09"),
+        SoundChoice("victory", "victory"),
+        SoundChoice("ok_02", "ok_02"),
+        SoundChoice("ok_03", "ok_03"),
+        SoundChoice("ok_04", "ok_04"),
+        SoundChoice("ok_05", "ok_05"),
+        SoundChoice("ok_06", "ok_06"),
+        SoundChoice("ok_07", "ok_07"),
+        SoundChoice("ok_08", "ok_08"),
+        SoundChoice("ok_09", "ok_09"),
     )
 
     fun titleForError(key: String): String =
-        errorChoices.firstOrNull { it.key == key }?.title ?: "Ошибка"
+        errorChoices.firstOrNull { it.key == key }?.title ?: DEFAULT_ERROR
 
     fun titleForWarning(key: String): String =
-        warningChoices.firstOrNull { it.key == key }?.title ?: "Предупреждение"
+        warningChoices.firstOrNull { it.key == key }?.title ?: DEFAULT_WARNING
 
     fun titleForOtherOrder(key: String): String =
-        otherOrderChoices.firstOrNull { it.key == key }?.title ?: "Другой заказ"
+        otherOrderChoices.firstOrNull { it.key == key }?.title ?: DEFAULT_OTHER_ORDER
 
     fun titleForSuccess(key: String): String =
-        successChoices.firstOrNull { it.key == key }?.title ?: "Успех"
+        successChoices.firstOrNull { it.key == key }?.title ?: DEFAULT_SUCCESS
 
     fun rawResId(context: Context, key: String?): Int? {
         val name = key?.trim().orEmpty()

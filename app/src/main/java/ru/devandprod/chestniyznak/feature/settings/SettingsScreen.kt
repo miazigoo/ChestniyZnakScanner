@@ -22,29 +22,39 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import ru.devandprod.chestniyznak.R
+import ru.devandprod.chestniyznak.app.AppLanguageViewModel
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
+import ru.devandprod.chestniyznak.core.i18n.AppLanguage
 @Composable
 fun SettingsRoute(
     onBack: () -> Unit,
-    onOpenPrinterSettings: () -> Unit,
     currentVersion: String,
     isCheckingForUpdates: Boolean,
     onCheckForUpdates: () -> Unit,
 ) {
+    val languageViewModel: AppLanguageViewModel = hiltViewModel()
+    val selectedLanguage by languageViewModel.selectedLanguage.collectAsState()
+
     SettingsScreen(
         onBack = onBack,
-        onOpenPrinterSettings = onOpenPrinterSettings,
         currentVersion = currentVersion,
         isCheckingForUpdates = isCheckingForUpdates,
         onCheckForUpdates = onCheckForUpdates,
+        selectedLanguage = selectedLanguage,
+        onLanguageSelected = languageViewModel::setLanguage,
     )
 }
 
@@ -52,10 +62,11 @@ fun SettingsRoute(
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onOpenPrinterSettings: () -> Unit,
     currentVersion: String,
     isCheckingForUpdates: Boolean,
     onCheckForUpdates: () -> Unit,
+    selectedLanguage: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
 ) {
     val decor = CurrentAppDecorColors
     Scaffold(
@@ -69,9 +80,9 @@ fun SettingsScreen(
                         Column(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
-                            Text("НАСТРОЙКИ", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.settings_toolbar_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
-                                "Сервисные параметры устройства",
+                                stringResource(R.string.settings_toolbar_subtitle),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                             )
@@ -105,32 +116,95 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 SettingsHeroCard(currentVersion = currentVersion)
-                SettingsSectionCard(
-                    title = "Принтер",
-                    subtitle = "Выбор активного устройства печати",
-                    description = "Определяет, куда будут уходить печать при закрытии коробки и повторный вывод этикетки.",
-                    actionLabel = "Открыть",
-                    panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                    onClick = onOpenPrinterSettings,
+                LanguageSectionCard(
+                    selectedLanguage = selectedLanguage,
+                    onLanguageSelected = onLanguageSelected,
                 )
                 SettingsSectionCard(
-                    title = "Проверить обновление",
-                    subtitle = "Текущая версия: $currentVersion",
-                    description = "Запросить сервер, проверить наличие новой APK-версии и при необходимости запустить обновление.",
-                    actionLabel = if (isCheckingForUpdates) "Проверяем..." else "Проверить",
+                    title = stringResource(R.string.settings_update_title),
+                    subtitle = stringResource(R.string.settings_current_version, currentVersion),
+                    description = stringResource(R.string.settings_update_description),
+                    actionLabel = if (isCheckingForUpdates) stringResource(R.string.settings_checking) else stringResource(R.string.settings_check),
                     panelColor = decor.panelSurface,
                     enabled = !isCheckingForUpdates,
                     onClick = onCheckForUpdates,
                 )
                 SettingsSectionCard(
-                    title = "Профиль устройства",
-                    subtitle = "Скоро",
-                    description = "ID сканера, сетевые настройки, источники данных, служебные параметры и диагностика.",
-                    actionLabel = "Скоро",
+                    title = stringResource(R.string.settings_device_profile_title),
+                    subtitle = stringResource(R.string.settings_soon),
+                    description = stringResource(R.string.settings_device_profile_description),
+                    actionLabel = stringResource(R.string.settings_soon),
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
                     enabled = false,
                     onClick = {},
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageSectionCard(
+    selectedLanguage: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(30.dp),
+            ),
+        shape = RoundedCornerShape(30.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(R.string.settings_language_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+                Text(
+                    text = stringResource(R.string.settings_language_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AppLanguage.entries.forEach { language ->
+                    val selected = language == selectedLanguage
+                    Surface(
+                        modifier = Modifier.clickable { onLanguageSelected(language) },
+                        shape = RoundedCornerShape(18.dp),
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.74f)
+                        },
+                    ) {
+                        Text(
+                            text = language.title,
+                            modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
             }
         }
     }
@@ -177,17 +251,17 @@ private fun SettingsHeroCard(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Сервисные настройки",
+                    text = stringResource(R.string.settings_hero_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
-                    text = "Печать, обновление приложения и служебные параметры рабочего ТСД.",
+                    text = stringResource(R.string.settings_hero_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
                 Text(
-                    text = "Версия клиента: $currentVersion",
+                    text = stringResource(R.string.settings_client_version, currentVersion),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
                     fontWeight = FontWeight.SemiBold,

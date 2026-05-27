@@ -10,13 +10,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.app.navigation.AppDestination
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.domain.model.PackingBox
 import ru.devandprod.chestniyznak.domain.usecase.ListPackingBoxesUseCase
 
 @HiltViewModel
 class BoxesListViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    private val strings: AppStringProvider,
     private val listPackingBoxesUseCase: ListPackingBoxesUseCase,
 ) : ViewModel() {
 
@@ -24,7 +27,11 @@ class BoxesListViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(
         BoxesListUiState(
-            title = if (filter == "empty") "Пустые коробки" else "Список коробок",
+            title = if (filter == "empty") {
+                strings.get(R.string.boxes_title_empty)
+            } else {
+                strings.get(R.string.boxes_title_all)
+            },
             filter = filter,
         ),
     )
@@ -47,16 +54,16 @@ class BoxesListViewModel @Inject constructor(
             }.onSuccess { page ->
                 _uiState.update {
                     it.copy(
-                    isLoading = false,
+                        isLoading = false,
                         boxes = page.items.map { it.toUi() },
-                        totalLabel = "Найдено ${page.total}",
+                        totalLabel = strings.get(R.string.boxes_found_count, page.total),
                     )
                 }
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorText = error.message ?: "Не удалось получить список коробок",
+                        errorText = error.message ?: strings.get(R.string.boxes_load_failed),
                     )
                 }
             }

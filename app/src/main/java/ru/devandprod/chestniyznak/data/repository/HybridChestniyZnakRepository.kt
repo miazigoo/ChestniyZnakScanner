@@ -8,7 +8,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.common.IoDispatcher
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.data.remote.api.ChestniyZnakApi
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteErrorParser
@@ -29,6 +31,7 @@ class HybridChestniyZnakRepository @Inject constructor(
     private val localRepository: LocalChestniyZnakRepository,
     private val authRepository: RemoteAuthRepository,
     private val errorParser: RemoteErrorParser,
+    private val strings: AppStringProvider,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ChestniyZnakRepository {
 
@@ -61,7 +64,7 @@ class HybridChestniyZnakRepository @Inject constructor(
         } catch (exception: Exception) {
             return@withContext VerificationResult(
                 status = VerificationStatus.INTERNAL_ERROR,
-                message = exception.message ?: "Не удалось проверить код на сервере",
+                message = exception.message ?: strings.get(R.string.verify_remote_failed),
             )
         }
 
@@ -74,7 +77,7 @@ class HybridChestniyZnakRepository @Inject constructor(
                 authRepository.invalidateSession()
                 VerificationResult(
                     status = VerificationStatus.INTERNAL_ERROR,
-                    message = "Сессия истекла. Войдите снова.",
+                    message = strings.get(R.string.common_session_expired),
                 )
             }
             else -> {
@@ -108,7 +111,7 @@ class HybridChestniyZnakRepository @Inject constructor(
         } catch (exception: Exception) {
             return@withContext VerificationResult(
                 status = VerificationStatus.INTERNAL_ERROR,
-                message = exception.message ?: "Не удалось проверить наличие кода на сервере",
+                message = exception.message ?: strings.get(R.string.verify_exists_remote_failed),
             )
         }
 
@@ -121,7 +124,7 @@ class HybridChestniyZnakRepository @Inject constructor(
                 authRepository.invalidateSession()
                 VerificationResult(
                     status = VerificationStatus.INTERNAL_ERROR,
-                    message = "Сессия истекла. Войдите снова.",
+                    message = strings.get(R.string.common_session_expired),
                 )
             }
             else -> {
@@ -151,7 +154,7 @@ class HybridChestniyZnakRepository @Inject constructor(
             return@withContext DefectMarkResult(
                 ok = false,
                 reasonCode = "internal_error",
-                error = exception.message ?: "Не удалось отправить код в брак",
+                error = exception.message ?: strings.get(R.string.defect_remote_failed),
             )
         }
 
@@ -165,7 +168,7 @@ class HybridChestniyZnakRepository @Inject constructor(
                 DefectMarkResult(
                     ok = false,
                     reasonCode = "unauthorized",
-                    error = "Сессия истекла. Войдите снова.",
+                    error = strings.get(R.string.common_session_expired),
                 )
             }
             else -> DefectMarkResult(

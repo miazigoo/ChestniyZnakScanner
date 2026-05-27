@@ -27,9 +27,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 
@@ -90,12 +92,12 @@ fun MenuScreen(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             Text(
-                                text = "МЕНЮ",
+                                text = stringResource(R.string.menu_toolbar_title),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                text = "Навигация по рабочим сценариям",
+                                text = stringResource(R.string.menu_toolbar_subtitle),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                             )
@@ -129,66 +131,66 @@ fun MenuScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 MenuHeroCard()
-                MenuSectionTitle("Коробки")
+                MenuSectionTitle(stringResource(R.string.menu_section_boxes))
                 MenuItemCard(
-                    title = "Проверка DataMatrix",
-                    subtitle = "Переключиться в режим камеры и проверить, есть ли код в базе.",
+                    title = stringResource(R.string.menu_verify_title),
+                    subtitle = stringResource(R.string.menu_verify_subtitle),
                     panelColor = decor.panelSurface,
                     onClick = onOpenDataMatrixVerify,
                 )
                 MenuItemCard(
-                    title = "Брак",
-                    subtitle = "Сканировать код и отправить его в брак через серверный сценарий.",
+                    title = stringResource(R.string.menu_defect_title),
+                    subtitle = stringResource(R.string.menu_defect_subtitle),
                     panelColor = decor.panelSurface,
                     onClick = onOpenDefectMark,
                 )
                 MenuItemCard(
-                    title = "Открыть коробку",
-                    subtitle = "Сразу открыть новую коробку и вернуться к упаковке ТСД.",
+                    title = stringResource(R.string.menu_open_box_title),
+                    subtitle = stringResource(R.string.menu_open_box_subtitle),
                     panelColor = decor.panelSurface,
                     onClick = onOpenBox,
                 )
                 MenuItemCard(
-                    title = "Просмотреть коробку",
-                    subtitle = "Вернуться к текущей открытой коробке и продолжить упаковку.",
+                    title = stringResource(R.string.menu_current_box_title),
+                    subtitle = stringResource(R.string.menu_current_box_subtitle),
                     panelColor = decor.panelSurface,
                     onClick = onShowCurrentBox,
                 )
                 MenuItemCard(
-                    title = "Список коробок",
-                    subtitle = "Все коробки с поиском и быстрым просмотром статуса.",
+                    title = stringResource(R.string.menu_boxes_title),
+                    subtitle = stringResource(R.string.menu_boxes_subtitle),
                     panelColor = decor.panelSurface,
                     onClick = onOpenBoxesList,
                 )
                 MenuItemCard(
-                    title = "Пустые коробки",
-                    subtitle = "Отдельный список коробок без вложенных кодов.",
+                    title = stringResource(R.string.menu_empty_boxes_title),
+                    subtitle = stringResource(R.string.menu_empty_boxes_subtitle),
                     panelColor = decor.panelSurface,
                     onClick = onOpenEmptyBoxes,
                 )
 
-                MenuSectionTitle("Устройство")
+                MenuSectionTitle(stringResource(R.string.menu_section_device))
                 MenuItemCard(
-                    title = "Настройки",
-                    subtitle = "Базовые настройки приложения и будущие сервисные модули.",
+                    title = stringResource(R.string.menu_settings_title),
+                    subtitle = stringResource(R.string.menu_settings_subtitle),
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
                     onClick = onOpenSettings,
                 )
                 MenuItemCard(
-                    title = "Тема",
-                    subtitle = "Сменить палитру, фон и визуальный стиль интерфейса.",
+                    title = stringResource(R.string.menu_theme_title),
+                    subtitle = stringResource(R.string.menu_theme_subtitle),
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
                     onClick = onOpenThemeSelection,
                 )
                 MenuItemCard(
-                    title = "Звук",
-                    subtitle = "Настроить сигналы успеха, ошибки и предупреждений.",
+                    title = stringResource(R.string.menu_sound_title),
+                    subtitle = stringResource(R.string.menu_sound_subtitle),
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
                     onClick = onOpenSoundSettings,
                 )
                 MenuItemCard(
-                    title = "Выйти",
-                    subtitle = "Сбросить текущую сессию устройства.",
+                    title = stringResource(R.string.menu_logout_title),
+                    subtitle = stringResource(R.string.menu_logout_subtitle),
                     panelColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.92f),
                     onClick = onLogoutRequest,
                 )
@@ -236,12 +238,12 @@ private fun MenuHeroCard() {
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Выберите сценарий работы",
+                    text = stringResource(R.string.menu_hero_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
-                    text = "Быстрый доступ к проверке DataMatrix, коробкам и сервисным настройкам устройства.",
+                    text = stringResource(R.string.menu_hero_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )

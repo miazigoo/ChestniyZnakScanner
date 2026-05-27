@@ -4,7 +4,7 @@ data class BoxEditUiState(
     val isLoading: Boolean = true,
     val isBusy: Boolean = false,
     val isAwaitingScan: Boolean = false,
-    val title: String = "Редактирование коробки",
+    val title: String = "",
     val statusText: String = "",
     val errorText: String? = null,
     val lastScannedCode: String = "",

@@ -25,13 +25,16 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import ru.devandprod.chestniyznak.BuildConfig
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.common.IoDispatcher
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 
 @Singleton
 class ApkUpdateManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
     private val json: Json,
+    private val strings: AppStringProvider,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
@@ -52,7 +55,7 @@ class ApkUpdateManager @Inject constructor(
                     .build()
                 okHttpClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
-                        throw IllegalStateException("Не удалось проверить обновление")
+                        throw IllegalStateException(strings.get(R.string.apk_check_failed))
                     }
                     val body = response.body?.string().orEmpty()
                     json.decodeFromString<LatestApkInfoDto>(body)
@@ -74,7 +77,7 @@ class ApkUpdateManager @Inject constructor(
                 _state.update {
                     it.copy(
                         isChecking = false,
-                        errorText = error.message ?: "Не удалось проверить обновление",
+                        errorText = error.message ?: strings.get(R.string.apk_check_failed),
                     )
                 }
             }
@@ -98,7 +101,7 @@ class ApkUpdateManager @Inject constructor(
                     .build()
                 okHttpClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
-                        throw IllegalStateException("Не удалось скачать обновление")
+                        throw IllegalStateException(strings.get(R.string.apk_download_failed))
                     }
                     val apkVersion = response.header("X-APK-Version").orEmpty()
                     val targetFile = File(context.cacheDir, "chz-update-${apkVersion.ifBlank { state.latestVersion }}.apk")
@@ -117,7 +120,7 @@ class ApkUpdateManager @Inject constructor(
                             }
                             output.flush()
                         }
-                    } ?: throw IllegalStateException("Пустой ответ APK")
+                    } ?: throw IllegalStateException(strings.get(R.string.apk_empty_response))
                     installDownloadedApk(targetFile)
                 }
             }.onSuccess {
@@ -127,7 +130,7 @@ class ApkUpdateManager @Inject constructor(
                     it.copy(
                         isDownloading = false,
                         downloadedBytes = 0L,
-                        errorText = error.message ?: "Не удалось обновить приложение",
+                        errorText = error.message ?: strings.get(R.string.apk_update_failed),
                     )
                 }
             }
@@ -144,7 +147,7 @@ class ApkUpdateManager @Inject constructor(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(settingsIntent)
-            throw IllegalStateException("Разрешите установку APK для этого приложения")
+            throw IllegalStateException(strings.get(R.string.apk_install_permission_required))
         }
 
         val apkUri = FileProvider.getUriForFile(

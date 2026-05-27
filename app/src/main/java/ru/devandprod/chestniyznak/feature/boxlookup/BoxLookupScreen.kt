@@ -34,10 +34,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
@@ -88,11 +90,11 @@ fun BoxLookupScreen(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             Text(
-                                "ПРОСМОТР",
+                                stringResource(R.string.box_lookup_toolbar_title),
                                 style = MaterialTheme.typography.titleSmall,
                             )
                             Text(
-                                "Поиск коробки по SSCC или ID",
+                                stringResource(R.string.box_lookup_toolbar_subtitle),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                             )
@@ -147,11 +149,15 @@ fun BoxLookupScreen(
                             modifier = Modifier.padding(20.dp),
                         ) {
                             Text(
-                                text = if (state.isBusy) "Поиск коробки..." else "Сканируйте штрихкод коробки",
+                                text = if (state.isBusy) {
+                                    stringResource(R.string.box_lookup_searching)
+                                } else {
+                                    stringResource(R.string.box_lookup_scan_prompt)
+                                },
                                 style = MaterialTheme.typography.titleMedium,
                             )
                             Text(
-                                text = "ТСД-сканер должен считать SSCC коробки или ее ID.",
+                                text = stringResource(R.string.box_lookup_scan_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -205,7 +211,7 @@ fun BoxLookupScreen(
                             enabled = !state.isBusy,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Сбросить статус")
+                            Text(stringResource(R.string.box_lookup_reset_status))
                         }
                     }
                 }

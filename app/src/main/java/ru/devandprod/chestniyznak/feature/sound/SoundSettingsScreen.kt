@@ -37,13 +37,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.audio.SoundChoice
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
+
+private enum class SoundChoiceGroup {
+    Success,
+    Error,
+    Warning,
+    OtherOrder,
+}
 
 @Composable
 fun SoundSettingsRoute(
@@ -85,9 +94,9 @@ fun SoundSettingsScreen(
                         Column(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
-                            Text("ЗВУК", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.sound_toolbar_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
-                                "Сигналы успеха, ошибки и предупреждений",
+                                stringResource(R.string.sound_toolbar_subtitle),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                             )
@@ -122,8 +131,9 @@ fun SoundSettingsScreen(
             ) {
                 SoundHeroCard()
                 SoundGroupCard(
-                    title = "Успех",
-                    description = "Успешный скан, добавление, удаление, печать.",
+                    group = SoundChoiceGroup.Success,
+                    title = stringResource(R.string.sound_success_title),
+                    description = stringResource(R.string.sound_success_description),
                     selectedKey = state.successKey,
                     choices = state.successChoices,
                     panelColor = decor.panelSurface,
@@ -131,8 +141,9 @@ fun SoundSettingsScreen(
                     onPreview = onPreview,
                 )
                 SoundGroupCard(
-                    title = "Ошибка",
-                    description = "Любая ошибка операции или отказ сервера.",
+                    group = SoundChoiceGroup.Error,
+                    title = stringResource(R.string.sound_error_title),
+                    description = stringResource(R.string.sound_error_description),
                     selectedKey = state.errorKey,
                     choices = state.errorChoices,
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
@@ -140,8 +151,9 @@ fun SoundSettingsScreen(
                     onPreview = onPreview,
                 )
                 SoundGroupCard(
-                    title = "Warning",
-                    description = "Предупреждение без критической ошибки.",
+                    group = SoundChoiceGroup.Warning,
+                    title = stringResource(R.string.sound_warning_title),
+                    description = stringResource(R.string.sound_warning_description),
                     selectedKey = state.warningKey,
                     choices = state.warningChoices,
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
@@ -149,8 +161,9 @@ fun SoundSettingsScreen(
                     onPreview = onPreview,
                 )
                 SoundGroupCard(
-                    title = "Другой заказ",
-                    description = "Отдельный сигнал для изделия другого заказа.",
+                    group = SoundChoiceGroup.OtherOrder,
+                    title = stringResource(R.string.sound_other_order_title),
+                    description = stringResource(R.string.sound_other_order_description),
                     selectedKey = state.otherOrderKey,
                     choices = state.otherOrderChoices,
                     panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
@@ -201,12 +214,12 @@ private fun SoundHeroCard() {
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Настройка сигналов",
+                    text = stringResource(R.string.sound_hero_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
-                    text = "Подберите заметные звуки для операторского потока, чтобы реакции читались без взгляда на экран.",
+                    text = stringResource(R.string.sound_hero_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -217,6 +230,7 @@ private fun SoundHeroCard() {
 
 @Composable
 private fun SoundGroupCard(
+    group: SoundChoiceGroup,
     title: String,
     description: String,
     selectedKey: String,
@@ -261,6 +275,8 @@ private fun SoundGroupCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
             SoundSelector(
+                group = group,
+                groupTitle = title,
                 selectedKey = selectedKey,
                 choices = choices,
                 onSelected = onSelected,
@@ -273,13 +289,17 @@ private fun SoundGroupCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SoundSelector(
+    group: SoundChoiceGroup,
+    groupTitle: String,
     selectedKey: String,
     choices: List<SoundChoice>,
     onSelected: (String) -> Unit,
     onPreview: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedTitle = choices.firstOrNull { it.key == selectedKey }?.title ?: selectedKey
+    val selectedTitle = choices.firstOrNull { it.key == selectedKey }?.let {
+        localizedSoundChoiceTitle(group, groupTitle, it)
+    } ?: selectedKey
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -295,7 +315,7 @@ private fun SoundSelector(
                 value = selectedTitle,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Выбранный звук") },
+                label = { Text(stringResource(R.string.sound_selected_label)) },
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                 },
@@ -310,7 +330,7 @@ private fun SoundSelector(
             ) {
                 choices.forEach { choice ->
                     DropdownMenuItem(
-                        text = { Text(choice.title) },
+                        text = { Text(localizedSoundChoiceTitle(group, groupTitle, choice)) },
                         onClick = {
                             onSelected(choice.key)
                             expanded = false
@@ -327,7 +347,28 @@ private fun SoundSelector(
                 contentColor = MaterialTheme.colorScheme.primary,
             ),
         ) {
-            Text("Прослушать")
+            Text(stringResource(R.string.sound_preview))
         }
     }
+}
+
+@Composable
+private fun localizedSoundChoiceTitle(
+    group: SoundChoiceGroup,
+    groupTitle: String,
+    choice: SoundChoice,
+): String = when {
+    group == SoundChoiceGroup.OtherOrder && choice.key == "other_order" ->
+        stringResource(R.string.sound_choice_primary, groupTitle)
+    group == SoundChoiceGroup.OtherOrder && choice.key == "other" ->
+        stringResource(R.string.sound_choice_reserve, groupTitle)
+    choice.key == "error" || choice.key == "other" || choice.key == "victory" ->
+        stringResource(R.string.sound_choice_standard, groupTitle)
+    else -> stringResource(R.string.sound_choice_numbered, groupTitle, soundChoiceNumber(choice.key))
+}
+
+private fun soundChoiceNumber(key: String): String {
+    val value = key.substringAfterLast("_")
+    val parsed = value.toIntOrNull() ?: return value
+    return parsed.toString().padStart(2, '0')
 }

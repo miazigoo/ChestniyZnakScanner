@@ -111,3 +111,7 @@ dependencies {
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
+
+tasks.matching { it.name.startsWith("lintAnalyze") }.configureEach {
+    dependsOn(tasks.matching { task -> task.name.startsWith("hiltJavaCompile") })
+}

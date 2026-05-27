@@ -16,8 +16,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 
 @Composable
@@ -51,7 +53,7 @@ fun StatusCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = "ПОСЛЕДНИЙ СКАН",
+                    text = stringResource(R.string.status_last_scan),
                     style = MaterialTheme.typography.labelMedium,
                     color = textColor,
                 )

@@ -22,15 +22,22 @@ import ru.devandprod.chestniyznak.data.local.dao.ScanLogDao
 import ru.devandprod.chestniyznak.data.local.database.AppDatabase
 import ru.devandprod.chestniyznak.data.remote.api.AccountApi
 import ru.devandprod.chestniyznak.data.remote.api.ChestniyZnakApi
+import ru.devandprod.chestniyznak.data.remote.api.OrdersApi
 import ru.devandprod.chestniyznak.data.remote.api.PackingApi
+import ru.devandprod.chestniyznak.data.remote.auth.BearerAuthInterceptor
+import ru.devandprod.chestniyznak.data.remote.auth.BearerTokenAuthenticator
 import ru.devandprod.chestniyznak.data.remote.auth.CsrfInterceptor
+import ru.devandprod.chestniyznak.data.remote.auth.LanguageHeaderInterceptor
 import ru.devandprod.chestniyznak.data.remote.auth.PersistentCookieJar
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
+import ru.devandprod.chestniyznak.data.remote.auth.TsdSurfaceInterceptor
 import ru.devandprod.chestniyznak.data.settings.ThemePreferencesRepository
 import ru.devandprod.chestniyznak.data.repository.HybridChestniyZnakRepository
+import ru.devandprod.chestniyznak.data.repository.RemoteOrdersRepository
 import ru.devandprod.chestniyznak.data.repository.RemotePackingRepository
 import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
 import ru.devandprod.chestniyznak.domain.repository.AuthRepository
+import ru.devandprod.chestniyznak.domain.repository.OrdersRepository
 import ru.devandprod.chestniyznak.domain.repository.PackingRepository
 import ru.devandprod.chestniyznak.domain.repository.ThemeRepository
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -72,8 +79,16 @@ object StorageModule {
     fun provideOkHttpClient(
         cookieJar: PersistentCookieJar,
         csrfInterceptor: CsrfInterceptor,
+        tsdSurfaceInterceptor: TsdSurfaceInterceptor,
+        languageHeaderInterceptor: LanguageHeaderInterceptor,
+        bearerAuthInterceptor: BearerAuthInterceptor,
+        bearerTokenAuthenticator: BearerTokenAuthenticator,
     ): OkHttpClient = OkHttpClient.Builder()
         .cookieJar(cookieJar)
+        .authenticator(bearerTokenAuthenticator)
+        .addInterceptor(languageHeaderInterceptor)
+        .addInterceptor(tsdSurfaceInterceptor)
+        .addInterceptor(bearerAuthInterceptor)
         .addInterceptor(csrfInterceptor)
         .connectTimeout(10, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
@@ -112,6 +127,10 @@ object StorageModule {
     @Provides
     @Singleton
     fun providePackingApi(retrofit: Retrofit): PackingApi = retrofit.create(PackingApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideOrdersApi(retrofit: Retrofit): OrdersApi = retrofit.create(OrdersApi::class.java)
 }
 
 @Module
@@ -128,6 +147,12 @@ abstract class RepositoryModule {
     abstract fun bindPackingRepository(
         implementation: RemotePackingRepository,
     ): PackingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindOrdersRepository(
+        implementation: RemoteOrdersRepository,
+    ): OrdersRepository
 
     @Binds
     @Singleton

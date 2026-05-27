@@ -30,10 +30,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.designsystem.theme.themeSpecFor
 import ru.devandprod.chestniyznak.domain.model.AppThemeOption
@@ -69,9 +71,9 @@ fun ThemeSelectionScreen(
                         Column(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
-                            Text("ТЕМА", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.theme_toolbar_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
-                                "Палитра и визуальный характер интерфейса",
+                                stringResource(R.string.theme_toolbar_subtitle),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                             )
@@ -151,18 +153,18 @@ private fun ThemeHeroCard() {
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = "VISUAL SYSTEM",
+                    text = stringResource(R.string.theme_hero_badge),
                     style = MaterialTheme.typography.labelMedium,
                     letterSpacing = 1.2.sp,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Подберите характер интерфейса",
+                    text = stringResource(R.string.theme_hero_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
-                    text = "Палитра применяется сразу ко всему приложению, поэтому здесь лучше выбирать не просто цвет, а ощущение рабочего инструмента.",
+                    text = stringResource(R.string.theme_hero_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -199,7 +201,11 @@ private fun ThemePreviewCard(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                text = if (selected) "ACTIVE STYLE" else "THEME PREVIEW",
+                text = if (selected) {
+                    stringResource(R.string.theme_active_style)
+                } else {
+                    stringResource(R.string.theme_preview_badge)
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
                 letterSpacing = 1.sp,
@@ -255,12 +261,12 @@ private fun ThemePreviewCard(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = "Theme Preview",
+                            text = stringResource(R.string.theme_preview_label),
                             color = previewSpec.colorScheme.onBackground,
                             style = MaterialTheme.typography.bodySmall,
                         )
                         Text(
-                            text = "OK / NO",
+                            text = stringResource(R.string.theme_preview_status),
                             color = previewSpec.colorScheme.onBackground,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Black,
@@ -278,12 +284,12 @@ private fun ThemePreviewCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = theme.title,
+                        text = localizedThemeTitle(theme),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = theme.subtitle,
+                        text = localizedThemeSubtitle(theme),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                     )
@@ -294,7 +300,7 @@ private fun ThemePreviewCard(
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
                     ) {
                         Text(
-                            text = "Активна",
+                            text = stringResource(R.string.theme_active),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -304,4 +310,20 @@ private fun ThemePreviewCard(
             }
         }
     }
+}
+
+@Composable
+private fun localizedThemeTitle(theme: AppThemeOption): String = when (theme) {
+    AppThemeOption.Workbench -> stringResource(R.string.theme_workbench_title)
+    AppThemeOption.Midnight -> stringResource(R.string.theme_midnight_title)
+    AppThemeOption.Citrus -> stringResource(R.string.theme_citrus_title)
+    AppThemeOption.Alpine -> stringResource(R.string.theme_alpine_title)
+}
+
+@Composable
+private fun localizedThemeSubtitle(theme: AppThemeOption): String = when (theme) {
+    AppThemeOption.Workbench -> stringResource(R.string.theme_workbench_subtitle)
+    AppThemeOption.Midnight -> stringResource(R.string.theme_midnight_subtitle)
+    AppThemeOption.Citrus -> stringResource(R.string.theme_citrus_subtitle)
+    AppThemeOption.Alpine -> stringResource(R.string.theme_alpine_subtitle)
 }

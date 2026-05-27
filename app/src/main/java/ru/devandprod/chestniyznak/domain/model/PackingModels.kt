@@ -13,8 +13,6 @@ data class PackingBox(
     val isEditMode: Boolean,
     val activeUserName: String = "",
     val createdByName: String = "",
-    val printOk: Boolean = false,
-    val printError: String = "",
 )
 
 data class PackingBoxItem(
@@ -70,6 +68,4 @@ data class ClosePackingBoxResult(
     val reasonCode: String,
     val error: String? = null,
     val box: PackingBox,
-    val printOk: Boolean? = null,
-    val printError: String? = null,
 )

@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
 import ru.devandprod.chestniyznak.domain.usecase.MarkCodeDefectUseCase
 
@@ -17,6 +19,7 @@ import ru.devandprod.chestniyznak.domain.usecase.MarkCodeDefectUseCase
 class DefectMarkViewModel @Inject constructor(
     private val markCodeDefectUseCase: MarkCodeDefectUseCase,
     private val audioFeedbackPlayer: AudioFeedbackPlayer,
+    private val strings: AppStringProvider,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DefectMarkUiState())
@@ -82,14 +85,13 @@ class DefectMarkViewModel @Inject constructor(
                     warnings = result.verify?.warnings.orEmpty(),
                     removedFromBoxLabel = result.removedFromBox?.let { box ->
                         buildString {
-                            append("Удалено из коробки #")
-                            append(box.boxId)
+                            append(strings.get(R.string.defect_removed_from_box, box.boxId))
                             box.sscc?.takeIf(String::isNotBlank)?.let {
                                 append(" • ")
                                 append(it)
                             }
-                            append(" • остаток ")
-                            append(box.filled)
+                            append(" • ")
+                            append(strings.get(R.string.defect_box_remainder, box.filled))
                         }
                     },
                 )
@@ -100,14 +102,14 @@ class DefectMarkViewModel @Inject constructor(
     private fun ru.devandprod.chestniyznak.domain.model.DefectMarkResult.toCard(): ScanResultCardUi {
         if (ok) {
             return ScanResultCardUi(
-                headline = "БРАК",
-                message = error ?: "Код отправлен в брак",
+                headline = strings.get(R.string.defect_headline),
+                message = error ?: strings.get(R.string.defect_code_marked),
                 tone = ScanResultTone.Warning,
             )
         }
         return when (verify?.status) {
             VerificationStatus.DUPLICATE_SCAN -> ScanResultCardUi(
-                headline = "ДУБЛИКАТ",
+                headline = strings.get(R.string.defect_duplicate_headline),
                 message = verify.message,
                 tone = ScanResultTone.Warning,
             )
@@ -118,7 +120,7 @@ class DefectMarkViewModel @Inject constructor(
             )
             else -> ScanResultCardUi(
                 headline = "NO",
-                message = error ?: verify?.message ?: "Не удалось отправить в брак",
+                message = error ?: verify?.message ?: strings.get(R.string.defect_mark_failed),
                 tone = ScanResultTone.Error,
             )
         }

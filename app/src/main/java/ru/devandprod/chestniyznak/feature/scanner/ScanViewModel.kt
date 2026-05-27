@@ -10,8 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import ru.devandprod.chestniyznak.core.device.DeviceIdentity
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.model.PackingBoxItem
@@ -20,10 +22,12 @@ import ru.devandprod.chestniyznak.domain.model.PackingBox
 import ru.devandprod.chestniyznak.domain.model.PackingScanResult
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
+import ru.devandprod.chestniyznak.domain.model.WorkOrderPage
 import ru.devandprod.chestniyznak.domain.usecase.ClosePackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.DeleteEmptyPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.EnsureSeedDataUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetCurrentPackingBoxUseCase
+import ru.devandprod.chestniyznak.domain.usecase.ListWorkOrdersUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ObserveCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RefreshCatalogStatsUseCase
@@ -35,10 +39,12 @@ import ru.devandprod.chestniyznak.domain.usecase.VerifyCodeExistsUseCase
 @HiltViewModel
 class ScanViewModel @Inject constructor(
     private val audioFeedbackPlayer: AudioFeedbackPlayer,
+    private val strings: AppStringProvider,
     private val ensureSeedDataUseCase: EnsureSeedDataUseCase,
     observeCatalogStatsUseCase: ObserveCatalogStatsUseCase,
     private val refreshCatalogStatsUseCase: RefreshCatalogStatsUseCase,
     private val verifyCodeExistsUseCase: VerifyCodeExistsUseCase,
+    private val listWorkOrdersUseCase: ListWorkOrdersUseCase,
     private val getCurrentPackingBoxUseCase: GetCurrentPackingBoxUseCase,
     private val openPackingBoxUseCase: OpenPackingBoxUseCase,
     private val scanCodeToPackingBoxUseCase: ScanCodeToPackingBoxUseCase,
@@ -48,7 +54,15 @@ class ScanViewModel @Inject constructor(
     private val deleteEmptyPackingBoxUseCase: DeleteEmptyPackingBoxUseCase,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ScanUiState())
+    private val _uiState = MutableStateFlow(
+        ScanUiState(
+            statsLabel = strings.get(R.string.scan_stats_codes, 0),
+            scansLabel = strings.get(R.string.scan_stats_checks, 0),
+            packing = PackingPaneUiState(
+                statusText = strings.get(R.string.packing_open_box_not_found),
+            ),
+        ),
+    )
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
 
     init {
@@ -65,6 +79,7 @@ class ScanViewModel @Inject constructor(
                         )
                     }
                     loadCurrentBox()
+                    loadWorkOrders()
                 }
                 .onFailure { error ->
                     audioFeedbackPlayer.playError()
@@ -72,12 +87,12 @@ class ScanViewModel @Inject constructor(
                         state.copy(
                             isLoading = false,
                             packing = state.packing.copy(
-                                errorText = error.message ?: "Не удалось инициализировать приложение",
+                                errorText = error.message ?: strings.get(R.string.scan_init_failed),
                             ),
                             verify = state.verify.copy(
                                 resultCard = ScanResultCardUi(
                                     headline = "NO",
-                                    message = "Не удалось подготовить локальную базу кодов",
+                                    message = strings.get(R.string.scan_local_db_failed),
                                     tone = ScanResultTone.Error,
                                 ),
                                 technicalStatus = "INITIALIZATION_ERROR",
@@ -92,8 +107,8 @@ class ScanViewModel @Inject constructor(
             observeCatalogStatsUseCase().collect { stats ->
                 _uiState.update { state ->
                     state.copy(
-                        statsLabel = "В базе ${stats.totalCodes} кодов",
-                        scansLabel = "Проверок ${stats.totalScans}",
+                        statsLabel = strings.get(R.string.scan_stats_codes, stats.totalCodes),
+                        scansLabel = strings.get(R.string.scan_stats_checks, stats.totalScans),
                     )
                 }
             }
@@ -111,6 +126,7 @@ class ScanViewModel @Inject constructor(
         }
         if (mode == ScanMode.PackingTsd || mode == ScanMode.PackingCamera) {
             loadCurrentBox()
+            loadWorkOrders()
         }
     }
 
@@ -238,13 +254,50 @@ class ScanViewModel @Inject constructor(
     fun onOpenBoxRequested() {
         val state = _uiState.value
         if (state.isLoading || state.packing.isBusy) return
+        val selectedLine = state.packing.orderLines.firstOrNull {
+            it.orderLineId == state.packing.selectedOrderLineId
+        }
+        if (selectedLine == null) {
+            audioFeedbackPlayer.playWarning()
+            _uiState.update {
+                it.copy(
+                    packing = it.packing.copy(
+                        resultCard = ScanResultCardUi(
+                            headline = "NO",
+                            message = strings.get(R.string.packing_select_order_product),
+                            tone = ScanResultTone.Warning,
+                        ),
+                        statusText = strings.get(R.string.packing_box_not_open),
+                        errorText = strings.get(R.string.packing_open_requires_order_line),
+                    ),
+                )
+            }
+            return
+        }
+        if (!selectedLine.scanRequired) {
+            audioFeedbackPlayer.playWarning()
+            _uiState.update {
+                it.copy(
+                    packing = it.packing.copy(
+                        resultCard = ScanResultCardUi(
+                            headline = "NO",
+                            message = strings.get(R.string.packing_scanning_disabled),
+                            tone = ScanResultTone.Warning,
+                        ),
+                        statusText = strings.get(R.string.packing_scanning_disabled),
+                        errorText = strings.get(R.string.packing_open_not_needed),
+                    ),
+                )
+            }
+            return
+        }
 
         _uiState.update {
             it.copy(
                 packing = it.packing.copy(
                     isBusy = true,
                     errorText = null,
-                    statusText = "Открываем коробку...",
+                    statusText = strings.get(R.string.packing_opening_box),
                 ),
             )
         }
@@ -254,6 +307,8 @@ class ScanViewModel @Inject constructor(
                 openPackingBoxUseCase(
                     deviceId = DeviceIdentity.clientDeviceId,
                     countInPacking = state.packing.countInPacking,
+                    orderId = selectedLine.orderId,
+                    orderLineId = selectedLine.orderLineId,
                 )
             }
                 .onSuccess(::handleOpenBoxResult)
@@ -265,10 +320,10 @@ class ScanViewModel @Inject constructor(
                                 isBusy = false,
                                 resultCard = ScanResultCardUi(
                                     headline = "NO",
-                                    message = error.message ?: "Не удалось открыть коробку",
+                                    message = error.message ?: strings.get(R.string.packing_open_failed),
                                     tone = ScanResultTone.Error,
                                 ),
-                                statusText = "Коробка не открыта",
+                                statusText = strings.get(R.string.packing_box_not_closed),
                                 errorText = error.message,
                             ),
                         )
@@ -302,7 +357,7 @@ class ScanViewModel @Inject constructor(
                 packing = it.packing.copy(
                     isBusy = true,
                     errorText = null,
-                    statusText = "Обновляем режим учета упаковки...",
+                    statusText = strings.get(R.string.packing_updating_count_mode),
                 ),
             )
         }
@@ -324,13 +379,13 @@ class ScanViewModel @Inject constructor(
                             resultCard = ScanResultCardUi(
                                 headline = "OK",
                                 message = if (result.box.box.countInPacking) {
-                                    "Учет упаковки включен"
+                                    strings.get(R.string.packing_count_enabled)
                                 } else {
-                                    "Учет упаковки выключен"
+                                    strings.get(R.string.packing_count_disabled)
                                 },
                                 tone = ScanResultTone.Success,
                             ),
-                            statusText = "Настройка коробки обновлена",
+                            statusText = strings.get(R.string.packing_count_mode_updated),
                             errorText = result.error,
                         ),
                     )
@@ -343,16 +398,42 @@ class ScanViewModel @Inject constructor(
                             isBusy = false,
                             resultCard = ScanResultCardUi(
                                 headline = "NO",
-                                message = error.message ?: "Не удалось обновить режим учета упаковки",
+                                message = error.message ?: strings.get(R.string.packing_count_mode_update_failed),
                                 tone = ScanResultTone.Error,
                             ),
-                            statusText = "Настройка коробки не обновлена",
+                            statusText = strings.get(R.string.packing_count_mode_not_updated),
                             errorText = error.message,
                         ),
                     )
                 }
             }
         }
+    }
+
+    fun onOrderLineSelected(orderLineId: String) {
+        _uiState.update { state ->
+            val selected = state.packing.orderLines.firstOrNull {
+                it.orderLineId == orderLineId
+            }
+            if (selected == null || state.packing.currentBox != null) {
+                state
+            } else {
+                state.copy(
+                    packing = state.packing.copy(
+                        selectedOrderLineId = selected.orderLineId,
+                        statusText = selected.toSelectedStatusText(),
+                        errorText = null,
+                    ),
+                )
+            }
+        }
+    }
+
+    fun onOrderSearchChanged(search: String) {
+        _uiState.update { state ->
+            state.copy(packing = state.packing.copy(orderSearch = search))
+        }
+        loadWorkOrders(search)
     }
 
     fun onItemLongPressed(itemId: Long) {
@@ -381,7 +462,7 @@ class ScanViewModel @Inject constructor(
                     isBusy = true,
                     itemMenuItemId = null,
                     errorText = null,
-                    statusText = "Удаляем код из коробки...",
+                    statusText = strings.get(R.string.packing_removing_code),
                 ),
             )
         }
@@ -392,10 +473,10 @@ class ScanViewModel @Inject constructor(
                     if (result.ok) {
                         audioFeedbackPlayer.playSuccess()
                         refreshCurrentBoxSnapshot(
-                            statusText = "Код удален из коробки",
+                            statusText = strings.get(R.string.packing_code_removed),
                             resultCard = ScanResultCardUi(
                                 headline = "OK",
-                                message = "Код удален из текущей коробки",
+                                message = strings.get(R.string.packing_code_removed_current),
                                 tone = ScanResultTone.Success,
                             ),
                         )
@@ -405,11 +486,11 @@ class ScanViewModel @Inject constructor(
                             state.copy(
                                 packing = state.packing.copy(
                                     isBusy = false,
-                                    statusText = result.error ?: "Код не удален",
+                                    statusText = result.error ?: strings.get(R.string.packing_code_not_removed),
                                     errorText = result.error,
                                     resultCard = ScanResultCardUi(
                                         headline = "NO",
-                                        message = result.error ?: "Код не удален",
+                                        message = result.error ?: strings.get(R.string.packing_code_not_removed),
                                         tone = ScanResultTone.Error,
                                     ),
                                 ),
@@ -423,11 +504,11 @@ class ScanViewModel @Inject constructor(
                         state.copy(
                             packing = state.packing.copy(
                                 isBusy = false,
-                                statusText = "Ошибка удаления кода",
-                                errorText = error.message ?: "Не удалось удалить код",
+                                statusText = strings.get(R.string.packing_remove_code_error),
+                                errorText = error.message ?: strings.get(R.string.packing_remove_code_failed),
                                 resultCard = ScanResultCardUi(
                                     headline = "NO",
-                                    message = error.message ?: "Не удалось удалить код",
+                                    message = error.message ?: strings.get(R.string.packing_remove_code_failed),
                                     tone = ScanResultTone.Error,
                                 ),
                             ),
@@ -465,7 +546,7 @@ class ScanViewModel @Inject constructor(
                     isBusy = true,
                     confirmDeleteEmptyBoxDialog = false,
                     errorText = null,
-                    statusText = "Удаляем пустую коробку...",
+                    statusText = strings.get(R.string.packing_deleting_empty),
                 ),
             )
         }
@@ -482,10 +563,10 @@ class ScanViewModel @Inject constructor(
                                     currentBox = null,
                                     resultCard = ScanResultCardUi(
                                         headline = "OK",
-                                        message = "Пустая коробка удалена",
+                                        message = strings.get(R.string.packing_empty_deleted),
                                         tone = ScanResultTone.Success,
                                     ),
-                                    statusText = "Открытая коробка не найдена",
+                                    statusText = strings.get(R.string.packing_open_box_not_found),
                                     errorText = null,
                                 ),
                             )
@@ -496,11 +577,11 @@ class ScanViewModel @Inject constructor(
                             state.copy(
                                 packing = state.packing.copy(
                                     isBusy = false,
-                                    statusText = result.error ?: "Коробка не удалена",
+                                    statusText = result.error ?: strings.get(R.string.packing_box_not_deleted),
                                     errorText = result.error,
                                     resultCard = ScanResultCardUi(
                                         headline = "NO",
-                                        message = result.error ?: "Коробка не удалена",
+                                        message = result.error ?: strings.get(R.string.packing_box_not_deleted),
                                         tone = ScanResultTone.Error,
                                     ),
                                 ),
@@ -514,11 +595,11 @@ class ScanViewModel @Inject constructor(
                         state.copy(
                             packing = state.packing.copy(
                                 isBusy = false,
-                                statusText = "Ошибка удаления коробки",
-                                errorText = error.message ?: "Не удалось удалить коробку",
+                                statusText = strings.get(R.string.packing_delete_box_error),
+                                errorText = error.message ?: strings.get(R.string.packing_delete_box_failed),
                                 resultCard = ScanResultCardUi(
                                     headline = "NO",
-                                    message = error.message ?: "Не удалось удалить коробку",
+                                    message = error.message ?: strings.get(R.string.packing_delete_box_failed),
                                     tone = ScanResultTone.Error,
                                 ),
                             ),
@@ -540,11 +621,11 @@ class ScanViewModel @Inject constructor(
                         currentBox = selected,
                         countInPacking = selected.countInPacking,
                         isBusy = false,
-                        statusText = "Продолжайте упаковку в коробку #${selected.boxId}",
+                        statusText = strings.get(R.string.packing_continue_with_box, selected.boxId),
                         errorText = null,
                         resultCard = ScanResultCardUi(
                             headline = "OK",
-                            message = "Открытая коробка выбрана",
+                            message = strings.get(R.string.packing_open_box_selected),
                             tone = ScanResultTone.Success,
                         ),
                     ),
@@ -559,6 +640,29 @@ class ScanViewModel @Inject constructor(
         requiredMode: ScanMode,
     ) {
         val state = _uiState.value
+        val selectedLine = state.packing.selectedOrderLine()
+        if (state.packing.currentBox == null && selectedLine?.scanRequired == false) {
+            audioFeedbackPlayer.playWarning()
+            _uiState.update {
+                it.copy(
+                    packing = it.packing.copy(
+                        resultCard = ScanResultCardUi(
+                            headline = "NO",
+                            message = strings.get(R.string.packing_scanning_disabled),
+                            tone = ScanResultTone.Warning,
+                        ),
+                        statusText = strings.get(R.string.packing_scanning_disabled),
+                        errorText = strings.get(R.string.packing_open_not_needed),
+                        lastScannedCode = rawCode,
+                    ),
+                    verify = it.verify.copy(
+                        isProcessing = false,
+                        isScannerEnabled = it.scanMode == ScanMode.PackingCamera && it.verify.hasCameraPermission,
+                    ),
+                )
+            }
+            return
+        }
         val box = state.packing.currentBox ?: run {
             audioFeedbackPlayer.playError()
             _uiState.update {
@@ -566,11 +670,11 @@ class ScanViewModel @Inject constructor(
                     packing = it.packing.copy(
                         resultCard = ScanResultCardUi(
                             headline = "NO",
-                            message = "Сначала откройте коробку",
+                            message = strings.get(R.string.packing_open_box_first),
                             tone = ScanResultTone.Error,
                         ),
-                        statusText = "Открытая коробка не выбрана",
-                        errorText = "Сначала откройте коробку",
+                        statusText = strings.get(R.string.packing_open_box_not_selected),
+                        errorText = strings.get(R.string.packing_open_box_first),
                         lastScannedCode = rawCode,
                     ),
                     verify = it.verify.copy(
@@ -630,15 +734,69 @@ class ScanViewModel @Inject constructor(
                             isBusy = false,
                             resultCard = ScanResultCardUi(
                                 headline = "NO",
-                                message = error.message ?: "Не удалось добавить код в коробку",
+                                message = error.message ?: strings.get(R.string.packing_add_code_failed),
                                 tone = ScanResultTone.Error,
                             ),
-                            statusText = "Ошибка упаковки",
+                            statusText = strings.get(R.string.packing_error),
                             errorText = error.message,
                         ),
                         verify = it.verify.copy(
                             isProcessing = false,
                             isScannerEnabled = it.scanMode == ScanMode.PackingCamera && it.verify.hasCameraPermission,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun loadWorkOrders(search: String = _uiState.value.packing.orderSearch) {
+        _uiState.update { state ->
+            state.copy(
+                packing = state.packing.copy(
+                    ordersLoading = true,
+                    errorText = null,
+                ),
+            )
+        }
+        viewModelScope.launch {
+            runCatching {
+                listWorkOrdersUseCase(
+                    search = search.takeIf(String::isNotBlank),
+                    page = 1,
+                    perPage = 50,
+                )
+            }.onSuccess { page ->
+                val lines = page.toPackingOrderLines()
+                _uiState.update { state ->
+                    val currentSelected = state.packing.selectedOrderLineId
+                    val selected = currentSelected.takeIf { id ->
+                        lines.any { it.orderLineId == id }
+                    } ?: lines.firstOrNull()?.orderLineId.orEmpty()
+                    val selectedLine = lines.firstOrNull { it.orderLineId == selected }
+                    state.copy(
+                        packing = state.packing.copy(
+                            orderLines = lines,
+                            selectedOrderLineId = selected,
+                            ordersLoading = false,
+                            ordersLoaded = true,
+                            statusText = if (lines.isEmpty()) {
+                                strings.get(R.string.packing_no_orders_for_packing)
+                            } else if (selectedLine != null) {
+                                selectedLine.toSelectedStatusText()
+                            } else {
+                                state.packing.statusText
+                            },
+                        ),
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update { state ->
+                    state.copy(
+                        packing = state.packing.copy(
+                            ordersLoading = false,
+                            ordersLoaded = true,
+                            errorText = error.message ?: strings.get(R.string.packing_load_orders_failed),
                         ),
                     )
                 }
@@ -666,7 +824,7 @@ class ScanViewModel @Inject constructor(
                 packing = it.packing.copy(
                     isBusy = true,
                     errorText = null,
-                    statusText = "Закрываем коробку и ждем печать этикетки...",
+                    statusText = strings.get(R.string.packing_closing_box_wait_label),
                 ),
             )
         }
@@ -682,10 +840,10 @@ class ScanViewModel @Inject constructor(
                                 isBusy = false,
                                 resultCard = ScanResultCardUi(
                                     headline = "NO",
-                                    message = error.message ?: "Не удалось закрыть коробку",
+                                    message = error.message ?: strings.get(R.string.packing_close_box_failed),
                                     tone = ScanResultTone.Error,
                                 ),
-                                statusText = "Коробка не закрыта",
+                                statusText = strings.get(R.string.packing_box_not_open),
                                 errorText = error.message,
                             ),
                         )
@@ -722,9 +880,9 @@ class ScanViewModel @Inject constructor(
                                 currentBox = detail?.toUi(),
                                 countInPacking = detail?.box?.countInPacking ?: state.packing.countInPacking,
                                 statusText = statusText ?: if (detail == null) {
-                                    "Открытая коробка не найдена"
+                                    strings.get(R.string.packing_open_box_not_found)
                                 } else {
-                                    "Текущая коробка #${detail.box.boxId}"
+                                    strings.get(R.string.packing_current_box, detail.box.boxId)
                                 },
                                 errorText = null,
                                 resultCard = resultCard ?: state.packing.resultCard,
@@ -738,7 +896,7 @@ class ScanViewModel @Inject constructor(
                             packing = state.packing.copy(
                                 isBusy = false,
                                 currentBox = null,
-                                statusText = "Не удалось получить текущую коробку",
+                                statusText = strings.get(R.string.packing_open_box_not_found),
                                 errorText = error.message,
                             ),
                         )
@@ -760,11 +918,11 @@ class ScanViewModel @Inject constructor(
                         isBusy = false,
                         currentBox = result.box.toUi(),
                         countInPacking = result.box.countInPacking,
-                        statusText = "Коробка #${result.box.boxId} открыта",
+                        statusText = strings.get(R.string.packing_box_opened, result.box.boxId),
                         errorText = null,
                         resultCard = ScanResultCardUi(
                             headline = "OK",
-                            message = "Новая коробка открыта",
+                            message = strings.get(R.string.packing_new_box_opened),
                             tone = ScanResultTone.Success,
                         ),
                     ),
@@ -775,11 +933,11 @@ class ScanViewModel @Inject constructor(
                         currentBox = result.box.toUi(),
                         countInPacking = result.box.countInPacking,
                         activeBoxesDialog = ActiveBoxesDialogUi(result.boxes.map { it.toUi() }),
-                        statusText = "У вас уже есть открытая коробка",
+                        statusText = strings.get(R.string.packing_already_has_open_box),
                         errorText = null,
                         resultCard = ScanResultCardUi(
                             headline = "OK",
-                            message = "Найдена уже открытая коробка",
+                            message = strings.get(R.string.packing_existing_box_found),
                             tone = ScanResultTone.Warning,
                         ),
                     ),
@@ -789,11 +947,11 @@ class ScanViewModel @Inject constructor(
                         isBusy = false,
                         currentBox = result.box.toUi(),
                         countInPacking = result.box.countInPacking,
-                        statusText = "Продолжайте работу с коробкой #${result.box.boxId}",
+                        statusText = strings.get(R.string.packing_continue_work_with_box, result.box.boxId),
                         errorText = null,
                         resultCard = ScanResultCardUi(
                             headline = "OK",
-                            message = "Коробка уже была открыта",
+                            message = strings.get(R.string.packing_box_already_opened),
                             tone = ScanResultTone.Success,
                         ),
                     ),
@@ -804,10 +962,10 @@ class ScanViewModel @Inject constructor(
 
     private fun handlePackingScanResult(result: PackingScanResult) {
         when {
-            result.reasonCode == "wrong_order" -> audioFeedbackPlayer.playOtherOrder()
+            result.reasonCode in WRONG_ORDER_CODES -> audioFeedbackPlayer.playOtherOrder()
             result.ok && result.duplicate == true -> audioFeedbackPlayer.playWarning()
             result.ok -> audioFeedbackPlayer.playSuccess()
-            result.reasonCode == "code_in_other_box" -> audioFeedbackPlayer.playWarning()
+            result.reasonCode in OTHER_BOX_CODES -> audioFeedbackPlayer.playWarning()
             result.verify?.status == VerificationStatus.DUPLICATE_SCAN -> audioFeedbackPlayer.playWarning()
             else -> audioFeedbackPlayer.playError()
         }
@@ -831,7 +989,6 @@ class ScanViewModel @Inject constructor(
 
     private fun handleCloseBoxResult(result: ClosePackingBoxResult) {
         when {
-            result.ok && result.printOk == false -> audioFeedbackPlayer.playWarning()
             result.ok -> audioFeedbackPlayer.playSuccess()
             else -> audioFeedbackPlayer.playError()
         }
@@ -855,26 +1012,22 @@ class ScanViewModel @Inject constructor(
                     resultCard = if (result.ok) {
                         ScanResultCardUi(
                             headline = "OK",
-                            message = if (result.printOk == false && !result.printError.isNullOrBlank()) {
-                                "Коробка закрыта, но печать завершилась с ошибкой"
-                            } else {
-                                "Коробка закрыта"
-                            },
-                            tone = if (result.printOk == false) ScanResultTone.Warning else ScanResultTone.Success,
+                            message = strings.get(R.string.packing_box_closed_simple),
+                            tone = ScanResultTone.Success,
                         )
                     } else {
                         ScanResultCardUi(
                             headline = "NO",
-                            message = result.error ?: "Не удалось закрыть коробку",
+                            message = result.error ?: strings.get(R.string.packing_close_box_failed),
                             tone = ScanResultTone.Error,
                         )
                     },
                     statusText = if (result.ok) {
-                        "Коробка #${boxUi.boxId} закрыта"
+                        strings.get(R.string.packing_box_closed_id, boxUi.boxId)
                     } else {
-                        "Коробка не закрыта"
+                        strings.get(R.string.packing_box_not_closed)
                     },
-                    errorText = result.error ?: result.printError,
+                    errorText = result.error,
                 ),
             )
         }
@@ -882,7 +1035,7 @@ class ScanViewModel @Inject constructor(
 
     private fun VerificationResult.toVerifyCard(): ScanResultCardUi = when (status) {
         VerificationStatus.DUPLICATE_SCAN -> ScanResultCardUi(
-            headline = "ДУБЛИКАТ",
+            headline = strings.get(R.string.verify_duplicate_headline),
             message = message,
             tone = ScanResultTone.Warning,
         )
@@ -902,22 +1055,22 @@ class ScanViewModel @Inject constructor(
         return when {
             ok && duplicate == true -> ScanResultCardUi(
                 headline = "OK",
-                message = "Код уже есть в текущей коробке",
+                message = strings.get(R.string.packing_code_duplicate_current),
                 tone = ScanResultTone.Warning,
             )
             ok -> ScanResultCardUi(
                 headline = "OK",
-                message = "Код добавлен в коробку",
+                message = strings.get(R.string.packing_code_added_to_box),
                 tone = if (boxFullSignal == true) ScanResultTone.Warning else ScanResultTone.Success,
             )
-            reasonCode == "wrong_order" -> ScanResultCardUi(
+            reasonCode in WRONG_ORDER_CODES -> ScanResultCardUi(
                 headline = "NO",
-                message = error ?: "Код не подходит для этой коробки",
+                message = error ?: strings.get(R.string.packing_code_wrong_box),
                 tone = ScanResultTone.Warning,
             )
-            reasonCode == "code_in_other_box" -> ScanResultCardUi(
+            reasonCode in OTHER_BOX_CODES -> ScanResultCardUi(
                 headline = "NO",
-                message = error ?: "Код уже лежит в другой коробке",
+                message = error ?: strings.get(R.string.packing_code_in_other_box),
                 tone = ScanResultTone.Error,
             )
             verify?.status == VerificationStatus.DUPLICATE_SCAN -> ScanResultCardUi(
@@ -926,26 +1079,27 @@ class ScanViewModel @Inject constructor(
                 tone = ScanResultTone.Warning,
             )
             !ok && box.filled >= box.capacity -> ScanResultCardUi(
-                headline = "ЗАПОЛНЕНА",
-                message = error ?: verify?.message ?: "Коробка заполнена",
+                headline = strings.get(R.string.packing_box_full_headline),
+                message = error ?: verify?.message ?: strings.get(R.string.packing_box_full),
                 tone = ScanResultTone.Warning,
             )
             else -> ScanResultCardUi(
                 headline = "NO",
-                message = error ?: verify?.message ?: "Код не добавлен в коробку",
+                message = error ?: verify?.message ?: strings.get(R.string.packing_code_not_added_to_box),
                 tone = ScanResultTone.Error,
             )
         }
     }
 
     private fun PackingScanResult.toPackingStatusText(): String = when {
-        ok && boxFullSignal == true -> "Коробка заполнена"
-        ok && duplicate == true -> "Код уже есть в коробке"
-        reasonCode == "wrong_order" && error?.contains("не привязан", ignoreCase = true) == true -> "Код не привязан к заказу"
-        reasonCode == "wrong_order" -> "Другой заказ"
-        reasonCode == "code_in_other_box" -> "Код уже в другой коробке"
-        ok -> "Код добавлен в коробку"
-        else -> "Код не добавлен"
+        ok && boxFullSignal == true -> strings.get(R.string.packing_box_full)
+        ok && duplicate == true -> strings.get(R.string.packing_code_duplicate_box)
+        reasonCode == "mark_code_wrong_order" ->
+            strings.get(R.string.packing_code_not_linked_to_order)
+        reasonCode in WRONG_ORDER_CODES -> strings.get(R.string.packing_other_order)
+        reasonCode in OTHER_BOX_CODES -> strings.get(R.string.packing_code_in_other_box_short)
+        ok -> strings.get(R.string.packing_code_added_to_box)
+        else -> strings.get(R.string.packing_code_not_added)
     }
 
     private fun PackingBox.toUi(items: List<PackingBoxItemUi> = emptyList()): PackingBoxUi = PackingBoxUi(
@@ -957,8 +1111,6 @@ class ScanViewModel @Inject constructor(
         allowDuplicateScans = allowDuplicateScans,
         countInPacking = countInPacking,
         activeUserName = activeUserName,
-        printOk = printOk,
-        printError = printError,
         items = items,
     )
 
@@ -973,6 +1125,50 @@ class ScanViewModel @Inject constructor(
         visibleCode = visibleCode,
     )
 
+    private fun WorkOrderPage.toPackingOrderLines(): List<PackingOrderLineUi> =
+        orders.flatMap { order ->
+            order.lines
+                .filter { it.status == "active" }
+                .map { line ->
+                    val sku = line.product?.sku ?: line.productId
+                    val productName = line.product?.name ?: strings.get(R.string.packing_product_fallback)
+                    PackingOrderLineUi(
+                        orderId = order.id,
+                        orderLineId = line.id,
+                        orderNumber = order.orderNumber,
+                        sku = sku,
+                        productName = productName,
+                        label = buildString {
+                            append(order.orderNumber)
+                            append(" · ")
+                            append(sku)
+                            append(" · ")
+                            append(productName)
+                            if (!order.scanRequired) {
+                                append(" · ")
+                                append(strings.get(R.string.packing_without_scanning_suffix))
+                            }
+                        },
+                        scanRequired = order.scanRequired,
+                    )
+                }
+        }
+
+    private fun PackingPaneUiState.selectedOrderLine(): PackingOrderLineUi? =
+        orderLines.firstOrNull { it.orderLineId == selectedOrderLineId }
+
+    private fun PackingOrderLineUi.toSelectedStatusText(): String =
+        if (scanRequired) {
+            strings.get(R.string.packing_selected_order, orderNumber)
+        } else {
+            strings.get(R.string.packing_scanning_disabled)
+        }
+
     private fun isCameraMode(mode: ScanMode): Boolean =
         mode == ScanMode.CameraVerify || mode == ScanMode.PackingCamera
+
+    private companion object {
+        val WRONG_ORDER_CODES = setOf("wrong_order", "mark_code_wrong_order")
+        val OTHER_BOX_CODES = setOf("code_in_other_box", "mark_code_already_packed")
+    }
 }

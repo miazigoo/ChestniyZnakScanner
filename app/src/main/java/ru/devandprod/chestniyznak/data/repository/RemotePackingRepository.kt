@@ -4,11 +4,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.common.IoDispatcher
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.data.remote.api.PackingApi
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteAuthRepository
 import ru.devandprod.chestniyznak.data.remote.auth.RemoteErrorParser
-import ru.devandprod.chestniyznak.data.remote.dto.ClientPrinterSelectionRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.CloseBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.CountInPackingRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.CurrentBoxResponseDto
@@ -19,10 +20,9 @@ import ru.devandprod.chestniyznak.data.remote.dto.RemoveBoxItemRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.toDomain
-import ru.devandprod.chestniyznak.domain.model.PackingBoxActionResult
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
-import ru.devandprod.chestniyznak.domain.model.ClientPrinterSelection
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
+import ru.devandprod.chestniyznak.domain.model.PackingBoxActionResult
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.model.PackingBoxPage
 import ru.devandprod.chestniyznak.domain.model.PackingScanResult
@@ -35,36 +35,9 @@ class RemotePackingRepository @Inject constructor(
     private val packingApi: PackingApi,
     private val authRepository: RemoteAuthRepository,
     private val errorParser: RemoteErrorParser,
+    private val strings: AppStringProvider,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : PackingRepository {
-
-    override suspend fun getClientPrinterSelection(deviceId: String): ClientPrinterSelection = withContext(ioDispatcher) {
-        val response = runCatching { packingApi.clientPrinters(deviceId = deviceId) }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось получить список принтеров")
-        }
-
-        mapResponse(response)?.toDomain()
-            ?: throw RuntimeException(errorParser.message(response))
-    }
-
-    override suspend fun setClientPrinterSelection(
-        deviceId: String,
-        printerId: Long,
-    ): ClientPrinterSelection = withContext(ioDispatcher) {
-        val response = runCatching {
-            packingApi.setClientPrinterSelection(
-                ClientPrinterSelectionRequestDto(
-                    deviceId = deviceId,
-                    printerId = printerId,
-                ),
-            )
-        }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось сохранить выбор принтера")
-        }
-
-        mapResponse(response)?.toDomain()
-            ?: throw RuntimeException(errorParser.message(response))
-    }
 
     override suspend fun listBoxes(
         status: String,
@@ -80,7 +53,7 @@ class RemotePackingRepository @Inject constructor(
                 offset = offset,
             )
         }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось получить список коробок")
+            throw RuntimeException(it.message ?: strings.get(R.string.boxes_load_failed))
         }
 
         mapResponse(response)?.toDomain()
@@ -89,7 +62,7 @@ class RemotePackingRepository @Inject constructor(
 
     override suspend fun getCurrentBox(): PackingBoxDetail? = withContext(ioDispatcher) {
         val response = runCatching { packingApi.currentBox() }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось получить текущую коробку")
+            throw RuntimeException(it.message ?: strings.get(R.string.packing_get_current_failed))
         }
 
         when {
@@ -97,7 +70,7 @@ class RemotePackingRepository @Inject constructor(
             response.code() == 404 -> null
             response.code() == 401 || response.code() == 403 -> {
                 authRepository.invalidateSession()
-                throw RuntimeException("Сессия истекла. Войдите снова.")
+                throw RuntimeException(strings.get(R.string.common_session_expired))
             }
             else -> throw RuntimeException(errorParser.message(response))
         }
@@ -105,23 +78,34 @@ class RemotePackingRepository @Inject constructor(
 
     override suspend fun getBox(boxId: Long): PackingBoxDetail = withContext(ioDispatcher) {
         val response = runCatching { packingApi.getBox(boxId) }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось получить коробку")
+            throw RuntimeException(it.message ?: strings.get(R.string.packing_get_box_failed))
         }
         mapResponse(response)?.toDomain()
             ?.box
             ?: throw RuntimeException(errorParser.message(response))
     }
 
-    override suspend fun openBox(deviceId: String, countInPacking: Boolean): OpenPackingBoxResult = withContext(ioDispatcher) {
+    override suspend fun openBox(
+        deviceId: String,
+        countInPacking: Boolean,
+        orderId: String?,
+        orderLineId: String?,
+        codeValue: String?,
+        sscc: String?,
+    ): OpenPackingBoxResult = withContext(ioDispatcher) {
         val response = runCatching {
             packingApi.openBox(
                 OpenBoxRequestDto(
                     deviceId = deviceId,
                     countInPacking = countInPacking,
+                    orderId = orderId,
+                    orderLineId = orderLineId,
+                    codeValue = codeValue,
+                    sscc = sscc,
                 ),
             )
         }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось открыть коробку")
+            throw RuntimeException(it.message ?: strings.get(R.string.packing_open_failed))
         }
 
         mapResponse(response)?.toDomain()
@@ -138,7 +122,7 @@ class RemotePackingRepository @Inject constructor(
                 request = CountInPackingRequestDto(countInPacking = countInPacking),
             )
         }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось обновить режим учета упаковки")
+            throw RuntimeException(it.message ?: strings.get(R.string.packing_count_mode_update_failed))
         }
 
         mapResponse(response)?.toDomain()
@@ -152,7 +136,7 @@ class RemotePackingRepository @Inject constructor(
                 request = EditBoxRequestDto(reason = reason),
             )
         }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось открыть редактирование коробки")
+            throw RuntimeException(it.message ?: strings.get(R.string.box_detail_edit_failed))
         }
 
         mapResponse(response)?.toDomain()
@@ -166,7 +150,7 @@ class RemotePackingRepository @Inject constructor(
                 request = RemoveBoxItemRequestDto(itemId = itemId),
             )
         }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось удалить код из коробки")
+            throw RuntimeException(it.message ?: strings.get(R.string.packing_remove_code_failed))
         }
 
         mapResponse(response)?.toDomain()
@@ -175,7 +159,7 @@ class RemotePackingRepository @Inject constructor(
 
     override suspend fun clearBox(boxId: Long): PackingBoxActionResult = withContext(ioDispatcher) {
         val response = runCatching { packingApi.clearBox(boxId) }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось очистить коробку")
+            throw RuntimeException(it.message ?: strings.get(R.string.packing_clear_box_failed))
         }
 
         mapResponse(response)?.toDomain()
@@ -184,16 +168,7 @@ class RemotePackingRepository @Inject constructor(
 
     override suspend fun deleteEmptyBox(boxId: Long): PackingBoxActionResult = withContext(ioDispatcher) {
         val response = runCatching { packingApi.deleteEmptyBox(boxId) }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось удалить пустую коробку")
-        }
-
-        mapResponse(response)?.toDomain()
-            ?: throw RuntimeException(errorParser.message(response))
-    }
-
-    override suspend fun printBoxLabel(boxId: Long, deviceId: String): ClosePackingBoxResult = withContext(ioDispatcher) {
-        val response = runCatching { packingApi.printBoxLabel(boxId, deviceId) }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось распечатать этикетку коробки")
+            throw RuntimeException(it.message ?: strings.get(R.string.packing_delete_empty_failed))
         }
 
         mapResponse(response)?.toDomain()
@@ -214,7 +189,7 @@ class RemotePackingRepository @Inject constructor(
                 ),
             )
         }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось добавить код в коробку")
+            throw RuntimeException(it.message ?: strings.get(R.string.packing_add_code_failed))
         }
 
         mapResponse(response)?.toDomain()
@@ -223,17 +198,18 @@ class RemotePackingRepository @Inject constructor(
 
     override suspend fun closeBox(boxId: Long, deviceId: String): ClosePackingBoxResult = withContext(ioDispatcher) {
         val response = runCatching { packingApi.closeBox(boxId, deviceId) }.getOrElse {
-            throw RuntimeException(it.message ?: "Не удалось закрыть коробку")
+            throw RuntimeException(it.message ?: strings.get(R.string.packing_close_box_failed))
         }
 
-        mapResponse(response)?.toDomain()
+        mapResponse(response)
+            ?.toDomain()
             ?: throw RuntimeException(errorParser.message(response))
     }
 
     private fun <T> mapResponse(response: retrofit2.Response<T>): T? {
         if (response.code() == 401 || response.code() == 403) {
             authRepository.invalidateSession()
-            throw RuntimeException("Сессия истекла. Войдите снова.")
+            throw RuntimeException(strings.get(R.string.common_session_expired))
         }
         return if (response.isSuccessful) response.body() else null
     }

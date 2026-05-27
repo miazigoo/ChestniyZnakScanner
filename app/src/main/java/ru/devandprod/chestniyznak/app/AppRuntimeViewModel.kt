@@ -11,8 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.devandprod.chestniyznak.R
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.core.runtime.ApkUpdateManager
 import ru.devandprod.chestniyznak.core.runtime.ApkUpdateState
 import ru.devandprod.chestniyznak.core.runtime.ChzConnectionMonitor
@@ -22,6 +23,7 @@ import ru.devandprod.chestniyznak.core.runtime.ConnectionState
 class AppRuntimeViewModel @Inject constructor(
     private val connectionMonitor: ChzConnectionMonitor,
     private val apkUpdateManager: ApkUpdateManager,
+    private val strings: AppStringProvider,
 ) : ViewModel() {
     private val _retryCooldownSec = MutableStateFlow(0)
     val retryCooldownSec: StateFlow<Int> = _retryCooldownSec.asStateFlow()
@@ -40,7 +42,9 @@ class AppRuntimeViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ConnectionState(),
+            initialValue = ConnectionState(
+                statusText = strings.get(R.string.connection_not_started),
+            ),
         )
 
     val apkUpdateState: StateFlow<ApkUpdateState> = apkUpdateManager.state
@@ -68,7 +72,7 @@ class AppRuntimeViewModel @Inject constructor(
                 _updateStatusDialogText.value = when {
                     state.errorText != null -> state.errorText
                     state.shouldShowDialog -> null
-                    else -> "Установлена актуальная версия ${state.currentVersion}"
+                    else -> actualVersionMessage(state.currentVersion)
                 }
             }
         }
@@ -120,4 +124,7 @@ class AppRuntimeViewModel @Inject constructor(
             _retryCooldownSec.value = 0
         }
     }
+
+    private fun actualVersionMessage(version: String): String =
+        strings.get(R.string.update_actual_version, version)
 }

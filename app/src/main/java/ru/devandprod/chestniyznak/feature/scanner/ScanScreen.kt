@@ -45,6 +45,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -55,10 +56,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -135,6 +140,8 @@ fun ScanRoute(
         onActiveBoxSelected = viewModel::onActiveBoxSelected,
         onDismissActiveBoxesDialog = viewModel::onDismissActiveBoxesDialog,
         onCountInPackingChanged = viewModel::onCountInPackingChanged,
+        onOrderLineSelected = viewModel::onOrderLineSelected,
+        onOrderSearchChanged = viewModel::onOrderSearchChanged,
         onItemLongPressed = viewModel::onItemLongPressed,
         onDismissItemMenu = viewModel::onDismissItemMenu,
         onRemoveItemRequested = viewModel::onRemoveItemRequested,
@@ -160,6 +167,8 @@ fun ScanScreen(
     onActiveBoxSelected: (Long) -> Unit,
     onDismissActiveBoxesDialog: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
+    onOrderLineSelected: (String) -> Unit,
+    onOrderSearchChanged: (String) -> Unit,
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
@@ -188,16 +197,16 @@ fun ScanScreen(
     if (state.packing.confirmDeleteEmptyBoxDialog) {
         AlertDialog(
             onDismissRequest = onDismissDeleteEmptyBoxDialog,
-            title = { Text("Удалить пустую коробку?") },
-            text = { Text("Пустая открытая коробка будет удалена без возможности восстановления.") },
+            title = { Text(stringResource(R.string.packing_delete_empty_box_title)) },
+            text = { Text(stringResource(R.string.packing_delete_empty_box_message)) },
             confirmButton = {
                 TextButton(onClick = onConfirmDeleteEmptyBox) {
-                    Text("Удалить")
+                    Text(stringResource(R.string.common_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = onDismissDeleteEmptyBoxDialog) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.common_cancel))
                 }
             },
         )
@@ -238,15 +247,15 @@ fun ScanScreen(
                                         },
                                     ),
                                     contentDescription = if (state.scanMode == ScanMode.PackingCamera) {
-                                        "Режим камеры"
+                                        stringResource(R.string.packing_camera_mode_content_description)
                                     } else {
-                                        "Режим ТСД"
+                                        stringResource(R.string.packing_tsd_mode_content_description)
                                     },
                                     tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(22.dp),
                                 )
                                 Text(
-                                    text = "Режим",
+                                    text = stringResource(R.string.packing_mode_label),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                                 )
@@ -264,7 +273,7 @@ fun ScanScreen(
                         IconButton(onClick = onOpenMenu) {
                             Icon(
                                 painter = painterResource(id = android.R.drawable.ic_menu_sort_by_size),
-                                contentDescription = "Меню",
+                                contentDescription = stringResource(R.string.common_menu),
                             )
                         }
                     }
@@ -312,6 +321,8 @@ fun ScanScreen(
                             onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
                             onCountInPackingChanged = onCountInPackingChanged,
+                            onOrderLineSelected = onOrderLineSelected,
+                            onOrderSearchChanged = onOrderSearchChanged,
                             onItemLongPressed = onItemLongPressed,
                             onDismissItemMenu = onDismissItemMenu,
                             onRemoveItemRequested = onRemoveItemRequested,
@@ -325,6 +336,8 @@ fun ScanScreen(
                             onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
                             onCountInPackingChanged = onCountInPackingChanged,
+                            onOrderLineSelected = onOrderLineSelected,
+                            onOrderSearchChanged = onOrderSearchChanged,
                             onItemLongPressed = onItemLongPressed,
                             onDismissItemMenu = onDismissItemMenu,
                             onRemoveItemRequested = onRemoveItemRequested,
@@ -345,14 +358,14 @@ private fun PackingSummaryBar(
     val themeSpec = CurrentAppThemeSpec
     val box = state.currentBox
     val packingLabel = if (box == null || box.filled <= 0) {
-        "Упаковано: 0"
+        stringResource(R.string.packing_summary_empty)
     } else {
-        "Упаковано: ${box.filled}/${box.capacity}"
+        stringResource(R.string.packing_summary_count, box.filled, box.capacity)
     }
     val contextLabel = when {
-        box == null -> "Коробка не открыта"
-        !box.orderName.isNullOrBlank() -> "Коробка #${box.boxId}  •  ${box.orderName}"
-        else -> "Коробка #${box.boxId}"
+        box == null -> stringResource(R.string.packing_box_not_open)
+        !box.orderName.isNullOrBlank() -> stringResource(R.string.packing_box_with_order, box.boxId, box.orderName)
+        else -> stringResource(R.string.packing_box_number, box.boxId)
     }
 
     Surface(
@@ -401,7 +414,11 @@ private fun PackingSummaryBar(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = if (box == null) "Готово к открытию новой коробки" else "Поток сканирования активен",
+                    text = if (box == null) {
+                        stringResource(R.string.packing_ready_to_open_box)
+                    } else {
+                        stringResource(R.string.packing_scan_flow_active)
+                    },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.84f),
                 )
@@ -420,6 +437,8 @@ private fun PackingCameraContent(
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
+    onOrderLineSelected: (String) -> Unit,
+    onOrderSearchChanged: (String) -> Unit,
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
@@ -439,6 +458,8 @@ private fun PackingCameraContent(
         onCloseBoxRequested = onCloseBoxRequested,
         onScanNextRequested = onScanNextRequested,
         onCountInPackingChanged = onCountInPackingChanged,
+        onOrderLineSelected = onOrderLineSelected,
+        onOrderSearchChanged = onOrderSearchChanged,
         onItemLongPressed = onItemLongPressed,
         onDismissItemMenu = onDismissItemMenu,
         onRemoveItemRequested = onRemoveItemRequested,
@@ -454,6 +475,7 @@ internal fun CameraVerifyContent(
     onScanNextRequested: () -> Unit,
     showScanNextButton: Boolean = true,
 ) {
+    val context = LocalContext.current
     ScannerViewport(
         hasCameraPermission = state.hasCameraPermission,
         isLoading = state.isProcessing,
@@ -463,25 +485,27 @@ internal fun CameraVerifyContent(
     )
 
     ResultPanel(
-        title = "Последний код",
+        title = stringResource(R.string.verify_last_code),
         mainText = if (state.visibleCode.isBlank()) {
-            "Сканируйте Data Matrix камерой"
+            stringResource(R.string.verify_scan_camera)
         } else {
             state.visibleCode
         },
         secondaryText = buildString {
             state.technicalStatus.takeIf(String::isNotBlank)?.let {
-                append("Статус проверки: ")
+                append(context.getString(R.string.verify_status_prefix))
+                append(' ')
                 append(it)
             }
             state.orderName?.takeIf(String::isNotBlank)?.let { orderName ->
                 if (isNotEmpty()) append('\n')
-                append("Заказ: ")
+                append(context.getString(R.string.verify_order_prefix))
+                append(' ')
                 append(orderName)
             }
         }.takeIf(String::isNotBlank),
         warnings = state.warnings,
-        buttonLabel = if (showScanNextButton) "Сканировать следующий" else null,
+        buttonLabel = if (showScanNextButton) stringResource(R.string.verify_scan_next) else null,
         isButtonEnabled = showScanNextButton && state.hasCameraPermission && !state.isProcessing,
         onButtonClick = if (showScanNextButton) onScanNextRequested else null,
     )
@@ -501,6 +525,8 @@ private fun PackingContent(
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
+    onOrderLineSelected: (String) -> Unit,
+    onOrderSearchChanged: (String) -> Unit,
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
@@ -512,6 +538,8 @@ private fun PackingContent(
         onCloseBoxRequested = onCloseBoxRequested,
         onScanNextRequested = onScanNextRequested,
         onCountInPackingChanged = onCountInPackingChanged,
+        onOrderLineSelected = onOrderLineSelected,
+        onOrderSearchChanged = onOrderSearchChanged,
         onItemLongPressed = onItemLongPressed,
         onDismissItemMenu = onDismissItemMenu,
         onRemoveItemRequested = onRemoveItemRequested,
@@ -557,6 +585,120 @@ internal fun ScannerViewport(
     }
 }
 
+@Composable
+private fun OrderLineSelector(
+    state: PackingPaneUiState,
+    onOrderLineSelected: (String) -> Unit,
+    onOrderSearchChanged: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = state.orderLines.firstOrNull {
+        it.orderLineId == state.selectedOrderLineId
+    }
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.76f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.28f),
+                    RoundedCornerShape(20.dp),
+                )
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.packing_order_and_product),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            OutlinedTextField(
+                value = state.orderSearch,
+                onValueChange = onOrderSearchChanged,
+                enabled = !state.isBusy,
+                singleLine = true,
+                label = { Text(stringResource(R.string.common_search)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { expanded = true },
+                    enabled = !state.isBusy && state.orderLines.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = selected?.label ?: if (state.ordersLoading) {
+                            stringResource(R.string.packing_loading_orders)
+                        } else {
+                            stringResource(R.string.packing_no_orders)
+                        },
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    state.orderLines.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(option.orderNumber, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        "${option.sku} · ${option.productName}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            },
+                            onClick = {
+                                expanded = false
+                                onOrderLineSelected(option.orderLineId)
+                            },
+                        )
+                    }
+                }
+            }
+            if (state.ordersLoading) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Text(
+                        text = stringResource(R.string.packing_refreshing_list),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    )
+                }
+            }
+            if (selected?.scanRequired == false) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = stringResource(R.string.packing_scanning_disabled_hint),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+        }
+    }
+}
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -566,6 +708,8 @@ private fun CurrentBoxPanel(
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
+    onOrderLineSelected: (String) -> Unit,
+    onOrderSearchChanged: (String) -> Unit,
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
@@ -573,6 +717,7 @@ private fun CurrentBoxPanel(
 ) {
     val themeSpec = CurrentAppThemeSpec
     val box = state.currentBox
+    val selectedLine = state.orderLines.firstOrNull { it.orderLineId == state.selectedOrderLineId }
     Surface(
         shape = RoundedCornerShape(28.dp),
         tonalElevation = 0.dp,
@@ -587,6 +732,11 @@ private fun CurrentBoxPanel(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             if (box == null) {
+                OrderLineSelector(
+                    state = state,
+                    onOrderLineSelected = onOrderLineSelected,
+                    onOrderSearchChanged = onOrderSearchChanged,
+                )
                 Surface(
                     shape = RoundedCornerShape(22.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
@@ -604,12 +754,12 @@ private fun CurrentBoxPanel(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = "Новый коробочный цикл",
+                            text = stringResource(R.string.packing_new_box_cycle),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Откройте коробку и начинайте поток сканирования без лишних шагов.",
+                            text = stringResource(R.string.packing_new_box_cycle_hint),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                         )
@@ -625,12 +775,12 @@ private fun CurrentBoxPanel(
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         Text(
-                            text = "Активная коробка",
+                            text = stringResource(R.string.packing_active_box),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Сканируйте изделия в текущую коробку",
+                            text = stringResource(R.string.packing_active_box_hint),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -659,22 +809,15 @@ private fun CurrentBoxPanel(
                 MetricRow(
                     leftTitle = "ID",
                     leftValue = box.boxId.toString(),
-                    rightTitle = "Заполнение",
+                    rightTitle = stringResource(R.string.packing_fill),
                     rightValue = "${box.filled}/${box.capacity}",
                 )
                 MetricRow(
-                    leftTitle = "Заказ",
-                    leftValue = box.orderName?.takeIf(String::isNotBlank) ?: "Не привязан",
+                    leftTitle = stringResource(R.string.packing_order),
+                    leftValue = box.orderName?.takeIf(String::isNotBlank) ?: stringResource(R.string.packing_not_linked),
                     rightTitle = "SSCC",
-                    rightValue = box.sscc?.takeIf(String::isNotBlank) ?: "Еще не присвоен",
+                    rightValue = box.sscc?.takeIf(String::isNotBlank) ?: stringResource(R.string.packing_not_assigned_yet),
                 )
-                if (box.printError.isNotBlank()) {
-                    Text(
-                        text = box.printError,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                    )
-                }
             }
 
             Row(
@@ -706,15 +849,15 @@ private fun CurrentBoxPanel(
                             verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             Text(
-                                text = "Учитывать в упаковке",
+                                text = stringResource(R.string.packing_count_in_packaging),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
                                 text = if (state.countInPacking) {
-                                    "Закрытие коробки увеличит счетчик упаковки"
+                                    stringResource(R.string.packing_count_enabled_hint)
                                 } else {
-                                    "Коробка закроется и напечатается без увеличения счетчика упаковки"
+                                    stringResource(R.string.packing_count_disabled_hint)
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -755,7 +898,7 @@ private fun CurrentBoxPanel(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = "Последний код",
+                            text = stringResource(R.string.verify_last_code),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                         )
@@ -775,16 +918,30 @@ private fun CurrentBoxPanel(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (box == null) {
-                    Button(
-                        onClick = onOpenBoxRequested,
-                        enabled = !state.isBusy,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Text("Открыть коробку")
+                    if (selectedLine?.scanRequired == false) {
+                        OutlinedButton(
+                            onClick = {},
+                            enabled = false,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(
+                                stringResource(R.string.packing_open_not_needed),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = onOpenBoxRequested,
+                            enabled = !state.isBusy && state.selectedOrderLineId.isNotBlank(),
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) {
+                            Text(stringResource(R.string.packing_open_box))
+                        }
                     }
                 } else {
                     Button(
@@ -796,21 +953,27 @@ private fun CurrentBoxPanel(
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                     ) {
-                        Text("Закрыть коробку")
+                        Text(stringResource(R.string.packing_close_box))
                     }
                     OutlinedButton(
                         onClick = if (box.items.isEmpty()) onDeleteEmptyBoxRequested else onScanNextRequested,
                         enabled = !state.isBusy,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text(if (box.items.isEmpty()) "Удалить коробку" else "Сбросить статус")
+                        Text(
+                            if (box.items.isEmpty()) {
+                                stringResource(R.string.packing_delete_box)
+                            } else {
+                                stringResource(R.string.packing_reset_status)
+                            },
+                        )
                     }
                 }
             }
 
             box?.items?.takeIf { it.isNotEmpty() }?.let { items ->
                 Text(
-                    text = "Коды в коробке",
+                    text = stringResource(R.string.packing_codes_in_box),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -858,7 +1021,7 @@ private fun CurrentBoxPanel(
                             onDismissRequest = onDismissItemMenu,
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Удалить") },
+                                text = { Text(stringResource(R.string.common_delete)) },
                                 onClick = { onRemoveItemRequested(item.id) },
                             )
                         }
@@ -1019,7 +1182,7 @@ internal fun DeviceInfoPanel(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Устройство",
+                text = stringResource(R.string.common_device),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
             )
@@ -1123,17 +1286,17 @@ internal fun PermissionStub(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Камера выключена",
+            text = stringResource(R.string.camera_disabled_title),
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = "Разрешите доступ к камере для проверки существования кода в базе.",
+            text = stringResource(R.string.camera_permission_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
         )
         Button(onClick = onRetryPermission) {
-            Text("Разрешить")
+            Text(stringResource(R.string.camera_permission_allow))
         }
     }
 }
@@ -1173,7 +1336,11 @@ internal fun ScannerOverlay(
                     ),
             )
             Text(
-                text = if (scannerEnabled) "Проверка активна" else "Проверка на паузе",
+                text = if (scannerEnabled) {
+                    stringResource(R.string.scanner_active)
+                } else {
+                    stringResource(R.string.scanner_paused)
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.surface,
             )
@@ -1197,7 +1364,13 @@ private fun CloseBoxDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(if (dialog.isFull) "Коробка закрыта" else "Коробка закрыта не полной")
+            Text(
+                if (dialog.isFull) {
+                    stringResource(R.string.close_box_closed_full)
+                } else {
+                    stringResource(R.string.close_box_closed_partial)
+                },
+            )
         },
         text = {
             Column(
@@ -1210,18 +1383,18 @@ private fun CloseBoxDialog(
                         .fillMaxWidth()
                         .height(220.dp),
                 )
-                Text("ID коробки: ${dialog.boxId}")
+                Text(stringResource(R.string.close_box_id, dialog.boxId))
                 dialog.sscc?.takeIf(String::isNotBlank)?.let { sscc ->
                     Text("SSCC: $sscc")
                 }
                 if (!dialog.isFull) {
-                    Text("Коробку физически не закрывать.")
+                    Text(stringResource(R.string.close_box_do_not_close_physically))
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("OK")
+                Text(stringResource(R.string.common_ok))
             }
         },
     )
@@ -1236,13 +1409,13 @@ private fun ActiveBoxesDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Есть открытая коробка")
+            Text(stringResource(R.string.active_boxes_title))
         },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Новая коробка не будет открыта, пока не завершена текущая. Выберите коробку для продолжения.")
+                Text(stringResource(R.string.active_boxes_message))
                 dialog.boxes.forEach { box ->
                     Surface(
                         shape = RoundedCornerShape(18.dp),
@@ -1255,7 +1428,7 @@ private fun ActiveBoxesDialog(
                                 .padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text("Коробка #${box.boxId}", style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.packing_box_number, box.boxId), style = MaterialTheme.typography.titleSmall)
                             Text(
                                 "${box.filled}/${box.capacity}${box.orderName?.let { " • $it" }.orEmpty()}",
                                 style = MaterialTheme.typography.bodySmall,
@@ -1264,7 +1437,7 @@ private fun ActiveBoxesDialog(
                                 onClick = { onSelectBox(box.boxId) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Продолжить с этой коробкой")
+                                Text(stringResource(R.string.active_boxes_continue))
                             }
                         }
                     }
@@ -1273,7 +1446,7 @@ private fun ActiveBoxesDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Закрыть")
+                Text(stringResource(R.string.common_close))
             }
         },
     )

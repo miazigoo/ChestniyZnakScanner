@@ -31,6 +31,42 @@ class ChestniyZnakParserTest {
     }
 
     @Test
+    fun `parse supports short 44 code without gs`() {
+        val result = parser.parse("010460700123456721SERIAL1234567890123493ABCD")
+
+        assertEquals("04607001234567", result.gtin)
+        assertEquals("SERIAL12345678901234", result.serial)
+        assertEquals("ABCD", result.aiParts["93"])
+        assertEquals("010460700123456721SERIAL12345678901234<GS>93ABCD", result.visibleCode)
+        assertTrue(result.gsRestored)
+    }
+
+    @Test
+    fun `parse supports long crypto tail without gs`() {
+        val result = parser.parse("010460700123456721SERIAL1234567890123491KEY192" + "X".repeat(44))
+
+        assertEquals("SERIAL12345678901234", result.serial)
+        assertEquals("KEY1", result.aiParts["91"])
+        assertEquals("X".repeat(44), result.aiParts["92"])
+        assertEquals(
+            "010460700123456721SERIAL12345678901234<GS>91KEY1<GS>92" + "X".repeat(44),
+            result.visibleCode,
+        )
+        assertTrue(result.gsRestored)
+    }
+
+    @Test
+    fun `parse supports longer crypto tail without gs`() {
+        val result = parser.parse("010460700123456721SERIAL1234567890123491KEY192" + "Y".repeat(49))
+
+        assertEquals("SERIAL12345678901234", result.serial)
+        assertEquals("KEY1", result.aiParts["91"])
+        assertEquals("Y".repeat(49), result.aiParts["92"])
+        assertTrue(result.visibleCode.contains("<GS>91KEY1<GS>92"))
+        assertTrue(result.gsRestored)
+    }
+
+    @Test
     fun `parse supports bracketed ai scanner input`() {
         val result = parser.parse("(01)04601234567890(21)SERIAL0001(91)ABCD(92)TAIL123")
 
@@ -54,5 +90,15 @@ class ChestniyZnakParserTest {
         assertEquals("SHORTSERIAL", result.serial)
         assertTrue(result.aiParts.isEmpty())
         assertTrue(result.warnings.contains("GS отсутствует; AI-хвост после serial не обнаружен"))
+    }
+
+    @Test
+    fun `parse supports visible gs aliases`() {
+        val result = parser.parse("\u001D010460123456789021SERIAL0000000000001{GS}91ABCD\\03592TAIL")
+
+        assertEquals("SERIAL0000000000001", result.serial)
+        assertEquals("ABCD", result.aiParts["91"])
+        assertEquals("TAIL", result.aiParts["92"])
+        assertTrue(result.visibleCode.contains("<GS>91ABCD<GS>92TAIL"))
     }
 }

@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -51,7 +52,6 @@ import ru.devandprod.chestniyznak.feature.boxedit.BoxEditRoute
 import ru.devandprod.chestniyznak.feature.boxlookup.BoxLookupRoute
 import ru.devandprod.chestniyznak.feature.boxes.BoxesListRoute
 import ru.devandprod.chestniyznak.feature.menu.MenuRoute
-import ru.devandprod.chestniyznak.feature.printer.PrinterSettingsRoute
 import ru.devandprod.chestniyznak.feature.scanner.DataMatrixVerifyRoute
 import ru.devandprod.chestniyznak.feature.scanner.DefectMarkRoute
 import ru.devandprod.chestniyznak.feature.scanner.ScanRoute
@@ -77,10 +77,17 @@ fun AppNavHost(
             }
         }
         authState.session.isAuthenticated -> {
+            val currentUserName = authState.session.displayName
+                .ifBlank { authState.session.username }
+                .withPlantContext(
+                    plantName = authState.session.plantName,
+                    plantId = authState.session.plantId,
+                    plantIdPrefix = stringResource(R.string.nav_plant_id_prefix),
+                )
             AuthenticatedNavHost(
                 selectedTheme = selectedTheme,
                 runtimeViewModel = runtimeViewModel,
-                currentUserName = authState.session.displayName.ifBlank { authState.session.username },
+                currentUserName = currentUserName,
                 onLogoutRequest = authViewModel::onLogoutRequested,
             )
         }
@@ -93,6 +100,12 @@ fun AppNavHost(
             )
         }
     }
+}
+
+private fun String.withPlantContext(plantName: String, plantId: String, plantIdPrefix: String): String {
+    if (plantName.isNotBlank()) return "$this / $plantName"
+    if (plantId.isBlank()) return this
+    return "$this / $plantIdPrefix ${plantId.take(8)}..."
 }
 
 @Composable
@@ -235,15 +248,9 @@ private fun AuthenticatedNavHost(
             composable(AppDestination.Settings.route) {
                 SettingsRoute(
                     onBack = { navController.popBackStack() },
-                    onOpenPrinterSettings = { navController.navigate(AppDestination.PrinterSettings.route) },
-                    currentVersion = apkUpdateState.currentVersion.ifBlank { "unknown" },
+                    currentVersion = apkUpdateState.currentVersion.ifBlank { stringResource(R.string.common_unknown) },
                     isCheckingForUpdates = apkUpdateState.isChecking,
                     onCheckForUpdates = runtimeViewModel::checkForUpdates,
-                )
-            }
-            composable(AppDestination.PrinterSettings.route) {
-                PrinterSettingsRoute(
-                    onBack = { navController.popBackStack() },
                 )
             }
             composable(AppDestination.SoundSettings.route) {
@@ -261,7 +268,7 @@ private fun AuthenticatedNavHost(
         if (showExitDialog) {
             AlertDialog(
                 onDismissRequest = { showExitDialog = false },
-                title = { Text("Точно уходите?") },
+                title = { Text(stringResource(R.string.exit_dialog_title)) },
                 text = {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -269,20 +276,20 @@ private fun AuthenticatedNavHost(
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.exit_soul_dialog),
-                            contentDescription = "Подтверждение выхода",
+                            contentDescription = stringResource(R.string.exit_dialog_content_description),
                             modifier = Modifier.size(150.dp),
                         )
-                        Text("Если выйти сейчас, приложение закроется и душа рабочего потока ненадолго покинет это ТСД.")
+                        Text(stringResource(R.string.exit_dialog_message))
                     }
                 },
                 confirmButton = {
                     Button(onClick = { activity?.finish() }) {
-                        Text("Выйти")
+                        Text(stringResource(R.string.exit_dialog_confirm))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showExitDialog = false }) {
-                        Text("Остаться")
+                        Text(stringResource(R.string.exit_dialog_cancel))
                     }
                 },
             )
@@ -296,15 +303,17 @@ private fun AuthenticatedNavHost(
             )
             AlertDialog(
                 onDismissRequest = {},
-                title = { Text("Нет связи с сервером") },
+                title = { Text(stringResource(R.string.connection_lost_title)) },
                 text = {
                     Text(
                         buildString {
-                            append(connectionState.statusText.ifBlank { "Соединение потеряно. Работа временно заблокирована." })
+                            append(connectionState.statusText.ifBlank { context.getString(R.string.connection_lost_default) })
                             if (retryCooldownSec > 0) {
-                                append("\n\nПовторное подключение будет доступно через $retryCooldownSec сек.")
+                                append("\n\n")
+                                append(context.getString(R.string.connection_retry_available_in, retryCooldownSec))
                             } else if (connectionState.reconnectDelaySec > 0) {
-                                append("\n\nАвтоподключение настроено. Можно повторить вручную.")
+                                append("\n\n")
+                                append(context.getString(R.string.connection_auto_reconnect_configured))
                             }
                         },
                     )
@@ -316,9 +325,9 @@ private fun AuthenticatedNavHost(
                     ) {
                         Text(
                             if (retryCooldownSec > 0) {
-                                "Повторить через $retryCooldownSec"
+                                stringResource(R.string.connection_retry_in, retryCooldownSec)
                             } else {
-                                "Повторить подключение"
+                                stringResource(R.string.connection_retry)
                             },
                         )
                     }
@@ -329,11 +338,11 @@ private fun AuthenticatedNavHost(
         if (showConnectionRestored) {
             AlertDialog(
                 onDismissRequest = runtimeViewModel::dismissConnectionRestored,
-                title = { Text("Связь восстановлена") },
-                text = { Text("Связь с сервером восстановлена, можете продолжать работу.") },
+                title = { Text(stringResource(R.string.connection_restored_title)) },
+                text = { Text(stringResource(R.string.connection_restored_message)) },
                 confirmButton = {
                     Button(onClick = runtimeViewModel::dismissConnectionRestored) {
-                        Text("ОК")
+                        Text(stringResource(R.string.common_ok))
                     }
                 },
             )
@@ -342,11 +351,11 @@ private fun AuthenticatedNavHost(
         updateStatusDialogText?.let { message ->
             AlertDialog(
                 onDismissRequest = runtimeViewModel::dismissUpdateStatusDialog,
-                title = { Text("Проверка обновления") },
+                title = { Text(stringResource(R.string.update_check_title)) },
                 text = { Text(message) },
                 confirmButton = {
                     Button(onClick = runtimeViewModel::dismissUpdateStatusDialog) {
-                        Text("ОК")
+                        Text(stringResource(R.string.common_ok))
                     }
                 },
             )
@@ -355,7 +364,7 @@ private fun AuthenticatedNavHost(
         if (apkUpdateState.shouldShowDialog) {
             AlertDialog(
                 onDismissRequest = {},
-                title = { Text("Доступно обновление") },
+                title = { Text(stringResource(R.string.update_available_title)) },
                 text = {
                     Box(modifier = Modifier.fillMaxWidth()) {
                         androidx.compose.foundation.layout.Column(
@@ -363,10 +372,12 @@ private fun AuthenticatedNavHost(
                         ) {
                             Text(
                                 text = buildString {
-                                    append("Текущая версия: ${apkUpdateState.currentVersion}\n")
-                                    append("Новая версия: ${apkUpdateState.latestVersion}")
+                                    append(context.getString(R.string.update_current_version, apkUpdateState.currentVersion))
+                                    append('\n')
+                                    append(context.getString(R.string.update_latest_version, apkUpdateState.latestVersion))
                                     if (apkUpdateState.originalFilename.isNotBlank()) {
-                                        append("\nФайл: ${apkUpdateState.originalFilename}")
+                                        append('\n')
+                                        append(context.getString(R.string.update_file, apkUpdateState.originalFilename))
                                     }
                                     apkUpdateState.errorText?.let {
                                         append("\n$it")
@@ -379,8 +390,12 @@ private fun AuthenticatedNavHost(
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                                 Text(
-                                    text = "Скачано ${formatBytes(apkUpdateState.downloadedBytes)} из ${formatBytes(apkUpdateState.fileSize)} " +
-                                        "(${(apkUpdateState.downloadProgress * 100).toInt()}%)",
+                                    text = stringResource(
+                                        R.string.update_downloaded,
+                                        formatBytes(apkUpdateState.downloadedBytes),
+                                        formatBytes(apkUpdateState.fileSize),
+                                        (apkUpdateState.downloadProgress * 100).toInt(),
+                                    ),
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
@@ -392,12 +407,18 @@ private fun AuthenticatedNavHost(
                         onClick = runtimeViewModel::installUpdate,
                         enabled = !apkUpdateState.isDownloading,
                     ) {
-                        Text(if (apkUpdateState.isDownloading) "Скачиваем..." else "Обновить")
+                        Text(
+                            if (apkUpdateState.isDownloading) {
+                                stringResource(R.string.update_downloading)
+                            } else {
+                                stringResource(R.string.update_install)
+                            },
+                        )
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = runtimeViewModel::ignoreUpdate) {
-                        Text("Позже")
+                        Text(stringResource(R.string.update_later))
                     }
                 },
             )

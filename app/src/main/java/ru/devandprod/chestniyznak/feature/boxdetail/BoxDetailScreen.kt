@@ -37,11 +37,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 
@@ -60,7 +62,6 @@ fun BoxDetailRoute(
         onBackToMenu = onBackToMenu,
         onRefresh = viewModel::refresh,
         onOpenEdit = viewModel::openEdit,
-        onPrintLabel = viewModel::printLabel,
     )
 }
 
@@ -71,7 +72,6 @@ fun BoxDetailScreen(
     onBackToMenu: () -> Unit,
     onRefresh: () -> Unit,
     onOpenEdit: () -> Unit,
-    onPrintLabel: () -> Unit,
 ) {
     val decor = CurrentAppDecorColors
     Scaffold(
@@ -104,7 +104,7 @@ fun BoxDetailScreen(
                     IconButton(onClick = onBackToMenu) {
                         Icon(
                             painter = painterResource(id = android.R.drawable.ic_menu_sort_by_size),
-                            contentDescription = "Меню",
+                            contentDescription = stringResource(R.string.common_menu),
                         )
                     }
                 },
@@ -132,7 +132,7 @@ fun BoxDetailScreen(
                         ) {
                             Text(state.errorText, style = MaterialTheme.typography.bodyLarge)
                             Button(onClick = onRefresh) {
-                                Text("Повторить")
+                                Text(stringResource(R.string.common_retry))
                             }
                         }
                     }
@@ -161,18 +161,7 @@ fun BoxDetailScreen(
                                         contentColor = MaterialTheme.colorScheme.onPrimary,
                                     ),
                                 ) {
-                                    Text("Редактировать", maxLines = 1)
-                                }
-                                Button(
-                                    onClick = onPrintLabel,
-                                    enabled = !state.isActionBusy && box.isClosed,
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                                    ),
-                                ) {
-                                    Text("Распечатать", maxLines = 1)
+                                    Text(stringResource(R.string.common_edit), maxLines = 1)
                                 }
                             }
                         }
@@ -185,7 +174,7 @@ fun BoxDetailScreen(
                         }
                         item {
                             Text(
-                                text = "Коды в коробке",
+                                text = stringResource(R.string.packing_codes_in_box),
                                 style = MaterialTheme.typography.titleMedium,
                                 modifier = Modifier.padding(horizontal = 4.dp),
                             )
@@ -270,15 +259,15 @@ private fun BoxHeroCard(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Коробка #${box.boxId}",
+                    text = stringResource(R.string.packing_box_number, box.boxId),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
                     text = when {
-                        box.isEditMode -> "Коробка открыта в режиме редактирования"
-                        box.isClosed -> "Коробка закрыта и готова к контролю"
-                        else -> "Коробка активна и готова к сканированию"
+                        box.isEditMode -> stringResource(R.string.box_detail_edit_mode)
+                        box.isClosed -> stringResource(R.string.box_detail_closed_ready)
+                        else -> stringResource(R.string.box_detail_active_ready)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
@@ -329,24 +318,21 @@ private fun BoxMetricsCard(
                 trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
             )
             BoxMetricRow(
-                leftTitle = "Заказ",
-                leftValue = box.orderName?.takeIf(String::isNotBlank) ?: "Не привязан",
+                leftTitle = stringResource(R.string.packing_order),
+                leftValue = box.orderName?.takeIf(String::isNotBlank) ?: stringResource(R.string.packing_not_linked),
                 rightTitle = "SSCC",
-                rightValue = box.sscc?.takeIf(String::isNotBlank) ?: "Еще не присвоен",
+                rightValue = box.sscc?.takeIf(String::isNotBlank) ?: stringResource(R.string.packing_not_assigned_yet),
             )
             BoxMetricRow(
-                leftTitle = "Статус",
+                leftTitle = stringResource(R.string.common_status),
                 leftValue = when {
-                    box.isEditMode -> "Редактирование"
-                    box.isClosed -> "Закрыта"
-                    else -> "Открыта"
+                    box.isEditMode -> stringResource(R.string.status_editing)
+                    box.isClosed -> stringResource(R.string.status_closed)
+                    else -> stringResource(R.string.status_open)
                 },
-                rightTitle = "Оператор",
-                rightValue = box.activeUserName.ifBlank { "Не указан" },
+                rightTitle = stringResource(R.string.boxes_operator_label),
+                rightValue = box.activeUserName.ifBlank { stringResource(R.string.common_not_specified) },
             )
-            if (box.printError.isNotBlank()) {
-                Text(box.printError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            }
             errorText?.takeIf(String::isNotBlank)?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }

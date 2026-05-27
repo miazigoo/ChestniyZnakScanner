@@ -1,7 +1,6 @@
 package ru.devandprod.chestniyznak.domain.auth
 
 import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 
 object AuthTokenExtractor {
 
@@ -24,7 +23,7 @@ object AuthTokenExtractor {
 
     private fun extractQueryToken(value: String): String? {
         TOKEN_QUERY_REGEX.find(value)?.groupValues?.getOrNull(1)?.let { encoded ->
-            return URLDecoder.decode(encoded, StandardCharsets.UTF_8)
+            return URLDecoder.decode(encoded, Charsets.UTF_8.name())
                 .trim()
                 .takeIf(String::isNotBlank)
         }

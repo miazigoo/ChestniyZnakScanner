@@ -32,12 +32,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
@@ -111,6 +113,7 @@ private fun DefectMarkScreen(
 ) {
     val themeSpec = CurrentAppThemeSpec
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -130,12 +133,16 @@ private fun DefectMarkScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.Start) {
                                 Text(
-                                    if (inputMode == VerifyInputMode.Camera) "КАМЕРА" else "ТСД",
+                                    if (inputMode == VerifyInputMode.Camera) {
+                                        stringResource(R.string.verify_mode_camera)
+                                    } else {
+                                        stringResource(R.string.verify_mode_tsd)
+                                    },
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                 )
                                 Text(
-                                    "Отправка в брак",
+                                    stringResource(R.string.defect_title),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                                 )
@@ -209,7 +216,11 @@ private fun DefectMarkScreen(
                             modifier = Modifier.weight(1f),
                         )
                         Text(
-                            text = if (inputMode == VerifyInputMode.Camera) "Камера" else "ТСД",
+                            text = if (inputMode == VerifyInputMode.Camera) {
+                                stringResource(R.string.verify_mode_camera)
+                            } else {
+                                stringResource(R.string.verify_mode_tsd)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         )
@@ -219,16 +230,22 @@ private fun DefectMarkScreen(
                 state.resultCard?.let { StatusCard(result = it) }
 
                 ResultPanel(
-                    title = "Последний код",
-                    mainText = if (state.visibleCode.isBlank()) "Сканируйте Data Matrix для отправки в брак" else state.visibleCode,
+                    title = stringResource(R.string.verify_last_code),
+                    mainText = if (state.visibleCode.isBlank()) {
+                        stringResource(R.string.defect_scan_prompt)
+                    } else {
+                        state.visibleCode
+                    },
                     secondaryText = buildString {
                         state.technicalStatus.takeIf(String::isNotBlank)?.let {
-                            append("Статус: ")
+                            append(context.getString(R.string.defect_status_prefix))
+                            append(' ')
                             append(it)
                         }
                         state.orderName?.takeIf(String::isNotBlank)?.let {
                             if (isNotEmpty()) append('\n')
-                            append("Заказ: ")
+                            append(context.getString(R.string.verify_order_prefix))
+                            append(' ')
                             append(it)
                         }
                         state.removedFromBoxLabel?.takeIf(String::isNotBlank)?.let {

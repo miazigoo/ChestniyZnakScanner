@@ -4,8 +4,8 @@ import ru.devandprod.chestniyznak.domain.model.VerificationBoxInfo
 
 data class ScanUiState(
     val isLoading: Boolean = true,
-    val statsLabel: String = "В базе 0 кодов",
-    val scansLabel: String = "Проверок 0",
+    val statsLabel: String = "",
+    val scansLabel: String = "",
     val scanMode: ScanMode = ScanMode.PackingTsd,
     val verify: VerifyPaneUiState = VerifyPaneUiState(),
     val packing: PackingPaneUiState = PackingPaneUiState(),
@@ -28,14 +28,29 @@ data class PackingPaneUiState(
     val isBusy: Boolean = false,
     val currentBox: PackingBoxUi? = null,
     val countInPacking: Boolean = true,
+    val orderLines: List<PackingOrderLineUi> = emptyList(),
+    val selectedOrderLineId: String = "",
+    val orderSearch: String = "",
+    val ordersLoading: Boolean = false,
+    val ordersLoaded: Boolean = false,
     val resultCard: ScanResultCardUi? = null,
-    val statusText: String = "Открытая коробка не найдена",
+    val statusText: String = "",
     val errorText: String? = null,
     val lastScannedCode: String = "",
     val activeBoxesDialog: ActiveBoxesDialogUi? = null,
     val closeDialog: CloseBoxDialogUi? = null,
     val itemMenuItemId: Long? = null,
     val confirmDeleteEmptyBoxDialog: Boolean = false,
+)
+
+data class PackingOrderLineUi(
+    val orderId: String,
+    val orderLineId: String,
+    val orderNumber: String,
+    val sku: String,
+    val productName: String,
+    val label: String,
+    val scanRequired: Boolean = true,
 )
 
 data class PackingBoxUi(
@@ -47,8 +62,6 @@ data class PackingBoxUi(
     val countInPacking: Boolean = true,
     val allowDuplicateScans: Boolean,
     val activeUserName: String = "",
-    val printOk: Boolean = false,
-    val printError: String = "",
     val items: List<PackingBoxItemUi> = emptyList(),
 )
 

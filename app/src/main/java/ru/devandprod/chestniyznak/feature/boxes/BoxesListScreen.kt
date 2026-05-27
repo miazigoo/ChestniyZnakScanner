@@ -31,11 +31,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 
@@ -148,7 +150,7 @@ fun BoxesListScreen(
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                             Button(onClick = onRefresh) {
-                                Text("Повторить")
+                                Text(stringResource(R.string.common_retry))
                             }
                         }
                     }
@@ -161,7 +163,7 @@ fun BoxesListScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "Список пуст",
+                            text = stringResource(R.string.boxes_empty_list),
                             style = MaterialTheme.typography.bodyLarge,
                         )
                     }
@@ -176,8 +178,11 @@ fun BoxesListScreen(
                             BoxesHeroCard(
                                 title = state.title,
                                 subtitle = state.totalLabel.ifBlank {
-                                    if (state.filter == "empty") "Коробки без вложенных кодов"
-                                    else "Полный список коробок для просмотра и контроля"
+                                    if (state.filter == "empty") {
+                                        stringResource(R.string.boxes_empty_subtitle)
+                                    } else {
+                                        stringResource(R.string.boxes_all_subtitle)
+                                    }
                                 },
                             )
                         }
@@ -212,13 +217,17 @@ fun BoxesListScreen(
                                             verticalArrangement = Arrangement.spacedBy(4.dp),
                                         ) {
                                             Text(
-                                                text = "Коробка #${box.boxId}",
+                                                text = stringResource(R.string.packing_box_number, box.boxId),
                                                 style = MaterialTheme.typography.titleLarge,
                                                 fontWeight = FontWeight.Bold,
                                             )
                                             Text(
                                                 text = box.orderName?.takeIf(String::isNotBlank)
-                                                    ?: if (box.isClosed) "Коробка закрыта без привязки заказа" else "Заказ еще не привязан",
+                                                    ?: if (box.isClosed) {
+                                                        stringResource(R.string.boxes_closed_without_order)
+                                                    } else {
+                                                        stringResource(R.string.boxes_order_not_linked)
+                                                    },
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                                                 maxLines = 2,
@@ -234,7 +243,11 @@ fun BoxesListScreen(
                                             },
                                         ) {
                                             Text(
-                                                text = if (box.isClosed) "Закрыта" else "Открыта",
+                                                text = if (box.isClosed) {
+                                                    stringResource(R.string.status_closed)
+                                                } else {
+                                                    stringResource(R.string.status_open)
+                                                },
                                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                                 style = MaterialTheme.typography.labelLarge,
                                                 fontWeight = FontWeight.Bold,
@@ -243,14 +256,14 @@ fun BoxesListScreen(
                                         }
                                     }
                                     BoxListMetricRow(
-                                        leftTitle = "Заполнение",
+                                        leftTitle = stringResource(R.string.packing_fill),
                                         leftValue = "${box.filled}/${box.capacity}",
                                         rightTitle = "SSCC",
-                                        rightValue = box.sscc?.takeIf(String::isNotBlank) ?: "Еще не присвоен",
+                                        rightValue = box.sscc?.takeIf(String::isNotBlank) ?: stringResource(R.string.packing_not_assigned_yet),
                                     )
                                     box.activeUserName.takeIf(String::isNotBlank)?.let {
                                         Text(
-                                            text = "Оператор: $it",
+                                            text = stringResource(R.string.boxes_operator, it),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                         )

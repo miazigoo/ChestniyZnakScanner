@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.common.IoDispatcher
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.data.local.dao.MarkingCodeDao
 import ru.devandprod.chestniyznak.data.local.dao.ScanLogDao
 import ru.devandprod.chestniyznak.data.local.entity.MarkingCodeEntity
@@ -32,6 +34,7 @@ class LocalChestniyZnakRepository @Inject constructor(
     private val seedAssetLoader: SeedAssetLoader,
     private val parser: ChestniyZnakParser,
     private val json: Json,
+    private val strings: AppStringProvider,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ChestniyZnakRepository {
 
@@ -97,20 +100,20 @@ class LocalChestniyZnakRepository @Inject constructor(
             val hasOkScan = scanLogDao.hasSuccessfulScan(matchedCode.id)
             if (hasOkScan && !allowDuplicate) {
                 status = VerificationStatus.DUPLICATE_SCAN
-                message = "Код уже сканировали ранее"
+                message = strings.get(R.string.local_duplicate_scan)
             } else if (parsed.gsRestored) {
                 status = VerificationStatus.OK_GS_RESTORED
-                message = "Код найден в базе; GS восстановлен из ввода сканера"
+                message = strings.get(R.string.local_found_gs_restored)
             } else {
                 status = VerificationStatus.OK
-                message = "Код найден в базе"
+                message = strings.get(R.string.local_found)
             }
         } else if (markingCodeDao.existsByIdentity(parsed.gtin, parsed.serial)) {
             status = VerificationStatus.TAIL_MISMATCH
-            message = "GTIN и serial найдены, но полный криптохвост отличается"
+            message = strings.get(R.string.local_tail_mismatch)
         } else {
             status = VerificationStatus.NOT_FOUND
-            message = "Код не найден в базе"
+            message = strings.get(R.string.local_not_found)
         }
 
         val scanId = scanLogDao.insert(
@@ -157,7 +160,7 @@ class LocalChestniyZnakRepository @Inject constructor(
     ): DefectMarkResult = DefectMarkResult(
         ok = false,
         reasonCode = "unsupported_offline",
-        error = "Отметка брака доступна только при подключении к серверу",
+        error = strings.get(R.string.local_defect_online_only),
     )
 
     override fun observeStats(): Flow<CatalogStats> = combine(

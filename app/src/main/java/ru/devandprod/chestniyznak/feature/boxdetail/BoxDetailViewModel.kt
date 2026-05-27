@@ -5,29 +5,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import ru.devandprod.chestniyznak.core.device.DeviceIdentity
-import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.app.navigation.AppDestination
+import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.usecase.GetPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxEditUseCase
-import ru.devandprod.chestniyznak.domain.usecase.PrintPackingBoxLabelUseCase
 
 @HiltViewModel
 class BoxDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val audioFeedbackPlayer: AudioFeedbackPlayer,
+    private val strings: AppStringProvider,
     private val getPackingBoxUseCase: GetPackingBoxUseCase,
     private val openPackingBoxEditUseCase: OpenPackingBoxEditUseCase,
-    private val printPackingBoxLabelUseCase: PrintPackingBoxLabelUseCase,
 ) : ViewModel() {
 
     private val boxId = checkNotNull(savedStateHandle.get<Long>(AppDestination.BOX_ID_ARG))
@@ -43,20 +43,26 @@ class BoxDetailViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorText = null, statusText = "Загружаем коробку...") }
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    errorText = null,
+                    statusText = strings.get(R.string.box_detail_loading),
+                )
+            }
             runCatching { getPackingBoxUseCase(boxId) }
                 .onSuccess { detail ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             box = detail.toUi(),
-                            title = "Коробка #${detail.box.boxId}",
+                            title = strings.get(R.string.box_detail_title_with_id, detail.box.boxId),
                             statusText = if (detail.box.isEditMode) {
-                                "Коробка открыта в режиме редактирования"
+                                strings.get(R.string.box_detail_edit_mode)
                             } else if (detail.box.isClosed) {
-                                "Коробка закрыта"
+                                strings.get(R.string.box_detail_closed)
                             } else {
-                                "Коробка открыта"
+                                strings.get(R.string.box_detail_open)
                             },
                         )
                     }
@@ -66,8 +72,8 @@ class BoxDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorText = error.message ?: "Не удалось загрузить коробку",
-                            statusText = "Ошибка загрузки коробки",
+                            errorText = error.message ?: strings.get(R.string.box_detail_load_failed),
+                            statusText = strings.get(R.string.box_detail_load_error),
                         )
                     }
                 }
@@ -77,14 +83,20 @@ class BoxDetailViewModel @Inject constructor(
     fun openEdit() {
         if (_uiState.value.isActionBusy) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isActionBusy = true, errorText = null, statusText = "Открываем редактирование...") }
+            _uiState.update {
+                it.copy(
+                    isActionBusy = true,
+                    errorText = null,
+                    statusText = strings.get(R.string.box_detail_opening_edit),
+                )
+            }
             runCatching { openPackingBoxEditUseCase(boxId) }
                 .onSuccess {
                     audioFeedbackPlayer.playSuccess()
                     _uiState.update { state ->
                         state.copy(
                             isActionBusy = false,
-                            statusText = "Режим редактирования открыт",
+                            statusText = strings.get(R.string.box_detail_edit_opened),
                         )
                     }
                     _openEditEvents.tryEmit(boxId)
@@ -94,41 +106,8 @@ class BoxDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isActionBusy = false,
-                            errorText = error.message ?: "Не удалось открыть редактирование",
-                            statusText = "Редактирование не открыто",
-                        )
-                    }
-                }
-        }
-    }
-
-    fun printLabel() {
-        if (_uiState.value.isActionBusy) return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isActionBusy = true, errorText = null, statusText = "Проверяем принтер и отправляем на печать...") }
-            runCatching { printPackingBoxLabelUseCase(boxId, deviceId = DeviceIdentity.clientDeviceId) }
-                .onSuccess { result ->
-                    when {
-                        result.ok && result.printOk == false -> audioFeedbackPlayer.playWarning()
-                        result.ok -> audioFeedbackPlayer.playSuccess()
-                        else -> audioFeedbackPlayer.playError()
-                    }
-                    _uiState.update {
-                        it.copy(
-                            isActionBusy = false,
-                            statusText = if (result.ok) "Этикетка отправлена на печать" else "Печать завершилась с ошибкой",
-                            errorText = result.error ?: result.printError,
-                        )
-                    }
-                    refresh()
-                }
-                .onFailure { error ->
-                    audioFeedbackPlayer.playError()
-                    _uiState.update {
-                        it.copy(
-                            isActionBusy = false,
-                            errorText = error.message ?: "Не удалось распечатать этикетку",
-                            statusText = "Ошибка печати",
+                            errorText = error.message ?: strings.get(R.string.box_detail_edit_failed),
+                            statusText = strings.get(R.string.box_detail_edit_not_opened),
                         )
                     }
                 }
@@ -144,8 +123,6 @@ class BoxDetailViewModel @Inject constructor(
         isClosed = box.isClosed,
         isEditMode = box.isEditMode,
         activeUserName = box.activeUserName,
-        printOk = box.printOk,
-        printError = box.printError,
         items = items.map {
             BoxDetailItemUi(
                 id = it.id,

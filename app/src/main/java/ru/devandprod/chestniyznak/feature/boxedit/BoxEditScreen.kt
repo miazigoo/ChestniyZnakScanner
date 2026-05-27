@@ -48,12 +48,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
@@ -108,25 +110,31 @@ fun BoxEditScreen(
             AlertDialog(
                 onDismissRequest = onDismissClearDialog,
                 title = {
-                    Text(if (box.items.isEmpty()) "Удалить коробку?" else "Удалить все коды?")
+                    Text(
+                        if (box.items.isEmpty()) {
+                            stringResource(R.string.box_edit_confirm_delete_box_title)
+                        } else {
+                            stringResource(R.string.box_edit_confirm_clear_title)
+                        },
+                    )
                 },
                 text = {
                     Text(
                         if (box.items.isEmpty()) {
-                            "Пустая коробка будет удалена без возможности восстановления."
+                            stringResource(R.string.box_edit_confirm_delete_empty_message)
                         } else {
-                            "Все коды будут удалены из коробки. Это действие нельзя отменить."
+                            stringResource(R.string.box_edit_confirm_clear_message)
                         },
                     )
                 },
                 confirmButton = {
                     TextButton(onClick = onConfirmClearAction) {
-                        Text("Подтвердить")
+                        Text(stringResource(R.string.box_edit_confirm_action))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = onDismissClearDialog) {
-                        Text("Отмена")
+                        Text(stringResource(R.string.common_cancel))
                     }
                 },
             )
@@ -208,7 +216,13 @@ fun BoxEditScreen(
                             enabled = !state.isBusy,
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text(if (state.isAwaitingScan) "Сканируйте..." else "Добавить")
+                            Text(
+                                if (state.isAwaitingScan) {
+                                    stringResource(R.string.box_edit_add_waiting)
+                                } else {
+                                    stringResource(R.string.box_edit_add_button)
+                                },
+                            )
                         }
                         Button(
                             onClick = onClearActionRequested,
@@ -219,7 +233,13 @@ fun BoxEditScreen(
                                 contentColor = MaterialTheme.colorScheme.onError,
                             ),
                         ) {
-                            Text(if (box.items.isEmpty()) "Удалить коробку" else "Удалить все")
+                            Text(
+                                if (box.items.isEmpty()) {
+                                    stringResource(R.string.box_edit_delete_box_button)
+                                } else {
+                                    stringResource(R.string.box_edit_delete_all_button)
+                                },
+                            )
                         }
                     }
                 }
@@ -236,7 +256,7 @@ fun BoxEditScreen(
                 }
                 item {
                     Text(
-                        text = "Коды в коробке",
+                        text = stringResource(R.string.box_edit_codes_in_box),
                         style = MaterialTheme.typography.titleMedium,
                     )
                 }
@@ -282,7 +302,7 @@ fun BoxEditScreen(
                             onDismissRequest = onDismissItemMenu,
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Удалить") },
+                                text = { Text(stringResource(R.string.box_edit_delete_action)) },
                                 onClick = { onRemoveItemRequested(item.id) },
                             )
                         }
@@ -294,7 +314,7 @@ fun BoxEditScreen(
                         enabled = !state.isBusy,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Обновить")
+                        Text(stringResource(R.string.box_edit_refresh_action))
                     }
                 }
             }
@@ -337,18 +357,18 @@ private fun EditHeroCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = "EDIT FLOW",
+                    text = stringResource(R.string.box_edit_hero_badge),
                     style = MaterialTheme.typography.labelMedium,
                     letterSpacing = 1.2.sp,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Коробка #${box.boxId}",
+                    text = stringResource(R.string.box_edit_hero_title, box.boxId),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
-                    text = "Редактируйте состав коробки, удаляйте лишние позиции и добавляйте новые сканы.",
+                    text = stringResource(R.string.box_edit_hero_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -403,13 +423,13 @@ private fun EditMetricsCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 EditMetricTile(
-                    title = "Заказ",
-                    value = box.orderName?.takeIf(String::isNotBlank) ?: "Не привязан",
+                    title = stringResource(R.string.box_edit_order),
+                    value = box.orderName?.takeIf(String::isNotBlank) ?: stringResource(R.string.box_edit_order_not_linked),
                     modifier = Modifier.weight(1f),
                 )
                 EditMetricTile(
                     title = "SSCC",
-                    value = box.sscc?.takeIf(String::isNotBlank) ?: "Еще не присвоен",
+                    value = box.sscc?.takeIf(String::isNotBlank) ?: stringResource(R.string.box_edit_sscc_unassigned),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -427,7 +447,7 @@ private fun EditMetricsCard(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = "Последний код",
+                            text = stringResource(R.string.box_edit_last_code),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                         )
@@ -501,15 +521,19 @@ private fun EditScannerStateCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = if (isAwaitingScan) "Сканирование разрешено" else "Ожидание команды на добавление",
+                text = if (isAwaitingScan) {
+                    stringResource(R.string.box_edit_scanner_enabled)
+                } else {
+                    stringResource(R.string.box_edit_scanner_waiting_command)
+                },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
             Text(
                 text = if (isAwaitingScan) {
-                    "Считывайте коды встроенным сканером и они будут добавляться в коробку."
+                    stringResource(R.string.box_edit_scanner_enabled_description)
                 } else {
-                    "Нажмите \"Добавить\", чтобы открыть короткое окно для приема нового скана."
+                    stringResource(R.string.box_edit_scanner_waiting_description)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),

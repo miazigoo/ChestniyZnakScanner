@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.devandprod.chestniyznak.R
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.domain.auth.AuthTokenExtractor
 import ru.devandprod.chestniyznak.domain.usecase.LoginUseCase
 import ru.devandprod.chestniyznak.domain.usecase.LogoutUseCase
@@ -18,12 +20,17 @@ import ru.devandprod.chestniyznak.domain.usecase.RestoreSessionUseCase
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     observeAuthSessionUseCase: ObserveAuthSessionUseCase,
+    private val strings: AppStringProvider,
     private val restoreSessionUseCase: RestoreSessionUseCase,
     private val loginUseCase: LoginUseCase,
     private val logoutUseCase: LogoutUseCase,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AuthUiState())
+    private val _uiState = MutableStateFlow(
+        AuthUiState(
+            statusMessage = strings.get(R.string.auth_status_waiting_token),
+        ),
+    )
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
     private var lastToken: String? = null
 
@@ -36,7 +43,7 @@ class AuthViewModel @Inject constructor(
                         isSubmitting = false,
                         errorMessage = if (session.isAuthenticated) null else state.errorMessage,
                         statusMessage = if (session.isAuthenticated) {
-                            "Вход выполнен."
+                            strings.get(R.string.auth_status_login_success)
                         } else {
                             state.statusMessage
                         },
@@ -57,8 +64,8 @@ class AuthViewModel @Inject constructor(
         if (token.isNullOrBlank()) {
             _uiState.update {
                 it.copy(
-                    errorMessage = "QR-код не содержит токен авторизации",
-                    statusMessage = "Считайте другой QR-код или токен ТСД.",
+                    errorMessage = strings.get(R.string.auth_error_token_missing),
+                    statusMessage = strings.get(R.string.auth_status_scan_another_token),
                     isCameraScannerEnabled = false,
                 )
             }
@@ -73,8 +80,8 @@ class AuthViewModel @Inject constructor(
         val token = lastToken ?: run {
             _uiState.update {
                 it.copy(
-                    errorMessage = "Сначала отсканируйте QR-код токена",
-                    statusMessage = "Ожидание токена авторизации.",
+                    errorMessage = strings.get(R.string.auth_error_scan_token_first),
+                    statusMessage = strings.get(R.string.auth_status_waiting_token),
                 )
             }
             return
@@ -99,7 +106,7 @@ class AuthViewModel @Inject constructor(
                     isSubmitting = false,
                     errorMessage = null,
                     tokenPreview = null,
-                    statusMessage = "Сессия завершена. Отсканируйте новый QR-код токена.",
+                    statusMessage = strings.get(R.string.auth_status_logged_out),
                     isCameraScannerEnabled = true,
                 )
             }
@@ -112,7 +119,7 @@ class AuthViewModel @Inject constructor(
                 isSubmitting = true,
                 errorMessage = null,
                 tokenPreview = token.maskToken(),
-                statusMessage = "Токен считан. Выполняем вход...",
+                statusMessage = strings.get(R.string.auth_status_signing_in),
                 isCameraScannerEnabled = false,
             )
         }
@@ -123,8 +130,8 @@ class AuthViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isSubmitting = false,
-                        errorMessage = throwable.message ?: "Не удалось войти",
-                        statusMessage = "Авторизация не выполнена. Проверьте токен и повторите сканирование.",
+                        errorMessage = throwable.message ?: strings.get(R.string.auth_error_login_failed),
+                        statusMessage = strings.get(R.string.auth_status_auth_failed),
                         isCameraScannerEnabled = false,
                     )
                 }
@@ -133,7 +140,7 @@ class AuthViewModel @Inject constructor(
     }
 
     private fun String.maskToken(): String {
-        if (length <= 8) return "Токен принят"
+        if (length <= 8) return strings.get(R.string.auth_token_accepted)
         return "${take(4)}••••${takeLast(4)}"
     }
 }

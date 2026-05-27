@@ -10,8 +10,16 @@ class OpenPackingBoxUseCase @Inject constructor(
     suspend operator fun invoke(
         deviceId: String = "",
         countInPacking: Boolean = true,
+        orderId: String? = null,
+        orderLineId: String? = null,
+        codeValue: String? = null,
+        sscc: String? = null,
     ): OpenPackingBoxResult = repository.openBox(
         deviceId = deviceId,
         countInPacking = countInPacking,
+        orderId = orderId,
+        orderLineId = orderLineId,
+        codeValue = codeValue,
+        sscc = sscc,
     )
 }

@@ -13,8 +13,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.app.navigation.AppDestination
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.usecase.ClearPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.DeleteEmptyPackingBoxUseCase
@@ -26,6 +28,7 @@ import ru.devandprod.chestniyznak.domain.usecase.ScanCodeToPackingBoxUseCase
 class BoxEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val audioFeedbackPlayer: AudioFeedbackPlayer,
+    private val strings: AppStringProvider,
     private val getPackingBoxUseCase: GetPackingBoxUseCase,
     private val scanCodeToPackingBoxUseCase: ScanCodeToPackingBoxUseCase,
     private val removePackingBoxItemUseCase: RemovePackingBoxItemUseCase,
@@ -35,7 +38,11 @@ class BoxEditViewModel @Inject constructor(
 
     private val boxId = checkNotNull(savedStateHandle.get<Long>(AppDestination.BOX_ID_ARG))
 
-    private val _uiState = MutableStateFlow(BoxEditUiState())
+    private val _uiState = MutableStateFlow(
+        BoxEditUiState(
+            title = strings.get(R.string.box_edit_title_default),
+        ),
+    )
     val uiState: StateFlow<BoxEditUiState> = _uiState.asStateFlow()
 
     private val _boxDeleted = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -51,7 +58,7 @@ class BoxEditViewModel @Inject constructor(
                 it.copy(
                     isLoading = true,
                     errorText = null,
-                    statusText = "Загружаем коробку...",
+                    statusText = strings.get(R.string.box_edit_status_loading),
                 )
             }
             runCatching { getPackingBoxUseCase(boxId) }
@@ -60,11 +67,11 @@ class BoxEditViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             box = detail.toUi(),
-                            title = "Редактирование #${detail.box.boxId}",
+                            title = strings.get(R.string.box_edit_title_with_id, detail.box.boxId),
                             statusText = if (detail.items.isEmpty()) {
-                                "Коробка пуста"
+                                strings.get(R.string.box_edit_status_empty)
                             } else {
-                                "Кодов в коробке: ${detail.items.size}"
+                                strings.get(R.string.box_edit_status_code_count, detail.items.size)
                             },
                         )
                     }
@@ -74,8 +81,8 @@ class BoxEditViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorText = error.message ?: "Не удалось загрузить коробку",
-                            statusText = "Ошибка загрузки коробки",
+                            errorText = error.message ?: strings.get(R.string.box_edit_error_load_failed),
+                            statusText = strings.get(R.string.box_edit_status_load_error),
                         )
                     }
                 }
@@ -87,7 +94,7 @@ class BoxEditViewModel @Inject constructor(
             it.copy(
                 isAwaitingScan = true,
                 errorText = null,
-                statusText = "Сканируйте код для добавления в коробку",
+                statusText = strings.get(R.string.box_edit_status_scan_to_add),
             )
         }
     }
@@ -101,7 +108,7 @@ class BoxEditViewModel @Inject constructor(
                 isBusy = true,
                 errorText = null,
                 lastScannedCode = rawCode,
-                statusText = "Добавляем код в коробку...",
+                statusText = strings.get(R.string.box_edit_status_adding),
             )
         }
 
@@ -116,7 +123,7 @@ class BoxEditViewModel @Inject constructor(
                 when {
                     result.reasonCode == "wrong_order" -> audioFeedbackPlayer.playOtherOrder()
                     result.ok -> audioFeedbackPlayer.playSuccess()
-                    result.reasonCode == "code_in_other_box" -> audioFeedbackPlayer.playWarning()
+                    result.reasonCode in OTHER_BOX_CODES -> audioFeedbackPlayer.playWarning()
                     result.reasonCode == "duplicate_in_box" -> audioFeedbackPlayer.playWarning()
                     else -> audioFeedbackPlayer.playError()
                 }
@@ -125,11 +132,11 @@ class BoxEditViewModel @Inject constructor(
                         isBusy = false,
                         isAwaitingScan = false,
                         statusText = when {
-                            result.ok -> "Код добавлен"
-                            result.reasonCode == "wrong_order" && (result.error?.contains("не привязан", ignoreCase = true) == true) ->
-                                "Код не привязан к заказу"
-                            result.reasonCode == "wrong_order" -> "Другой заказ"
-                            else -> result.error ?: result.verify?.message ?: "Код не добавлен"
+                            result.ok -> strings.get(R.string.box_edit_status_code_added)
+                            result.reasonCode == "mark_code_wrong_order" ->
+                                strings.get(R.string.box_edit_status_code_not_linked_to_order)
+                            result.reasonCode == "wrong_order" -> strings.get(R.string.box_edit_status_other_order)
+                            else -> result.error ?: result.verify?.message ?: strings.get(R.string.box_edit_status_code_not_added)
                         },
                         errorText = if (result.ok) null else result.error ?: result.verify?.message,
                     )
@@ -141,8 +148,8 @@ class BoxEditViewModel @Inject constructor(
                     it.copy(
                         isBusy = false,
                         isAwaitingScan = false,
-                        errorText = error.message ?: "Не удалось добавить код",
-                        statusText = "Ошибка добавления кода",
+                        errorText = error.message ?: strings.get(R.string.box_edit_error_add_failed),
+                        statusText = strings.get(R.string.box_edit_status_add_error),
                     )
                 }
             }
@@ -164,7 +171,7 @@ class BoxEditViewModel @Inject constructor(
                 isBusy = true,
                 itemMenuItemId = null,
                 errorText = null,
-                statusText = "Удаляем код из коробки...",
+                statusText = strings.get(R.string.box_edit_status_removing),
             )
         }
         viewModelScope.launch {
@@ -178,7 +185,11 @@ class BoxEditViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isBusy = false,
-                            statusText = if (result.ok) "Код удален из коробки" else (result.error ?: "Код не удален"),
+                            statusText = if (result.ok) {
+                                strings.get(R.string.box_edit_status_removed)
+                            } else {
+                                result.error ?: strings.get(R.string.box_edit_status_not_removed)
+                            },
                             errorText = if (result.ok) null else result.error,
                         )
                     }
@@ -189,8 +200,8 @@ class BoxEditViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isBusy = false,
-                            errorText = error.message ?: "Не удалось удалить код",
-                            statusText = "Ошибка удаления кода",
+                            errorText = error.message ?: strings.get(R.string.box_edit_error_remove_failed),
+                            statusText = strings.get(R.string.box_edit_status_remove_error),
                         )
                     }
                 }
@@ -215,9 +226,9 @@ class BoxEditViewModel @Inject constructor(
                 confirmClearDialog = false,
                 errorText = null,
                 statusText = if (box.items.isEmpty()) {
-                    "Удаляем пустую коробку..."
+                    strings.get(R.string.box_edit_status_deleting_empty)
                 } else {
-                    "Удаляем все коды из коробки..."
+                    strings.get(R.string.box_edit_status_clearing_codes)
                 },
             )
         }
@@ -244,9 +255,9 @@ class BoxEditViewModel @Inject constructor(
                         it.copy(
                             isBusy = false,
                             statusText = if (result.ok) {
-                                "Коробка очищена"
+                                strings.get(R.string.box_edit_status_cleared)
                             } else {
-                                result.error ?: "Операция не выполнена"
+                                result.error ?: strings.get(R.string.box_edit_error_operation_failed)
                             },
                             errorText = if (result.ok) null else result.error,
                         )
@@ -258,8 +269,8 @@ class BoxEditViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isBusy = false,
-                        errorText = error.message ?: "Операция не выполнена",
-                        statusText = "Ошибка операции",
+                        errorText = error.message ?: strings.get(R.string.box_edit_error_operation_failed),
+                        statusText = strings.get(R.string.box_edit_status_operation_error),
                     )
                 }
             }
@@ -281,4 +292,8 @@ class BoxEditViewModel @Inject constructor(
             )
         },
     )
+
+    private companion object {
+        val OTHER_BOX_CODES = setOf("code_in_other_box", "mark_code_already_packed")
+    }
 }

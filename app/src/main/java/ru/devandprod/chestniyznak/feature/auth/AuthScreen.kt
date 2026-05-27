@@ -39,11 +39,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputField
@@ -217,12 +219,12 @@ private fun AuthHeroCard(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Вход по QR-токену",
+                    text = stringResource(R.string.auth_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
-                    text = "Считайте токен камерой или встроенным сканером ТСД. После успешного входа откроется рабочее меню упаковки.",
+                    text = stringResource(R.string.auth_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -230,12 +232,12 @@ private fun AuthHeroCard(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     ModeChip(
-                        label = "QR камера",
+                        label = stringResource(R.string.auth_mode_camera),
                         isSelected = inputMode == AuthInputMode.Camera,
                         onClick = { onInputModeChanged(AuthInputMode.Camera) },
                     )
                     ModeChip(
-                        label = "ТСД",
+                        label = stringResource(R.string.auth_mode_tsd),
                         isSelected = inputMode == AuthInputMode.Tsd,
                         onClick = { onInputModeChanged(AuthInputMode.Tsd) },
                     )
@@ -316,12 +318,12 @@ private fun AuthScannerViewport(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "Для входа по QR-коду нужен доступ к камере",
+                        text = stringResource(R.string.auth_camera_permission_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     TextButton(onClick = onRetryPermission) {
-                        Text("Разрешить камеру")
+                        Text(stringResource(R.string.auth_camera_permission_action))
                     }
                 }
             }
@@ -346,12 +348,12 @@ private fun AuthTsdHintCard() {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Режим ТСД активен",
+                text = stringResource(R.string.auth_tsd_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Нажмите аппаратную кнопку сканера и считайте QR-код токена. Клавиатура на экране не используется.",
+                text = stringResource(R.string.auth_tsd_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             )
@@ -383,7 +385,7 @@ private fun AuthStatusCard(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "Статус авторизации",
+                text = stringResource(R.string.auth_status_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
@@ -394,7 +396,7 @@ private fun AuthStatusCard(
             )
             tokenPreview?.let {
                 Text(
-                    text = "Последний токен: $it",
+                    text = stringResource(R.string.auth_last_token, it),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -418,7 +420,7 @@ private fun AuthStatusCard(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Text("Повторить вход по последнему токену")
+                    Text(stringResource(R.string.auth_retry_last_token))
                 }
             }
         }

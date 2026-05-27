@@ -35,12 +35,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
@@ -131,6 +133,7 @@ internal fun DataMatrixVerifyScreen(
 ) {
     val themeSpec = CurrentAppThemeSpec
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -157,12 +160,16 @@ internal fun DataMatrixVerifyScreen(
                                 horizontalAlignment = Alignment.Start,
                             ) {
                                 Text(
-                                    if (inputMode == VerifyInputMode.Camera) "КАМЕРА" else "ТСД",
+                                    if (inputMode == VerifyInputMode.Camera) {
+                                        stringResource(R.string.verify_mode_camera)
+                                    } else {
+                                        stringResource(R.string.verify_mode_tsd)
+                                    },
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                 )
                                 Text(
-                                    "Проверка DataMatrix",
+                                    stringResource(R.string.verify_title),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                                 )
@@ -188,7 +195,7 @@ internal fun DataMatrixVerifyScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
-                                contentDescription = "Закрыть",
+                                contentDescription = stringResource(R.string.common_close),
                             )
                         }
                     }
@@ -264,33 +271,42 @@ internal fun DataMatrixVerifyScreen(
                 )
 
                 ResultPanel(
-                    title = "Последний код",
+                    title = stringResource(R.string.verify_last_code),
                     mainText = if (state.verify.visibleCode.isBlank()) {
                         if (inputMode == VerifyInputMode.Camera) {
-                            "Сканируйте Data Matrix камерой"
+                            stringResource(R.string.verify_scan_camera)
                         } else {
-                            "Сканируйте Data Matrix встроенным сканером"
+                            stringResource(R.string.verify_scan_tsd)
                         }
                     } else {
                         state.verify.visibleCode
                     },
                     secondaryText = buildString {
                         state.verify.technicalStatus.takeIf(String::isNotBlank)?.let {
-                            append("Статус проверки: ")
+                            append(context.getString(R.string.verify_status_prefix))
+                            append(' ')
                             append(it)
                         }
                         state.verify.orderName?.takeIf(String::isNotBlank)?.let { orderName ->
                             if (isNotEmpty()) append('\n')
-                            append("Заказ: ")
+                            append(context.getString(R.string.verify_order_prefix))
+                            append(' ')
                             append(orderName)
                         }
                         state.verify.boxInfo?.let { boxInfo ->
                             if (isNotEmpty()) append('\n')
-                            append("Коробка: ШК ")
-                            append(boxInfo.sscc?.takeIf(String::isNotBlank) ?: "не присвоен")
+                            append(context.getString(R.string.verify_box_prefix))
+                            append(' ')
+                            append(boxInfo.sscc?.takeIf(String::isNotBlank) ?: context.getString(R.string.verify_not_assigned))
                             append(", ID ")
                             append(boxInfo.boxId)
-                            append(if (boxInfo.isClosed) " (закрыта)" else " (открыта)")
+                            append(
+                                if (boxInfo.isClosed) {
+                                    context.getString(R.string.verify_box_closed_suffix)
+                                } else {
+                                    context.getString(R.string.verify_box_open_suffix)
+                                },
+                            )
                         }
                     }.takeIf(String::isNotBlank),
                     warnings = state.verify.warnings,
@@ -322,11 +338,11 @@ private fun VerifyStatusPanel(
         ScanResultTone.Error -> themeSpec.decorColors.dangerContainer to themeSpec.decorColors.danger
         ScanResultTone.Warning -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.secondary
     }
-    val headline = result?.headline ?: "Готово"
+    val headline = result?.headline ?: stringResource(R.string.verify_ready)
     val message = result?.message ?: if (isCameraMode) {
-        "Сканируйте Data Matrix камерой"
+        stringResource(R.string.verify_scan_camera)
     } else {
-        "Сканируйте Data Matrix встроенным сканером"
+        stringResource(R.string.verify_scan_tsd)
     }
 
     Surface(
