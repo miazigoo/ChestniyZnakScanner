@@ -1,5 +1,9 @@
 package ru.devandprod.chestniyznak.app
 
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.res.AssetManager
+import android.content.res.Resources
 import android.os.LocaleList
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -44,7 +48,11 @@ private fun LocalizedApp(
         Locale.setDefault(locale)
         val nextConfiguration = android.content.res.Configuration(configuration)
         nextConfiguration.setLocales(LocaleList(locale))
-        context.createConfigurationContext(nextConfiguration)
+        val resourcesContext = context.createConfigurationContext(nextConfiguration)
+        LocalizedResourcesContextWrapper(
+            base = context,
+            resourcesContext = resourcesContext,
+        )
     }
 
     CompositionLocalProvider(
@@ -52,4 +60,13 @@ private fun LocalizedApp(
         LocalConfiguration provides localizedContext.resources.configuration,
         content = content,
     )
+}
+
+private class LocalizedResourcesContextWrapper(
+    base: Context,
+    private val resourcesContext: Context,
+) : ContextWrapper(base) {
+    override fun getResources(): Resources = resourcesContext.resources
+
+    override fun getAssets(): AssetManager = resourcesContext.assets
 }
