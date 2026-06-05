@@ -2,13 +2,6 @@ package ru.devandprod.chestniyznak.feature.scanner
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.text.Editable
-import android.text.InputType
-import android.text.TextWatcher
-import android.view.View
-import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -70,7 +63,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import ru.devandprod.chestniyznak.R
@@ -78,6 +70,7 @@ import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.DataMatrixCameraPreview
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
+import ru.devandprod.chestniyznak.core.scanner.HidScannerInputField
 import ru.devandprod.chestniyznak.core.scanner.ScannerCommand
 import ru.devandprod.chestniyznak.core.scanner.ScannerCommandBus
 
@@ -1194,85 +1187,6 @@ internal fun DeviceInfoPanel(
         }
     }
 }
-
-@Composable
-internal fun HidScannerInputField(
-    modifier: Modifier = Modifier,
-) {
-    AndroidView(
-        factory = { context ->
-            EditText(context).apply {
-                val inputMethodManager = context.getSystemService(InputMethodManager::class.java)
-                fun hideKeyboard() {
-                    inputMethodManager?.hideSoftInputFromWindow(windowToken, 0)
-                }
-
-                isSingleLine = true
-                isFocusable = true
-                isFocusableInTouchMode = true
-                imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI or EditorInfo.IME_FLAG_NO_FULLSCREEN
-                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-                showSoftInputOnFocus = false
-                isCursorVisible = false
-                background = null
-                importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
-                setTextColor(android.graphics.Color.TRANSPARENT)
-                setHintTextColor(android.graphics.Color.TRANSPARENT)
-                setOnClickListener { hideKeyboard() }
-                setOnLongClickListener {
-                    hideKeyboard()
-                    true
-                }
-                requestFocus()
-                post { hideKeyboard() }
-                setOnFocusChangeListener { view, hasFocus ->
-                    if (!hasFocus) {
-                        view.post {
-                            view.requestFocus()
-                            hideKeyboard()
-                        }
-                    } else {
-                        hideKeyboard()
-                    }
-                }
-                val emitRunnable = Runnable {
-                    val text = this.text?.toString().orEmpty()
-                    if (text.isNotBlank()) {
-                        HidScannerInputBus.onTextCommitted(text)
-                        setText("")
-                    }
-                }
-                addTextChangedListener(
-                    object : TextWatcher {
-                        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-
-                        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
-
-                        override fun afterTextChanged(editable: Editable?) {
-                            val text = editable?.toString().orEmpty()
-                            removeCallbacks(emitRunnable)
-                            if (text.contains('\n') || text.contains('\r') || text.contains('\t')) {
-                                HidScannerInputBus.onTextCommitted(text)
-                                setText("")
-                            } else if (text.isNotBlank()) {
-                                postDelayed(emitRunnable, 180L)
-                            }
-                        }
-                    },
-                )
-            }
-        },
-        update = { editText ->
-            if (!editText.hasFocus()) {
-                editText.post { editText.requestFocus() }
-            }
-            val inputMethodManager = editText.context.getSystemService(InputMethodManager::class.java)
-            inputMethodManager?.hideSoftInputFromWindow(editText.windowToken, 0)
-        },
-        modifier = modifier,
-    )
-}
-
 @Composable
 internal fun PermissionStub(
     onRetryPermission: () -> Unit,

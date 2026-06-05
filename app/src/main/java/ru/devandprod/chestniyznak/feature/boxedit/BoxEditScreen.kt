@@ -1,12 +1,9 @@
 package ru.devandprod.chestniyznak.feature.boxedit
 
-import android.text.Editable
-import android.text.InputType
-import android.text.TextWatcher
-import android.view.View
-import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -48,17 +46,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
+import ru.devandprod.chestniyznak.core.scanner.DataMatrixCameraPreview
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
+import ru.devandprod.chestniyznak.core.scanner.HidScannerInputField
 
 @Composable
 fun BoxEditRoute(
@@ -67,6 +68,19 @@ fun BoxEditRoute(
     viewModel: BoxEditViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = viewModel::onCameraPermissionChanged,
+    )
+    val hasCameraPermission = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.CAMERA,
+    ) == PackageManager.PERMISSION_GRANTED
+
+    LaunchedEffect(hasCameraPermission) {
+        viewModel.onCameraPermissionChanged(hasCameraPermission)
+    }
 
     LaunchedEffect(viewModel) {
         HidScannerInputBus.scannedCodes().collect(viewModel::onCodeScanned)
@@ -81,6 +95,12 @@ fun BoxEditRoute(
         onBack = onBack,
         onRefresh = viewModel::refresh,
         onAddRequested = viewModel::onAddRequested,
+        onStopScanSession = viewModel::onStopScanSession,
+        onScanModeSelected = viewModel::onScanModeSelected,
+        onRequestCameraPermission = {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        },
+        onCameraCodeScanned = viewModel::onCameraCodeScanned,
         onClearActionRequested = viewModel::onClearActionRequested,
         onConfirmClearAction = viewModel::onConfirmClearAction,
         onDismissClearDialog = viewModel::onDismissClearDialog,
@@ -97,6 +117,10 @@ fun BoxEditScreen(
     onBack: () -> Unit,
     onRefresh: () -> Unit,
     onAddRequested: () -> Unit,
+    onStopScanSession: () -> Unit,
+    onScanModeSelected: (BoxEditScanMode) -> Unit,
+    onRequestCameraPermission: () -> Unit,
+    onCameraCodeScanned: (String) -> Unit,
     onClearActionRequested: () -> Unit,
     onConfirmClearAction: () -> Unit,
     onDismissClearDialog: () -> Unit,
@@ -224,6 +248,13 @@ fun BoxEditScreen(
                                 },
                             )
                         }
+                        OutlinedButton(
+                            onClick = onStopScanSession,
+                            enabled = !state.isBusy && state.isAwaitingScan,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(stringResource(R.string.box_edit_stop_scan_button))
+                        }
                         Button(
                             onClick = onClearActionRequested,
                             enabled = !state.isBusy,
@@ -252,7 +283,32 @@ fun BoxEditScreen(
                     )
                 }
                 item {
-                    EditScannerStateCard(isAwaitingScan = state.isAwaitingScan)
+                    EditScanModeCard(
+                        scanMode = state.scanMode,
+                        isAwaitingScan = state.isAwaitingScan,
+                        hasCameraPermission = state.hasCameraPermission,
+                        onScanModeSelected = onScanModeSelected,
+                        onRequestCameraPermission = onRequestCameraPermission,
+                    )
+                }
+                if (state.scanMode == BoxEditScanMode.Camera && state.hasCameraPermission) {
+                    item {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 260.dp, max = 420.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                        ) {
+                            DataMatrixCameraPreview(
+                                isEnabled = state.isAwaitingScan && !state.isBusy,
+                                onCodeScanned = onCameraCodeScanned,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(320.dp),
+                            )
+                        }
+                    }
                 }
                 item {
                     Text(
@@ -503,8 +559,12 @@ private fun EditMetricTile(
 }
 
 @Composable
-private fun EditScannerStateCard(
+private fun EditScanModeCard(
+    scanMode: BoxEditScanMode,
     isAwaitingScan: Boolean,
+    hasCameraPermission: Boolean,
+    onScanModeSelected: (BoxEditScanMode) -> Unit,
+    onRequestCameraPermission: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -520,6 +580,25 @@ private fun EditScannerStateCard(
                 .padding(horizontal = 18.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { onScanModeSelected(BoxEditScanMode.Hid) },
+                    modifier = Modifier.weight(1f),
+                    enabled = scanMode != BoxEditScanMode.Hid,
+                ) {
+                    Text(stringResource(R.string.verify_mode_tsd))
+                }
+                OutlinedButton(
+                    onClick = { onScanModeSelected(BoxEditScanMode.Camera) },
+                    modifier = Modifier.weight(1f),
+                    enabled = scanMode != BoxEditScanMode.Camera,
+                ) {
+                    Text(stringResource(R.string.verify_mode_camera))
+                }
+            }
             Text(
                 text = if (isAwaitingScan) {
                     stringResource(R.string.box_edit_scanner_enabled)
@@ -530,89 +609,22 @@ private fun EditScannerStateCard(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = if (isAwaitingScan) {
-                    stringResource(R.string.box_edit_scanner_enabled_description)
-                } else {
-                    stringResource(R.string.box_edit_scanner_waiting_description)
+                text = when {
+                    !isAwaitingScan -> stringResource(R.string.box_edit_scanner_waiting_description)
+                    scanMode == BoxEditScanMode.Camera && !hasCameraPermission ->
+                        stringResource(R.string.box_edit_camera_permission_description)
+                    scanMode == BoxEditScanMode.Camera ->
+                        stringResource(R.string.box_edit_camera_enabled_description)
+                    else -> stringResource(R.string.box_edit_scanner_enabled_description)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             )
+            if (scanMode == BoxEditScanMode.Camera && !hasCameraPermission) {
+                Button(onClick = onRequestCameraPermission) {
+                    Text(stringResource(R.string.camera_permission_allow))
+                }
+            }
         }
     }
-}
-
-@Composable
-private fun HidScannerInputField(
-    modifier: Modifier = Modifier,
-) {
-    AndroidView(
-        factory = { context ->
-            EditText(context).apply {
-                val imm = context.getSystemService(InputMethodManager::class.java)
-                fun hideKeyboard() {
-                    imm?.hideSoftInputFromWindow(windowToken, 0)
-                }
-                isSingleLine = true
-                isFocusable = true
-                isFocusableInTouchMode = true
-                imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI or EditorInfo.IME_FLAG_NO_FULLSCREEN
-                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-                showSoftInputOnFocus = false
-                isCursorVisible = false
-                background = null
-                importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
-                setTextColor(android.graphics.Color.TRANSPARENT)
-                setHintTextColor(android.graphics.Color.TRANSPARENT)
-                setOnClickListener { hideKeyboard() }
-                setOnLongClickListener {
-                    hideKeyboard()
-                    true
-                }
-                requestFocus()
-                post { hideKeyboard() }
-                setOnFocusChangeListener { view, hasFocus ->
-                    if (!hasFocus) {
-                        view.post {
-                            view.requestFocus()
-                            hideKeyboard()
-                        }
-                    } else {
-                        hideKeyboard()
-                    }
-                }
-                val emitRunnable = Runnable {
-                    val text = this.text?.toString().orEmpty()
-                    if (text.isNotBlank()) {
-                        HidScannerInputBus.onTextCommitted(text)
-                        setText("")
-                    }
-                }
-                addTextChangedListener(
-                    object : TextWatcher {
-                        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-                        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
-                        override fun afterTextChanged(editable: Editable?) {
-                            val text = editable?.toString().orEmpty()
-                            removeCallbacks(emitRunnable)
-                            if (text.contains('\n') || text.contains('\r') || text.contains('\t')) {
-                                HidScannerInputBus.onTextCommitted(text)
-                                setText("")
-                            } else if (text.isNotBlank()) {
-                                postDelayed(emitRunnable, 180L)
-                            }
-                        }
-                    },
-                )
-            }
-        },
-        update = { editText ->
-            if (!editText.hasFocus()) {
-                editText.post { editText.requestFocus() }
-            }
-            val imm = editText.context.getSystemService(InputMethodManager::class.java)
-            imm?.hideSoftInputFromWindow(editText.windowToken, 0)
-        },
-        modifier = modifier,
-    )
 }

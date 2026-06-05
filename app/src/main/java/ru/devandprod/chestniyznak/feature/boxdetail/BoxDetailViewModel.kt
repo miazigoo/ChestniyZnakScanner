@@ -16,10 +16,12 @@ import kotlinx.coroutines.launch
 import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.app.navigation.AppDestination
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
+import ru.devandprod.chestniyznak.core.device.DeviceIdentity
 import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.usecase.GetPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxEditUseCase
+import ru.devandprod.chestniyznak.domain.usecase.PrintPackingBoxLabelUseCase
 
 @HiltViewModel
 class BoxDetailViewModel @Inject constructor(
@@ -28,6 +30,7 @@ class BoxDetailViewModel @Inject constructor(
     private val strings: AppStringProvider,
     private val getPackingBoxUseCase: GetPackingBoxUseCase,
     private val openPackingBoxEditUseCase: OpenPackingBoxEditUseCase,
+    private val printPackingBoxLabelUseCase: PrintPackingBoxLabelUseCase,
 ) : ViewModel() {
 
     private val boxId = checkNotNull(savedStateHandle.get<Long>(AppDestination.BOX_ID_ARG))
@@ -111,6 +114,60 @@ class BoxDetailViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    fun printLabel() {
+        val box = _uiState.value.box ?: return
+        if (_uiState.value.isActionBusy || !box.isClosed) return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isActionBusy = true,
+                    errorText = null,
+                    statusText = strings.get(R.string.packing_printing_label),
+                )
+            }
+            runCatching {
+                printPackingBoxLabelUseCase(
+                    boxId = box.boxId,
+                    deviceId = DeviceIdentity.clientDeviceId,
+                )
+            }.onSuccess { result ->
+                if (result.printOk) {
+                    audioFeedbackPlayer.playSuccess()
+                    _uiState.update {
+                        it.copy(
+                            isActionBusy = false,
+                            statusText = strings.get(
+                                R.string.close_box_printed,
+                                result.printer?.name?.takeIf(String::isNotBlank)
+                                    ?: strings.get(R.string.common_unknown),
+                            ),
+                            errorText = null,
+                        )
+                    }
+                } else {
+                    audioFeedbackPlayer.playError()
+                    val errorText = result.printError.ifBlank { strings.get(R.string.printer_print_failed) }
+                    _uiState.update {
+                        it.copy(
+                            isActionBusy = false,
+                            statusText = strings.get(R.string.packing_box_closed_print_failed),
+                            errorText = errorText,
+                        )
+                    }
+                }
+            }.onFailure { error ->
+                audioFeedbackPlayer.playError()
+                _uiState.update {
+                    it.copy(
+                        isActionBusy = false,
+                        statusText = strings.get(R.string.packing_box_closed_print_failed),
+                        errorText = error.message ?: strings.get(R.string.printer_print_failed),
+                    )
+                }
+            }
         }
     }
 

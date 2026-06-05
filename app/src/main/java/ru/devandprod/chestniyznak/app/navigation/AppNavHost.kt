@@ -38,6 +38,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import java.util.Locale
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import ru.devandprod.chestniyznak.R
@@ -52,6 +53,7 @@ import ru.devandprod.chestniyznak.feature.boxedit.BoxEditRoute
 import ru.devandprod.chestniyznak.feature.boxlookup.BoxLookupRoute
 import ru.devandprod.chestniyznak.feature.boxes.BoxesListRoute
 import ru.devandprod.chestniyznak.feature.menu.MenuRoute
+import ru.devandprod.chestniyznak.feature.printer.PrinterSettingsRoute
 import ru.devandprod.chestniyznak.feature.scanner.DataMatrixVerifyRoute
 import ru.devandprod.chestniyznak.feature.scanner.DefectMarkRoute
 import ru.devandprod.chestniyznak.feature.scanner.ScanRoute
@@ -173,6 +175,7 @@ private fun AuthenticatedNavHost(
                         navController.navigate(AppDestination.boxesRoute("empty"))
                     },
                     onOpenSettings = { navController.navigate(AppDestination.Settings.route) },
+                    onOpenPrinterSettings = { navController.navigate(AppDestination.PrinterSettings.route) },
                     onOpenSoundSettings = { navController.navigate(AppDestination.SoundSettings.route) },
                     onOpenThemeSelection = { navController.navigate(AppDestination.ThemeSelection.route) },
                     onLogoutRequest = onLogoutRequest,
@@ -251,6 +254,11 @@ private fun AuthenticatedNavHost(
                     currentVersion = apkUpdateState.currentVersion.ifBlank { stringResource(R.string.common_unknown) },
                     isCheckingForUpdates = apkUpdateState.isChecking,
                     onCheckForUpdates = runtimeViewModel::checkForUpdates,
+                )
+            }
+            composable(AppDestination.PrinterSettings.route) {
+                PrinterSettingsRoute(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(AppDestination.SoundSettings.route) {
@@ -431,8 +439,8 @@ private fun formatBytes(bytes: Long): String {
     val kb = 1024.0
     val mb = kb * 1024.0
     return when {
-        bytes >= mb -> String.format("%.1f MB", bytes / mb)
-        bytes >= kb -> String.format("%.1f KB", bytes / kb)
+        bytes >= mb -> String.format(Locale.ROOT, "%.1f MB", bytes / mb)
+        bytes >= kb -> String.format(Locale.ROOT, "%.1f KB", bytes / kb)
         else -> "$bytes B"
     }
 }

@@ -21,6 +21,7 @@ import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.usecase.ClearPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.DeleteEmptyPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetPackingBoxUseCase
+import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxEditUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RemovePackingBoxItemUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ScanCodeToPackingBoxUseCase
 
@@ -30,6 +31,7 @@ class BoxEditViewModel @Inject constructor(
     private val audioFeedbackPlayer: AudioFeedbackPlayer,
     private val strings: AppStringProvider,
     private val getPackingBoxUseCase: GetPackingBoxUseCase,
+    private val openPackingBoxEditUseCase: OpenPackingBoxEditUseCase,
     private val scanCodeToPackingBoxUseCase: ScanCodeToPackingBoxUseCase,
     private val removePackingBoxItemUseCase: RemovePackingBoxItemUseCase,
     private val clearPackingBoxUseCase: ClearPackingBoxUseCase,
@@ -90,18 +92,58 @@ class BoxEditViewModel @Inject constructor(
     }
 
     fun onAddRequested() {
+        if (_uiState.value.isBusy) return
+        val box = _uiState.value.box ?: return
+        if (box.isClosed && !box.isEditMode) {
+            openEditModeAndStartScan()
+            return
+        }
+        enableScanSession()
+    }
+
+    fun onStopScanSession() {
         _uiState.update {
             it.copy(
-                isAwaitingScan = true,
-                errorText = null,
-                statusText = strings.get(R.string.box_edit_status_scan_to_add),
+                isAwaitingScan = false,
+                statusText = strings.get(R.string.box_edit_status_scan_stopped),
+            )
+        }
+    }
+
+    fun onScanModeSelected(mode: BoxEditScanMode) {
+        _uiState.update { state ->
+            state.copy(
+                scanMode = mode,
+                statusText = scanPromptFor(state.isAwaitingScan, mode, state.hasCameraPermission)
+                    ?: state.statusText,
+            )
+        }
+    }
+
+    fun onCameraPermissionChanged(isGranted: Boolean) {
+        _uiState.update { state ->
+            state.copy(
+                hasCameraPermission = isGranted,
+                statusText = scanPromptFor(state.isAwaitingScan, state.scanMode, isGranted)
+                    ?: state.statusText,
             )
         }
     }
 
     fun onCodeScanned(rawCode: String) {
         val box = _uiState.value.box ?: return
-        if (_uiState.value.isBusy || !_uiState.value.isAwaitingScan) return
+        if (_uiState.value.isBusy) return
+        if (!_uiState.value.isAwaitingScan) {
+            audioFeedbackPlayer.playWarning()
+            _uiState.update {
+                it.copy(
+                    lastScannedCode = rawCode,
+                    errorText = strings.get(R.string.box_edit_error_scanning_inactive),
+                    statusText = strings.get(R.string.box_edit_status_press_add_to_scan),
+                )
+            }
+            return
+        }
 
         _uiState.update {
             it.copy(
@@ -117,9 +159,21 @@ class BoxEditViewModel @Inject constructor(
                 scanCodeToPackingBoxUseCase(
                     boxId = box.boxId,
                     rawCode = rawCode,
-                    scannerId = "android-hid",
+                    scannerId = when (_uiState.value.scanMode) {
+                        BoxEditScanMode.Hid -> "android-hid"
+                        BoxEditScanMode.Camera -> "android-camera-box-edit"
+                    },
                 )
             }.onSuccess { result ->
+                val displayError = when {
+                    result.reasonCode == "wrong_order" &&
+                        (result.error?.contains("не привязан", ignoreCase = true) == true) ->
+                        strings.get(R.string.box_edit_status_code_not_linked_to_order)
+                    result.reasonCode == "wrong_order" -> strings.get(R.string.box_edit_status_other_order)
+                    result.reasonCode == "box_access_denied" ->
+                        strings.get(R.string.box_edit_status_box_access_denied)
+                    else -> result.error ?: result.verify?.message
+                }
                 when {
                     result.reasonCode == "wrong_order" -> audioFeedbackPlayer.playOtherOrder()
                     result.ok -> audioFeedbackPlayer.playSuccess()
@@ -130,16 +184,23 @@ class BoxEditViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isBusy = false,
-                        isAwaitingScan = false,
+                        isAwaitingScan = result.ok.not(),
                         statusText = when {
                             result.ok -> strings.get(R.string.box_edit_status_code_added)
                             result.reasonCode == "mark_code_wrong_order" ->
                                 strings.get(R.string.box_edit_status_code_not_linked_to_order)
                             result.reasonCode == "wrong_order" -> strings.get(R.string.box_edit_status_other_order)
-                            else -> result.error ?: result.verify?.message ?: strings.get(R.string.box_edit_status_code_not_added)
+                            result.reasonCode == "box_access_denied" ->
+                                strings.get(R.string.box_edit_status_box_access_denied)
+                            displayError != null -> displayError
+                            else -> strings.get(R.string.box_edit_status_code_not_added)
                         },
-                        errorText = if (result.ok) null else result.error ?: result.verify?.message,
+                        errorText = if (result.ok) null else displayError,
                     )
+                }
+                if (result.reasonCode == "box_access_denied") {
+                    attemptReopenEditModeAfterDenied()
+                    return@onSuccess
                 }
                 refresh()
             }.onFailure { error ->
@@ -154,6 +215,11 @@ class BoxEditViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun onCameraCodeScanned(rawCode: String) {
+        if (_uiState.value.scanMode != BoxEditScanMode.Camera) return
+        onCodeScanned(rawCode)
     }
 
     fun onItemLongPressed(itemId: Long) {
@@ -283,6 +349,9 @@ class BoxEditViewModel @Inject constructor(
         sscc = box.sscc,
         filled = box.filled,
         capacity = box.capacity,
+        isClosed = box.isClosed,
+        isEditMode = box.isEditMode,
+        activeUserName = box.activeUserName,
         items = items.map {
             EditableBoxItemUi(
                 id = it.id,
@@ -292,6 +361,89 @@ class BoxEditViewModel @Inject constructor(
             )
         },
     )
+
+    private fun enableScanSession() {
+        _uiState.update {
+            it.copy(
+                isAwaitingScan = true,
+                errorText = null,
+                statusText = scanPromptFor(
+                    isAwaitingScan = true,
+                    mode = it.scanMode,
+                    hasCameraPermission = it.hasCameraPermission,
+                ) ?: strings.get(R.string.box_edit_status_scan_to_add),
+            )
+        }
+    }
+
+    private fun scanPromptFor(
+        isAwaitingScan: Boolean,
+        mode: BoxEditScanMode,
+        hasCameraPermission: Boolean,
+    ): String? {
+        if (!isAwaitingScan) return null
+        return when {
+            mode == BoxEditScanMode.Camera && !hasCameraPermission ->
+                strings.get(R.string.box_edit_status_camera_permission_required)
+            mode == BoxEditScanMode.Camera -> strings.get(R.string.box_edit_status_scan_camera)
+            else -> strings.get(R.string.box_edit_status_scan_tsd)
+        }
+    }
+
+    private fun openEditModeAndStartScan() {
+        _uiState.update {
+            it.copy(
+                isBusy = true,
+                errorText = null,
+                statusText = strings.get(R.string.box_edit_status_opening_edit_mode),
+            )
+        }
+        viewModelScope.launch {
+            runCatching { openPackingBoxEditUseCase(boxId) }
+                .onSuccess { result ->
+                    if (result.ok) {
+                        audioFeedbackPlayer.playSuccess()
+                        refresh()
+                        _uiState.update {
+                            it.copy(
+                                isBusy = false,
+                                statusText = strings.get(R.string.box_edit_status_edit_mode_opened),
+                            )
+                        }
+                        enableScanSession()
+                    } else {
+                        audioFeedbackPlayer.playError()
+                        _uiState.update {
+                            it.copy(
+                                isBusy = false,
+                                isAwaitingScan = false,
+                                statusText = strings.get(R.string.box_edit_status_edit_mode_not_opened),
+                                errorText = result.error
+                                    ?: strings.get(R.string.box_edit_error_open_edit_mode_failed),
+                            )
+                        }
+                    }
+                }
+                .onFailure { error ->
+                    audioFeedbackPlayer.playError()
+                    _uiState.update {
+                        it.copy(
+                            isBusy = false,
+                            isAwaitingScan = false,
+                            statusText = strings.get(R.string.box_edit_status_edit_mode_not_opened),
+                            errorText = error.message
+                                ?: strings.get(R.string.box_edit_error_open_edit_mode_failed),
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun attemptReopenEditModeAfterDenied() {
+        val box = _uiState.value.box ?: return
+        if (!box.isClosed || box.isEditMode) return
+        openEditModeAndStartScan()
+    }
 
     private companion object {
         val OTHER_BOX_CODES = setOf("code_in_other_box", "mark_code_already_packed")

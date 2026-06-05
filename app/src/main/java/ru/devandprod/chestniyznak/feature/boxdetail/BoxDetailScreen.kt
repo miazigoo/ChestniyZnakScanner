@@ -62,6 +62,7 @@ fun BoxDetailRoute(
         onBackToMenu = onBackToMenu,
         onRefresh = viewModel::refresh,
         onOpenEdit = viewModel::openEdit,
+        onPrintLabel = viewModel::printLabel,
     )
 }
 
@@ -72,6 +73,7 @@ fun BoxDetailScreen(
     onBackToMenu: () -> Unit,
     onRefresh: () -> Unit,
     onOpenEdit: () -> Unit,
+    onPrintLabel: () -> Unit,
 ) {
     val decor = CurrentAppDecorColors
     Scaffold(
@@ -162,6 +164,13 @@ fun BoxDetailScreen(
                                     ),
                                 ) {
                                     Text(stringResource(R.string.common_edit), maxLines = 1)
+                                }
+                                OutlinedButton(
+                                    onClick = onPrintLabel,
+                                    enabled = !state.isActionBusy && box.isClosed,
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text(stringResource(R.string.box_detail_print_label), maxLines = 1)
                                 }
                             }
                         }

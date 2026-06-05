@@ -9,6 +9,8 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 import ru.devandprod.chestniyznak.data.remote.dto.BoxActionResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.ClientPrinterSelectionRequestDto
+import ru.devandprod.chestniyznak.data.remote.dto.ClientPrinterSelectionResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.CountInPackingRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.CloseBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.BoxesListResponseDto
@@ -16,11 +18,24 @@ import ru.devandprod.chestniyznak.data.remote.dto.CurrentBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.EditBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.PackageLabelPrintRequestDto
+import ru.devandprod.chestniyznak.data.remote.dto.PackageLabelPrintResultDto
+import ru.devandprod.chestniyznak.data.remote.dto.PackageLabelPrintResultRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.RemoveBoxItemRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxResponseDto
 
 interface PackingApi {
+    @GET("chestniy-znak/packing/printer/printers")
+    suspend fun clientPrinters(
+        @Query("device_id") deviceId: String = "",
+    ): Response<ClientPrinterSelectionResponseDto>
+
+    @POST("chestniy-znak/packing/printer/printer-selection")
+    suspend fun setClientPrinterSelection(
+        @Body request: ClientPrinterSelectionRequestDto,
+    ): Response<ClientPrinterSelectionResponseDto>
+
     @GET("chestniy-znak/packing/boxes")
     suspend fun listBoxes(
         @Query("query") query: String = "",
@@ -59,6 +74,18 @@ interface PackingApi {
         @Path("boxId") boxId: Long,
         @Query("device_id") deviceId: String = "",
     ): Response<CloseBoxResponseDto>
+
+    @POST("chestniy-znak/packing/boxes/{boxId}/print-label")
+    suspend fun printBoxLabel(
+        @Path("boxId") boxId: Long,
+        @Body request: PackageLabelPrintRequestDto,
+    ): Response<PackageLabelPrintResultDto>
+
+    @POST("chestniy-znak/packing/boxes/{boxId}/print-result")
+    suspend fun reportBoxLabelPrintResult(
+        @Path("boxId") boxId: Long,
+        @Body request: PackageLabelPrintResultRequestDto,
+    ): Response<PackageLabelPrintResultDto>
 
     @POST("chestniy-znak/packing/box-edit/{boxId}/open")
     suspend fun openBoxEdit(

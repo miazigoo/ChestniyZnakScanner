@@ -15,6 +15,7 @@ import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import ru.devandprod.chestniyznak.core.device.DeviceIdentity
 import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
+import ru.devandprod.chestniyznak.domain.model.PackageLabelPrintResult
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.model.PackingBoxItem
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
@@ -27,9 +28,11 @@ import ru.devandprod.chestniyznak.domain.usecase.ClosePackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.DeleteEmptyPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.EnsureSeedDataUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetCurrentPackingBoxUseCase
+import ru.devandprod.chestniyznak.domain.usecase.GetClientPrinterSelectionUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ListWorkOrdersUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ObserveCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxUseCase
+import ru.devandprod.chestniyznak.domain.usecase.PrintPackingBoxLabelUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RefreshCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RemovePackingBoxItemUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ScanCodeToPackingBoxUseCase
@@ -46,9 +49,11 @@ class ScanViewModel @Inject constructor(
     private val verifyCodeExistsUseCase: VerifyCodeExistsUseCase,
     private val listWorkOrdersUseCase: ListWorkOrdersUseCase,
     private val getCurrentPackingBoxUseCase: GetCurrentPackingBoxUseCase,
+    private val getClientPrinterSelectionUseCase: GetClientPrinterSelectionUseCase,
     private val openPackingBoxUseCase: OpenPackingBoxUseCase,
     private val scanCodeToPackingBoxUseCase: ScanCodeToPackingBoxUseCase,
     private val closePackingBoxUseCase: ClosePackingBoxUseCase,
+    private val printPackingBoxLabelUseCase: PrintPackingBoxLabelUseCase,
     private val setPackingBoxCountInPackingUseCase: SetPackingBoxCountInPackingUseCase,
     private val removePackingBoxItemUseCase: RemovePackingBoxItemUseCase,
     private val deleteEmptyPackingBoxUseCase: DeleteEmptyPackingBoxUseCase,
@@ -830,8 +835,57 @@ class ScanViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            val selection = runCatching {
+                getClientPrinterSelectionUseCase(DeviceIdentity.clientDeviceId)
+            }.getOrNull()
+            if (selection != null && selection.selectedPrinterId == null && selection.printers.size != 1) {
+                audioFeedbackPlayer.playWarning()
+                _uiState.update {
+                    it.copy(
+                        packing = it.packing.copy(
+                            isBusy = false,
+                            resultCard = ScanResultCardUi(
+                                headline = "NO",
+                                message = strings.get(R.string.printer_select_required),
+                                tone = ScanResultTone.Warning,
+                            ),
+                            statusText = strings.get(R.string.printer_select_required),
+                            errorText = strings.get(R.string.printer_select_required),
+                        ),
+                    )
+                }
+                return@launch
+            }
             runCatching { closePackingBoxUseCase(boxId, deviceId = DeviceIdentity.clientDeviceId) }
-                .onSuccess(::handleCloseBoxResult)
+                .onSuccess { closeResult ->
+                    if (!closeResult.ok) {
+                        handleCloseBoxResult(closeResult)
+                        return@onSuccess
+                    }
+                    _uiState.update {
+                        it.copy(
+                            packing = it.packing.copy(
+                                statusText = strings.get(R.string.packing_printing_label),
+                            ),
+                        )
+                    }
+                    val printResult = runCatching {
+                        printPackingBoxLabelUseCase(
+                            boxId = closeResult.box.boxId,
+                            deviceId = DeviceIdentity.clientDeviceId,
+                        )
+                    }.getOrElse { error ->
+                        PackageLabelPrintResult(
+                            ok = false,
+                            reasonCode = "label_print_failed",
+                            printStatus = "failed",
+                            printOk = false,
+                            printError = error.message ?: strings.get(R.string.printer_print_failed),
+                            box = closeResult.box,
+                        )
+                    }
+                    handleCloseBoxResult(closeResult, printResult)
+                }
                 .onFailure { error ->
                     audioFeedbackPlayer.playError()
                     _uiState.update {
@@ -987,13 +1041,19 @@ class ScanViewModel @Inject constructor(
         )
     }
 
-    private fun handleCloseBoxResult(result: ClosePackingBoxResult) {
+    private fun handleCloseBoxResult(
+        result: ClosePackingBoxResult,
+        printResult: PackageLabelPrintResult? = null,
+    ) {
         when {
+            result.ok && printResult?.printOk == false -> audioFeedbackPlayer.playError()
             result.ok -> audioFeedbackPlayer.playSuccess()
             else -> audioFeedbackPlayer.playError()
         }
         val boxUi = result.box.toUi()
         val isFull = result.box.filled >= result.box.capacity
+        val printError = printResult?.printError.orEmpty()
+        val printerName = printResult?.printer?.name.orEmpty()
         _uiState.update { state ->
             state.copy(
                 packing = state.packing.copy(
@@ -1005,6 +1065,9 @@ class ScanViewModel @Inject constructor(
                             boxId = result.box.boxId,
                             sscc = result.box.sscc,
                             isFull = isFull,
+                            printOk = printResult?.printOk,
+                            printError = printError,
+                            printPrinterName = printerName,
                         )
                     } else {
                         null
@@ -1012,8 +1075,18 @@ class ScanViewModel @Inject constructor(
                     resultCard = if (result.ok) {
                         ScanResultCardUi(
                             headline = "OK",
-                            message = strings.get(R.string.packing_box_closed_simple),
-                            tone = ScanResultTone.Success,
+                            message = if (printResult?.printOk == false) {
+                                strings.get(R.string.packing_box_closed_print_failed)
+                            } else if (printResult?.printOk == true) {
+                                strings.get(R.string.packing_box_closed_and_printed)
+                            } else {
+                                strings.get(R.string.packing_box_closed_simple)
+                            },
+                            tone = if (printResult?.printOk == false) {
+                                ScanResultTone.Warning
+                            } else {
+                                ScanResultTone.Success
+                            },
                         )
                     } else {
                         ScanResultCardUi(
@@ -1023,7 +1096,13 @@ class ScanViewModel @Inject constructor(
                         )
                     },
                     statusText = if (result.ok) {
-                        strings.get(R.string.packing_box_closed_id, boxUi.boxId)
+                        if (printResult?.printOk == false) {
+                            strings.get(R.string.packing_box_closed_print_failed)
+                        } else if (printResult?.printOk == true) {
+                            strings.get(R.string.packing_box_closed_and_printed)
+                        } else {
+                            strings.get(R.string.packing_box_closed_id, boxUi.boxId)
+                        }
                     } else {
                         strings.get(R.string.packing_box_not_closed)
                     },

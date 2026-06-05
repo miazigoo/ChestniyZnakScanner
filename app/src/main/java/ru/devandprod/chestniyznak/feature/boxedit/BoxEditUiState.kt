@@ -4,6 +4,8 @@ data class BoxEditUiState(
     val isLoading: Boolean = true,
     val isBusy: Boolean = false,
     val isAwaitingScan: Boolean = false,
+    val scanMode: BoxEditScanMode = BoxEditScanMode.Hid,
+    val hasCameraPermission: Boolean = false,
     val title: String = "",
     val statusText: String = "",
     val errorText: String? = null,
@@ -19,6 +21,9 @@ data class EditableBoxUi(
     val sscc: String?,
     val filled: Int,
     val capacity: Int,
+    val isClosed: Boolean,
+    val isEditMode: Boolean,
+    val activeUserName: String = "",
     val items: List<EditableBoxItemUi>,
 )
 
@@ -28,3 +33,8 @@ data class EditableBoxItemUi(
     val gtin: String,
     val serial: String,
 )
+
+enum class BoxEditScanMode {
+    Hid,
+    Camera,
+}

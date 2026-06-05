@@ -80,6 +80,9 @@ data class CloseBoxDialogUi(
     val boxId: Long,
     val sscc: String? = null,
     val isFull: Boolean,
+    val printOk: Boolean? = null,
+    val printError: String = "",
+    val printPrinterName: String = "",
 )
 
 enum class ScanMode {

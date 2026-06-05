@@ -43,6 +43,7 @@ import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppThemeSpec
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 import ru.devandprod.chestniyznak.core.scanner.HidScannerInputBus
+import ru.devandprod.chestniyznak.core.scanner.HidScannerInputField
 
 @Composable
 fun DefectMarkRoute(

@@ -3,13 +3,17 @@ package ru.devandprod.chestniyznak.data.remote.dto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
+import ru.devandprod.chestniyznak.domain.model.ClientPrinter
+import ru.devandprod.chestniyznak.domain.model.ClientPrinterSelection
 import ru.devandprod.chestniyznak.domain.model.OpenPackingBoxResult
+import ru.devandprod.chestniyznak.domain.model.PackageLabelPrintResult
 import ru.devandprod.chestniyznak.domain.model.PackingBox
 import ru.devandprod.chestniyznak.domain.model.PackingBoxActionResult
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.model.PackingBoxItem
 import ru.devandprod.chestniyznak.domain.model.PackingBoxPage
 import ru.devandprod.chestniyznak.domain.model.PackingScanResult
+import ru.devandprod.chestniyznak.domain.model.PrintJob
 
 @Serializable
 data class OpenBoxRequestDto(
@@ -41,6 +45,34 @@ data class CountInPackingRequestDto(
 )
 
 @Serializable
+data class ClientPrinterSelectionRequestDto(
+    @SerialName("device_id")
+    val deviceId: String = "",
+    @SerialName("printer_id")
+    val printerId: Long,
+)
+
+@Serializable
+data class PackageLabelPrintRequestDto(
+    @SerialName("device_id")
+    val deviceId: String = "",
+    @SerialName("printer_id")
+    val printerId: Long? = null,
+)
+
+@Serializable
+data class PackageLabelPrintResultRequestDto(
+    @SerialName("device_id")
+    val deviceId: String = "",
+    @SerialName("printer_id")
+    val printerId: Long? = null,
+    @SerialName("print_ok")
+    val printOk: Boolean,
+    @SerialName("print_error")
+    val printError: String = "",
+)
+
+@Serializable
 data class RemoveBoxItemRequestDto(
     @SerialName("item_id")
     val itemId: Long? = null,
@@ -53,6 +85,41 @@ data class ScanToBoxRequestDto(
     val code: String,
     @SerialName("scanner_id")
     val scannerId: String = "",
+)
+
+@Serializable
+data class ClientPrinterDto(
+    val id: Long,
+    val name: String,
+    @SerialName("ip_address")
+    val ipAddress: String,
+    val port: Int = 9100,
+    val section: String = "",
+    val driver: String = "zpl",
+    @SerialName("is_active")
+    val isActive: Boolean = true,
+)
+
+@Serializable
+data class ClientPrinterSelectionResponseDto(
+    val ok: Boolean = true,
+    @SerialName("device_id")
+    val deviceId: String = "",
+    @SerialName("selected_printer_id")
+    val selectedPrinterId: Long? = null,
+    @SerialName("selected_printer")
+    val selectedPrinter: ClientPrinterDto? = null,
+    val printers: List<ClientPrinterDto> = emptyList(),
+)
+
+@Serializable
+data class PrintJobDto(
+    val format: String = "",
+    val driver: String = "",
+    val encoding: String = "utf-8",
+    val transport: String = "",
+    val payload: String = "",
+    val printer: ClientPrinterDto? = null,
 )
 
 @Serializable
@@ -204,6 +271,25 @@ data class CloseBoxResponseDto(
     val box: BoxDto,
 )
 
+@Serializable
+data class PackageLabelPrintResultDto(
+    val ok: Boolean? = null,
+    @SerialName("reason_code")
+    val reasonCode: String = "",
+    @SerialName("print_status")
+    val printStatus: String = "",
+    @SerialName("print_ok")
+    val printOk: Boolean = false,
+    @SerialName("print_error_code")
+    val printErrorCode: String = "",
+    @SerialName("print_error")
+    val printError: String = "",
+    val printer: ClientPrinterDto? = null,
+    @SerialName("print_job")
+    val printJob: PrintJobDto? = null,
+    val box: BoxDto? = null,
+)
+
 fun OpenBoxResponseDto.toDomain(): OpenPackingBoxResult = OpenPackingBoxResult(
     ok = ok,
     created = created,
@@ -248,6 +334,45 @@ fun CloseBoxResponseDto.toDomain(): ClosePackingBoxResult = ClosePackingBoxResul
     reasonCode = reasonCode,
     error = error,
     box = box.toDomain(),
+)
+
+fun ClientPrinterSelectionResponseDto.toDomain(): ClientPrinterSelection = ClientPrinterSelection(
+    ok = ok,
+    deviceId = deviceId,
+    selectedPrinterId = selectedPrinterId,
+    selectedPrinter = selectedPrinter?.toDomain(),
+    printers = printers.map { it.toDomain() },
+)
+
+fun PackageLabelPrintResultDto.toDomain(): PackageLabelPrintResult = PackageLabelPrintResult(
+    ok = ok,
+    reasonCode = reasonCode,
+    printStatus = printStatus,
+    printOk = printOk,
+    printErrorCode = printErrorCode,
+    printError = printError,
+    printer = printer?.toDomain(),
+    printJob = printJob?.toDomain(),
+    box = box?.toDomain(),
+)
+
+private fun ClientPrinterDto.toDomain(): ClientPrinter = ClientPrinter(
+    id = id,
+    name = name,
+    ipAddress = ipAddress,
+    port = port,
+    section = section,
+    driver = driver,
+    isActive = isActive,
+)
+
+private fun PrintJobDto.toDomain(): PrintJob = PrintJob(
+    format = format,
+    driver = driver,
+    encoding = encoding,
+    transport = transport,
+    payload = payload,
+    printer = printer?.toDomain(),
 )
 
 private fun CurrentBoxResponseDto.toBox(): BoxDto = BoxDto(
