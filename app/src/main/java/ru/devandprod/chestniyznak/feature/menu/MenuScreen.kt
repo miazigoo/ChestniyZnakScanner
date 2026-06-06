@@ -136,6 +136,12 @@ fun MenuScreen(
                 MenuHeroCard()
                 MenuSectionTitle(stringResource(R.string.menu_section_boxes))
                 MenuItemCard(
+                    title = stringResource(R.string.menu_open_box_title),
+                    subtitle = stringResource(R.string.menu_open_box_subtitle),
+                    panelColor = decor.panelSurface,
+                    onClick = onOpenBox,
+                )
+                MenuItemCard(
                     title = stringResource(R.string.menu_verify_title),
                     subtitle = stringResource(R.string.menu_verify_subtitle),
                     panelColor = decor.panelSurface,
@@ -146,12 +152,6 @@ fun MenuScreen(
                     subtitle = stringResource(R.string.menu_defect_subtitle),
                     panelColor = decor.panelSurface,
                     onClick = onOpenDefectMark,
-                )
-                MenuItemCard(
-                    title = stringResource(R.string.menu_open_box_title),
-                    subtitle = stringResource(R.string.menu_open_box_subtitle),
-                    panelColor = decor.panelSurface,
-                    onClick = onOpenBox,
                 )
                 MenuItemCard(
                     title = stringResource(R.string.menu_current_box_title),
