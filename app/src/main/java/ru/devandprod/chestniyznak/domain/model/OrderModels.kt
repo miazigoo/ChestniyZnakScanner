@@ -37,3 +37,21 @@ data class WorkOrderPage(
     val perPage: Int,
     val count: Int,
 )
+
+data class OrderLocalCode(
+    val id: String,
+    val code: String,
+    val status: String,
+    val orderLineId: String? = null,
+)
+
+data class OrderLocalPoolPage(
+    val order: WorkOrder,
+    val codes: List<OrderLocalCode>,
+    val total: Int,
+    val count: Int,
+    val limit: Int,
+    val offset: Int,
+    val nextOffset: Int?,
+    val hasMore: Boolean,
+)

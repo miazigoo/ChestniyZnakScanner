@@ -60,6 +60,26 @@ class LocalChestniyZnakRepository @Inject constructor(
         markingCodeDao.insertAll(entities)
     }
 
+    override suspend fun replaceLocalPool(orderNumber: String, rawCodes: List<String>) = withContext(ioDispatcher) {
+        val entities = rawCodes.distinct().map { rawCode ->
+            val parsed = parser.parse(rawCode)
+            MarkingCodeEntity(
+                gtin = parsed.gtin,
+                serial = parsed.serial,
+                identityKey = parsed.identityKey,
+                aiPartsJson = json.encodeToString(parsed.aiParts),
+                rawCode = parsed.rawCode,
+                visibleCode = parsed.visibleCode,
+                rawCodeSha256 = rawHash(parsed.rawCode),
+                status1c = "downloaded",
+                appStatus = "local_pool",
+                orderNumber = orderNumber,
+            )
+        }
+        markingCodeDao.deleteAll()
+        markingCodeDao.insertAll(entities)
+    }
+
     override suspend fun verify(
         rawInput: String,
         scannerId: String,

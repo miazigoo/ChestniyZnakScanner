@@ -30,6 +30,7 @@ interface PackingRepository {
     suspend fun clearBox(boxId: Long): PackingBoxActionResult
     suspend fun deleteEmptyBox(boxId: Long): PackingBoxActionResult
     suspend fun scanCodeToBox(boxId: Long, rawCode: String, scannerId: String = ""): PackingScanResult
+    suspend fun scanCodesToBox(boxId: Long, rawCodes: List<String>, scannerId: String = ""): PackingScanResult
     suspend fun closeBox(boxId: Long, deviceId: String = ""): ClosePackingBoxResult
     suspend fun printBoxLabel(boxId: Long, deviceId: String = ""): PackageLabelPrintResult
 }

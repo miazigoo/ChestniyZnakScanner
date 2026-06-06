@@ -22,6 +22,7 @@ import ru.devandprod.chestniyznak.data.remote.dto.PackageLabelPrintRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.PackageLabelPrintResultDto
 import ru.devandprod.chestniyznak.data.remote.dto.PackageLabelPrintResultRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.RemoveBoxItemRequestDto
+import ru.devandprod.chestniyznak.data.remote.dto.ScanBatchToBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxResponseDto
 
@@ -67,6 +68,12 @@ interface PackingApi {
     suspend fun scanToBox(
         @Path("boxId") boxId: Long,
         @Body request: ScanToBoxRequestDto,
+    ): Response<ScanToBoxResponseDto>
+
+    @POST("chestniy-znak/packing/boxes/{boxId}/scan-batch")
+    suspend fun scanBatchToBox(
+        @Path("boxId") boxId: Long,
+        @Body request: ScanBatchToBoxRequestDto,
     ): Response<ScanToBoxResponseDto>
 
     @POST("chestniy-znak/packing/boxes/{boxId}/close")

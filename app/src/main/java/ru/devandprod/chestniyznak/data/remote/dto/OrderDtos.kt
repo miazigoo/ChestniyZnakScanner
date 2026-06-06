@@ -2,6 +2,8 @@ package ru.devandprod.chestniyznak.data.remote.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import ru.devandprod.chestniyznak.domain.model.OrderLocalCode
+import ru.devandprod.chestniyznak.domain.model.OrderLocalPoolPage
 import ru.devandprod.chestniyznak.domain.model.WorkOrder
 import ru.devandprod.chestniyznak.domain.model.WorkOrderLine
 import ru.devandprod.chestniyznak.domain.model.WorkOrderPage
@@ -11,6 +13,34 @@ import ru.devandprod.chestniyznak.domain.model.WorkOrderProduct
 data class OrdersResponseDto(
     val data: List<RemoteOrderDto> = emptyList(),
     val meta: RemotePaginationMetaDto = RemotePaginationMetaDto(),
+)
+
+@Serializable
+data class LocalCodePoolResponseDto(
+    val data: LocalCodePoolDto,
+)
+
+@Serializable
+data class LocalCodePoolDto(
+    val order: RemoteOrderDto,
+    val codes: List<LocalPoolCodeDto> = emptyList(),
+    val total: Int = 0,
+    val count: Int = 0,
+    val limit: Int = 5000,
+    val offset: Int = 0,
+    @SerialName("next_offset")
+    val nextOffset: Int? = null,
+    @SerialName("has_more")
+    val hasMore: Boolean = false,
+)
+
+@Serializable
+data class LocalPoolCodeDto(
+    val id: String,
+    val code: String,
+    val status: String,
+    @SerialName("order_line_id")
+    val orderLineId: String? = null,
 )
 
 @Serializable
@@ -70,6 +100,26 @@ fun OrdersResponseDto.toDomain(): WorkOrderPage = WorkOrderPage(
     page = meta.page,
     perPage = meta.perPage,
     count = meta.count,
+)
+
+fun LocalCodePoolResponseDto.toDomain(): OrderLocalPoolPage = data.toDomain()
+
+fun LocalCodePoolDto.toDomain(): OrderLocalPoolPage = OrderLocalPoolPage(
+    order = order.toDomain(),
+    codes = codes.map { it.toDomain() },
+    total = total,
+    count = count,
+    limit = limit,
+    offset = offset,
+    nextOffset = nextOffset,
+    hasMore = hasMore,
+)
+
+fun LocalPoolCodeDto.toDomain(): OrderLocalCode = OrderLocalCode(
+    id = id,
+    code = code,
+    status = status,
+    orderLineId = orderLineId,
 )
 
 fun RemoteOrderDto.toDomain(): WorkOrder = WorkOrder(

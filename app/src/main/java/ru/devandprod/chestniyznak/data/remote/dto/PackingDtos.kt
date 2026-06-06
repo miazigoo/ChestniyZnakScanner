@@ -2,6 +2,9 @@ package ru.devandprod.chestniyznak.data.remote.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.ClientPrinter
 import ru.devandprod.chestniyznak.domain.model.ClientPrinterSelection
@@ -83,6 +86,13 @@ data class RemoveBoxItemRequestDto(
 @Serializable
 data class ScanToBoxRequestDto(
     val code: String,
+    @SerialName("scanner_id")
+    val scannerId: String = "",
+)
+
+@Serializable
+data class ScanBatchToBoxRequestDto(
+    val codes: List<String>,
     @SerialName("scanner_id")
     val scannerId: String = "",
 )
@@ -260,6 +270,7 @@ data class ScanToBoxResponseDto(
     val box: BoxDto,
     @SerialName("box_full_signal")
     val boxFullSignal: Boolean? = null,
+    val details: Map<String, JsonElement> = emptyMap(),
 )
 
 @Serializable
@@ -327,6 +338,7 @@ fun ScanToBoxResponseDto.toDomain(): PackingScanResult = PackingScanResult(
     verify = verify?.toDomain(),
     box = box.toDomain(),
     boxFullSignal = boxFullSignal,
+    conflictPackageCode = details["package_code"]?.jsonPrimitive?.contentOrNull,
 )
 
 fun CloseBoxResponseDto.toDomain(): ClosePackingBoxResult = ClosePackingBoxResult(

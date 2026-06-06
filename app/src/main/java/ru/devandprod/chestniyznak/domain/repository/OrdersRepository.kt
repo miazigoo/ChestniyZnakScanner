@@ -1,5 +1,6 @@
 package ru.devandprod.chestniyznak.domain.repository
 
+import ru.devandprod.chestniyznak.domain.model.OrderLocalPoolPage
 import ru.devandprod.chestniyznak.domain.model.WorkOrderPage
 
 interface OrdersRepository {
@@ -9,4 +10,10 @@ interface OrdersRepository {
         page: Int = 1,
         perPage: Int = 20,
     ): WorkOrderPage
+
+    suspend fun downloadLocalCodePool(
+        orderId: String,
+        limit: Int = 5000,
+        offset: Int = 0,
+    ): OrderLocalPoolPage
 }

@@ -33,6 +33,10 @@ data class PackingPaneUiState(
     val orderSearch: String = "",
     val ordersLoading: Boolean = false,
     val ordersLoaded: Boolean = false,
+    val localPoolLoading: Boolean = false,
+    val localPoolOrderId: String = "",
+    val localPoolCount: Int = 0,
+    val localPendingCodes: List<String> = emptyList(),
     val resultCard: ScanResultCardUi? = null,
     val statusText: String = "",
     val errorText: String? = null,
@@ -71,6 +75,7 @@ data class PackingBoxItemUi(
     val gtin: String,
     val serial: String,
     val visibleCode: String,
+    val rawCode: String = "",
 )
 
 data class ActiveBoxesDialogUi(

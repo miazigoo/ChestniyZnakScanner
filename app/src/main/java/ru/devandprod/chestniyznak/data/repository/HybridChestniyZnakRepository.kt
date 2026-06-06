@@ -43,6 +43,11 @@ class HybridChestniyZnakRepository @Inject constructor(
         refreshStats()
     }
 
+    override suspend fun replaceLocalPool(orderNumber: String, rawCodes: List<String>) = withContext(ioDispatcher) {
+        localRepository.replaceLocalPool(orderNumber, rawCodes)
+        statsFlow.value = localRepository.snapshotStats()
+    }
+
     override suspend fun verify(
         rawInput: String,
         scannerId: String,

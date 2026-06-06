@@ -119,6 +119,7 @@
     <string name="packing_count_disabled_hint">Коробка закроется без увеличения счётчика упаковки</string>
     <string name="packing_open_box">Открыть коробку</string>
     <string name="packing_close_box">Закрыть коробку</string>
+    <string name="packing_clear_box">Очистить коробку</string>
     <string name="packing_delete_box">Удалить коробку</string>
     <string name="packing_reset_status">Сбросить статус</string>
     <string name="packing_codes_in_box">Коды в коробке</string>
@@ -159,6 +160,13 @@
     <string name="packing_error">Ошибка упаковки</string>
     <string name="packing_no_orders_for_packing">Нет доступных заказов для упаковки</string>
     <string name="packing_load_orders_failed">Не удалось загрузить заказы</string>
+    <string name="local_pool_downloading">Скачиваем пул кодов выбранного заказа...</string>
+    <string name="local_pool_loaded">Пул заказа скачан: %1$d кодов в локальной базе</string>
+    <string name="local_pool_failed">Пул кодов не скачан</string>
+    <string name="local_pool_download_failed">Не удалось скачать пул кодов заказа</string>
+    <string name="packing_code_added_locally">Код принят локально. Он уйдет на сервер при закрытии коробки</string>
+    <string name="packing_local_box_sent">Коды коробки отправлены на сервер</string>
+    <string name="packing_local_box_cleared">Локально набранные коды очищены</string>
     <string name="packing_closing_box_wait_label">Закрываем коробку...</string>
     <string name="packing_close_box_failed">Не удалось закрыть коробку</string>
     <string name="packing_box_not_closed">Коробка не закрыта</string>
@@ -187,6 +195,7 @@
     <string name="packing_code_added_to_box">Код добавлен в коробку</string>
     <string name="packing_code_wrong_box">Код не подходит для этой коробки</string>
     <string name="packing_code_in_other_box">Код уже лежит в другой коробке</string>
+    <string name="packing_code_in_named_box">Код уже находится в коробке %1$s</string>
     <string name="packing_box_full_headline">ЗАПОЛНЕНА</string>
     <string name="packing_box_full">Коробка заполнена</string>
     <string name="packing_code_not_added_to_box">Код не добавлен в коробку</string>

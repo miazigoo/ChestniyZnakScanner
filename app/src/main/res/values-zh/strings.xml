@@ -119,6 +119,7 @@
     <string name="packing_count_disabled_hint">关闭箱子时不会增加包装计数</string>
     <string name="packing_open_box">打开箱子</string>
     <string name="packing_close_box">关闭箱子</string>
+    <string name="packing_clear_box">清空箱子</string>
     <string name="packing_delete_box">删除箱子</string>
     <string name="packing_reset_status">重置状态</string>
     <string name="packing_codes_in_box">箱内标识码</string>
@@ -159,6 +160,13 @@
     <string name="packing_error">装箱错误</string>
     <string name="packing_no_orders_for_packing">没有可装箱的订单</string>
     <string name="packing_load_orders_failed">无法加载订单</string>
+    <string name="local_pool_downloading">正在下载所选订单的标识码池...</string>
+    <string name="local_pool_loaded">订单标识码池已下载：本地数据库中有 %1$d 个标识码</string>
+    <string name="local_pool_failed">标识码池未下载</string>
+    <string name="local_pool_download_failed">无法下载订单标识码池</string>
+    <string name="packing_code_added_locally">标识码已在本地接受。关闭箱子时会发送到服务器</string>
+    <string name="packing_local_box_sent">箱内标识码已发送到服务器</string>
+    <string name="packing_local_box_cleared">本地已收集的标识码已清空</string>
     <string name="packing_closing_box_wait_label">正在关闭箱子...</string>
     <string name="packing_close_box_failed">无法关闭箱子</string>
     <string name="packing_box_not_closed">箱子未关闭</string>
@@ -187,6 +195,7 @@
     <string name="packing_code_added_to_box">标识码已加入箱子</string>
     <string name="packing_code_wrong_box">标识码不适用于此箱</string>
     <string name="packing_code_in_other_box">标识码已在其他箱子中</string>
+    <string name="packing_code_in_named_box">标识码已在箱子 %1$s 中</string>
     <string name="packing_box_full_headline">已满</string>
     <string name="packing_box_full">箱子已满</string>
     <string name="packing_code_not_added_to_box">标识码未加入箱子</string>

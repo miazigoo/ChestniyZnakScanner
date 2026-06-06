@@ -119,6 +119,7 @@
     <string name="packing_count_disabled_hint">The box will close without increasing the packaging counter</string>
     <string name="packing_open_box">Open box</string>
     <string name="packing_close_box">Close box</string>
+    <string name="packing_clear_box">Clear box</string>
     <string name="packing_delete_box">Delete box</string>
     <string name="packing_reset_status">Reset status</string>
     <string name="packing_codes_in_box">Codes in box</string>
@@ -159,6 +160,13 @@
     <string name="packing_error">Packing error</string>
     <string name="packing_no_orders_for_packing">No orders available for packing</string>
     <string name="packing_load_orders_failed">Could not load orders</string>
+    <string name="local_pool_downloading">Downloading the selected order code pool...</string>
+    <string name="local_pool_loaded">Order pool downloaded: %1$d codes in the local database</string>
+    <string name="local_pool_failed">Code pool was not downloaded</string>
+    <string name="local_pool_download_failed">Could not download the order code pool</string>
+    <string name="packing_code_added_locally">Code accepted locally. It will be sent to the server when the box is closed</string>
+    <string name="packing_local_box_sent">Box codes were sent to the server</string>
+    <string name="packing_local_box_cleared">Locally collected codes cleared</string>
     <string name="packing_closing_box_wait_label">Closing box...</string>
     <string name="packing_close_box_failed">Could not close the box</string>
     <string name="packing_box_not_closed">Box was not closed</string>
@@ -187,6 +195,7 @@
     <string name="packing_code_added_to_box">Code added to box</string>
     <string name="packing_code_wrong_box">Code does not belong in this box</string>
     <string name="packing_code_in_other_box">Code is already in another box</string>
+    <string name="packing_code_in_named_box">Code is already in box %1$s</string>
     <string name="packing_box_full_headline">FULL</string>
     <string name="packing_box_full">Box is full</string>
     <string name="packing_code_not_added_to_box">Code was not added to box</string>

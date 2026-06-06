@@ -23,6 +23,7 @@ import ru.devandprod.chestniyznak.data.remote.dto.OpenBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.PackageLabelPrintRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.PackageLabelPrintResultRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.RemoveBoxItemRequestDto
+import ru.devandprod.chestniyznak.data.remote.dto.ScanBatchToBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.ScanToBoxResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.toDomain
@@ -223,6 +224,27 @@ class RemotePackingRepository @Inject constructor(
                 boxId = boxId,
                 request = ScanToBoxRequestDto(
                     code = rawCode,
+                    scannerId = scannerId,
+                ),
+            )
+        }.getOrElse {
+            throw RuntimeException(it.message ?: strings.get(R.string.packing_add_code_failed))
+        }
+
+        mapResponse(response)?.toDomain()
+            ?: throw RuntimeException(errorParser.message(response))
+    }
+
+    override suspend fun scanCodesToBox(
+        boxId: Long,
+        rawCodes: List<String>,
+        scannerId: String,
+    ): PackingScanResult = withContext(ioDispatcher) {
+        val response = runCatching {
+            packingApi.scanBatchToBox(
+                boxId = boxId,
+                request = ScanBatchToBoxRequestDto(
+                    codes = rawCodes,
                     scannerId = scannerId,
                 ),
             )

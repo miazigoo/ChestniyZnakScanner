@@ -138,6 +138,7 @@ fun ScanRoute(
         onItemLongPressed = viewModel::onItemLongPressed,
         onDismissItemMenu = viewModel::onDismissItemMenu,
         onRemoveItemRequested = viewModel::onRemoveItemRequested,
+        onClearLocalBoxRequested = viewModel::onClearLocalBoxRequested,
         onDeleteEmptyBoxRequested = viewModel::onDeleteEmptyBoxRequested,
         onDismissDeleteEmptyBoxDialog = viewModel::onDismissDeleteEmptyBoxDialog,
         onConfirmDeleteEmptyBox = viewModel::onConfirmDeleteEmptyBox,
@@ -165,6 +166,7 @@ fun ScanScreen(
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
+    onClearLocalBoxRequested: () -> Unit,
     onDeleteEmptyBoxRequested: () -> Unit,
     onDismissDeleteEmptyBoxDialog: () -> Unit,
     onConfirmDeleteEmptyBox: () -> Unit,
@@ -319,6 +321,7 @@ fun ScanScreen(
                             onItemLongPressed = onItemLongPressed,
                             onDismissItemMenu = onDismissItemMenu,
                             onRemoveItemRequested = onRemoveItemRequested,
+                            onClearLocalBoxRequested = onClearLocalBoxRequested,
                             onDeleteEmptyBoxRequested = onDeleteEmptyBoxRequested,
                         )
                     }
@@ -334,6 +337,7 @@ fun ScanScreen(
                             onItemLongPressed = onItemLongPressed,
                             onDismissItemMenu = onDismissItemMenu,
                             onRemoveItemRequested = onRemoveItemRequested,
+                            onClearLocalBoxRequested = onClearLocalBoxRequested,
                             onDeleteEmptyBoxRequested = onDeleteEmptyBoxRequested,
                         )
                     }
@@ -435,6 +439,7 @@ private fun PackingCameraContent(
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
+    onClearLocalBoxRequested: () -> Unit,
     onDeleteEmptyBoxRequested: () -> Unit,
 ) {
     ScannerViewport(
@@ -456,6 +461,7 @@ private fun PackingCameraContent(
         onItemLongPressed = onItemLongPressed,
         onDismissItemMenu = onDismissItemMenu,
         onRemoveItemRequested = onRemoveItemRequested,
+        onClearLocalBoxRequested = onClearLocalBoxRequested,
         onDeleteEmptyBoxRequested = onDeleteEmptyBoxRequested,
     )
 }
@@ -523,6 +529,7 @@ private fun PackingContent(
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
+    onClearLocalBoxRequested: () -> Unit,
     onDeleteEmptyBoxRequested: () -> Unit,
 ) {
     CurrentBoxPanel(
@@ -536,6 +543,7 @@ private fun PackingContent(
         onItemLongPressed = onItemLongPressed,
         onDismissItemMenu = onDismissItemMenu,
         onRemoveItemRequested = onRemoveItemRequested,
+        onClearLocalBoxRequested = onClearLocalBoxRequested,
         onDeleteEmptyBoxRequested = onDeleteEmptyBoxRequested,
     )
 }
@@ -713,6 +721,7 @@ private fun CurrentBoxPanel(
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
+    onClearLocalBoxRequested: () -> Unit,
     onDeleteEmptyBoxRequested: () -> Unit,
 ) {
     val themeSpec = CurrentAppThemeSpec
@@ -956,12 +965,18 @@ private fun CurrentBoxPanel(
                         Text(stringResource(R.string.packing_close_box))
                     }
                     OutlinedButton(
-                        onClick = if (box.items.isEmpty()) onDeleteEmptyBoxRequested else onScanNextRequested,
+                        onClick = when {
+                            state.localPendingCodes.isNotEmpty() -> onClearLocalBoxRequested
+                            box.items.isEmpty() -> onDeleteEmptyBoxRequested
+                            else -> onScanNextRequested
+                        },
                         enabled = !state.isBusy,
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(
-                            if (box.items.isEmpty()) {
+                            if (state.localPendingCodes.isNotEmpty()) {
+                                stringResource(R.string.packing_clear_box)
+                            } else if (box.items.isEmpty()) {
                                 stringResource(R.string.packing_delete_box)
                             } else {
                                 stringResource(R.string.packing_reset_status)

@@ -7,6 +7,7 @@ import ru.devandprod.chestniyznak.domain.model.VerificationResult
 
 interface ChestniyZnakRepository {
     suspend fun ensureSeedData()
+    suspend fun replaceLocalPool(orderNumber: String, rawCodes: List<String>)
     suspend fun verify(rawInput: String, scannerId: String = "", allowDuplicate: Boolean = false): VerificationResult
     suspend fun verifyExists(rawInput: String, scannerId: String = "", allowDuplicate: Boolean = false): VerificationResult
     suspend fun markDefect(rawInput: String, scannerId: String = ""): DefectMarkResult

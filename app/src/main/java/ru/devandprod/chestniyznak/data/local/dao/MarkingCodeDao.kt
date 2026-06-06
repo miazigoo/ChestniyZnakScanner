@@ -15,6 +15,9 @@ interface MarkingCodeDao {
     @Query("SELECT COUNT(*) FROM marking_codes")
     suspend fun count(): Int
 
+    @Query("DELETE FROM marking_codes")
+    suspend fun deleteAll()
+
     @Query("SELECT COUNT(*) FROM marking_codes")
     fun observeCount(): Flow<Int>
 

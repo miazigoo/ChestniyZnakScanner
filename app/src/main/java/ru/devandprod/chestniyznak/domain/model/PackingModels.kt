@@ -61,6 +61,7 @@ data class PackingScanResult(
     val verify: VerificationResult? = null,
     val box: PackingBox,
     val boxFullSignal: Boolean? = null,
+    val conflictPackageCode: String? = null,
 )
 
 data class ClosePackingBoxResult(
