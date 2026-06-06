@@ -651,6 +651,13 @@ private fun OrderLineSelector(
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                     )
+                                    option.packageCapacity?.let { capacity ->
+                                        Text(
+                                            stringResource(R.string.packing_box_capacity, capacity),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
                                 }
                             },
                             onClick = {

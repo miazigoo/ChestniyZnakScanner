@@ -198,6 +198,7 @@
     <string name="packing_product_fallback">Item</string>
     <string name="packing_without_scanning_suffix">without scanning</string>
     <string name="packing_selected_order">Selected: %1$s</string>
+    <string name="packing_box_capacity">Box capacity: %1$d pcs</string>
     <string name="parse_empty_code">Empty code</string>
     <string name="parse_must_start_ai01">The code must start with AI 01</string>
     <string name="parse_too_short">The code is too short for 01 + GTIN + 21</string>

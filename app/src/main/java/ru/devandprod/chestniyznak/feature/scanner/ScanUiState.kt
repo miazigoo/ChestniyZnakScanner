@@ -50,6 +50,7 @@ data class PackingOrderLineUi(
     val sku: String,
     val productName: String,
     val label: String,
+    val packageCapacity: Int? = null,
     val scanRequired: Boolean = true,
 )
 

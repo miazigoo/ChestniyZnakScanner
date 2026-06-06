@@ -12,6 +12,7 @@ class OpenPackingBoxUseCase @Inject constructor(
         countInPacking: Boolean = true,
         orderId: String? = null,
         orderLineId: String? = null,
+        capacity: Int? = null,
         codeValue: String? = null,
         sscc: String? = null,
     ): OpenPackingBoxResult = repository.openBox(
@@ -19,6 +20,7 @@ class OpenPackingBoxUseCase @Inject constructor(
         countInPacking = countInPacking,
         orderId = orderId,
         orderLineId = orderLineId,
+        capacity = capacity,
         codeValue = codeValue,
         sscc = sscc,
     )

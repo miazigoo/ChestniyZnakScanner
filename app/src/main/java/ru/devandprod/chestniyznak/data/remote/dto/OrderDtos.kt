@@ -50,6 +50,8 @@ data class RemoteOrderLineDto(
     val quantity: Int,
     @SerialName("required_code_quantity")
     val requiredCodeQuantity: Int,
+    @SerialName("package_capacity")
+    val packageCapacity: Int? = null,
     val status: String,
     val product: RemoteOrderProductDto? = null,
 )
@@ -88,6 +90,7 @@ fun RemoteOrderLineDto.toDomain(): WorkOrderLine = WorkOrderLine(
     productId = productId,
     quantity = quantity,
     requiredCodeQuantity = requiredCodeQuantity,
+    packageCapacity = packageCapacity,
     status = status,
     product = product?.toDomain(),
 )

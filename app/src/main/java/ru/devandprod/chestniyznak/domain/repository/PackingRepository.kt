@@ -20,6 +20,7 @@ interface PackingRepository {
         countInPacking: Boolean = true,
         orderId: String? = null,
         orderLineId: String? = null,
+        capacity: Int? = null,
         codeValue: String? = null,
         sscc: String? = null,
     ): OpenPackingBoxResult

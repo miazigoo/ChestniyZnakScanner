@@ -198,6 +198,7 @@
     <string name="packing_product_fallback">Номенклатура</string>
     <string name="packing_without_scanning_suffix">без сканирования</string>
     <string name="packing_selected_order">Выбрано: %1$s</string>
+    <string name="packing_box_capacity">В коробке: %1$d шт.</string>
     <string name="parse_empty_code">Пустой код</string>
     <string name="parse_must_start_ai01">Код должен начинаться с AI 01</string>
     <string name="parse_too_short">Код слишком короткий для 01 + GTIN + 21</string>

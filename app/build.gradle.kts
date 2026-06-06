@@ -21,20 +21,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
-        buildConfigField("String", "API_BASE_URL", "\"http://srv-dnp.argos.loc/api/v2/\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://api.chestniy-z.ru/api/v1/\"")
         buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
     }
 
     buildTypes {
         debug {
             isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", "\"http://srv-dnp.argos.loc/api/v2/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://api.chestniy-z.ru/api/v1/\"")
             buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            buildConfigField("String", "API_BASE_URL", "\"http://srv-dnp.argos.loc/api/v2/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://api.chestniy-z.ru/api/v1/\"")
             buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

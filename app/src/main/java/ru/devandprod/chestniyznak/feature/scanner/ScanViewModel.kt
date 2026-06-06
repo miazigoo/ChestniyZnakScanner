@@ -314,6 +314,7 @@ class ScanViewModel @Inject constructor(
                     countInPacking = state.packing.countInPacking,
                     orderId = selectedLine.orderId,
                     orderLineId = selectedLine.orderLineId,
+                    capacity = selectedLine.packageCapacity,
                 )
             }
                 .onSuccess(::handleOpenBoxResult)
@@ -1228,6 +1229,7 @@ class ScanViewModel @Inject constructor(
                                 append(strings.get(R.string.packing_without_scanning_suffix))
                             }
                         },
+                        packageCapacity = line.packageCapacity,
                         scanRequired = order.scanRequired,
                     )
                 }
@@ -1238,7 +1240,10 @@ class ScanViewModel @Inject constructor(
 
     private fun PackingOrderLineUi.toSelectedStatusText(): String =
         if (scanRequired) {
-            strings.get(R.string.packing_selected_order, orderNumber)
+            val capacityText = packageCapacity?.let {
+                " · ${strings.get(R.string.packing_box_capacity, it)}"
+            }.orEmpty()
+            strings.get(R.string.packing_selected_order, "$orderNumber$capacityText")
         } else {
             strings.get(R.string.packing_scanning_disabled)
         }

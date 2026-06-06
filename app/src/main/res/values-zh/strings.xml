@@ -198,6 +198,7 @@
     <string name="packing_product_fallback">品项</string>
     <string name="packing_without_scanning_suffix">无需扫描</string>
     <string name="packing_selected_order">已选择：%1$s</string>
+    <string name="packing_box_capacity">装箱容量：%1$d 件</string>
     <string name="parse_empty_code">标识码为空</string>
     <string name="parse_must_start_ai01">标识码必须以 AI 01 开头</string>
     <string name="parse_too_short">标识码太短，无法包含 01 + GTIN + 21</string>

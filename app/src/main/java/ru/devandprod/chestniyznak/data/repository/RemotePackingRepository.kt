@@ -126,12 +126,14 @@ class RemotePackingRepository @Inject constructor(
         countInPacking: Boolean,
         orderId: String?,
         orderLineId: String?,
+        capacity: Int?,
         codeValue: String?,
         sscc: String?,
     ): OpenPackingBoxResult = withContext(ioDispatcher) {
         val response = runCatching {
             packingApi.openBox(
                 OpenBoxRequestDto(
+                    capacity = capacity?.takeIf { it > 0 },
                     deviceId = deviceId,
                     countInPacking = countInPacking,
                     orderId = orderId,

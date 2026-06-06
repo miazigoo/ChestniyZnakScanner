@@ -14,6 +14,7 @@ data class WorkOrderLine(
     val productId: String,
     val quantity: Int,
     val requiredCodeQuantity: Int,
+    val packageCapacity: Int? = null,
     val status: String,
     val product: WorkOrderProduct? = null,
 )
