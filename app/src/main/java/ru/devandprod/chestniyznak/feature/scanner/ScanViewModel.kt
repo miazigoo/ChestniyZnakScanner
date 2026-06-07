@@ -1096,6 +1096,7 @@ class ScanViewModel @Inject constructor(
                 packing = it.packing.copy(
                     isBusy = true,
                     errorText = null,
+                    showPrinterSettingsAction = false,
                     statusText = strings.get(R.string.packing_closing_box_wait_label),
                 ),
             )
@@ -1118,6 +1119,7 @@ class ScanViewModel @Inject constructor(
                             ),
                             statusText = strings.get(R.string.printer_select_required),
                             errorText = strings.get(R.string.printer_select_required),
+                            showPrinterSettingsAction = true,
                         ),
                     )
                 }
@@ -1434,7 +1436,12 @@ class ScanViewModel @Inject constructor(
                     } else {
                         strings.get(R.string.packing_box_not_closed)
                     },
-                    errorText = result.error,
+                    errorText = if (result.ok && printResult?.printOk == false) {
+                        printError.ifBlank { strings.get(R.string.printer_print_failed) }
+                    } else {
+                        result.error
+                    },
+                    showPrinterSettingsAction = result.ok && printResult?.printOk == false,
                 ),
             )
         }

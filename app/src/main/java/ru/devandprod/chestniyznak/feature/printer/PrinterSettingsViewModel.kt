@@ -11,13 +11,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import ru.devandprod.chestniyznak.core.device.DeviceIdentity
+import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
 import ru.devandprod.chestniyznak.domain.model.ClientPrinterSelection
 import ru.devandprod.chestniyznak.domain.usecase.GetClientPrinterSelectionUseCase
 import ru.devandprod.chestniyznak.domain.usecase.SetClientPrinterSelectionUseCase
+import ru.devandprod.chestniyznak.R
 
 @HiltViewModel
 class PrinterSettingsViewModel @Inject constructor(
     private val audioFeedbackPlayer: AudioFeedbackPlayer,
+    private val strings: AppStringProvider,
     private val getClientPrinterSelectionUseCase: GetClientPrinterSelectionUseCase,
     private val setClientPrinterSelectionUseCase: SetClientPrinterSelectionUseCase,
 ) : ViewModel() {
@@ -41,7 +44,7 @@ class PrinterSettingsViewModel @Inject constructor(
                 it.copy(
                     isLoading = true,
                     errorText = null,
-                    statusText = "Загружаем принтеры...",
+                    statusText = strings.get(R.string.printer_loading),
                 )
             }
             runCatching { getClientPrinterSelectionUseCase(deviceId) }
@@ -53,8 +56,8 @@ class PrinterSettingsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorText = error.message ?: "Не удалось загрузить принтеры",
-                            statusText = "Список принтеров недоступен",
+                            errorText = error.message ?: strings.get(R.string.printer_load_failed),
+                            statusText = strings.get(R.string.printer_list_unavailable),
                         )
                     }
                 }
@@ -70,7 +73,7 @@ class PrinterSettingsViewModel @Inject constructor(
                 it.copy(
                     isSaving = true,
                     errorText = null,
-                    statusText = "Сохраняем выбранный принтер...",
+                    statusText = strings.get(R.string.printer_saving),
                 )
             }
             runCatching { setClientPrinterSelectionUseCase(deviceId, printerId) }
@@ -80,7 +83,7 @@ class PrinterSettingsViewModel @Inject constructor(
                         selection.toUiState(
                             isLoading = false,
                             isSaving = false,
-                            statusTextOverride = "Принтер сохранен",
+                            statusTextOverride = strings.get(R.string.printer_saved),
                         )
                     }
                 }
@@ -89,8 +92,8 @@ class PrinterSettingsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            errorText = error.message ?: "Не удалось сохранить выбор принтера",
-                            statusText = "Принтер не сохранен",
+                            errorText = error.message ?: strings.get(R.string.printer_save_failed),
+                            statusText = strings.get(R.string.printer_not_saved),
                         )
                     }
                 }
@@ -106,11 +109,11 @@ class PrinterSettingsViewModel @Inject constructor(
         isSaving = isSaving,
         deviceId = deviceId,
         selectedPrinterId = selectedPrinterId,
-        selectedPrinterLabel = selectedPrinter?.name ?: "Не выбран",
+        selectedPrinterLabel = selectedPrinter?.name ?: strings.get(R.string.printer_not_selected),
         statusText = statusTextOverride ?: if (selectedPrinter != null) {
-            "Выбран принтер: ${selectedPrinter.name}"
+            strings.get(R.string.printer_selected_status, selectedPrinter.name)
         } else {
-            "Личный принтер пользователя еще не выбран"
+            strings.get(R.string.printer_personal_not_selected)
         },
         errorText = null,
         printers = printers.map { printer ->

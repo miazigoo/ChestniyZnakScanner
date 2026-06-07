@@ -149,6 +149,7 @@ private fun AuthenticatedNavHost(
                 ScanRoute(
                     currentUserName = currentUserName,
                     onOpenMenu = { navController.navigate(AppDestination.Menu.route) },
+                    onOpenPrinterSettings = { navController.navigate(AppDestination.PrinterSettings.route) },
                 )
             }
             composable(AppDestination.Menu.route) {

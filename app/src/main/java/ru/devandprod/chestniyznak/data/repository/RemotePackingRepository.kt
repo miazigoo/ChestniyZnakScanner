@@ -4,6 +4,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.nio.charset.Charset
@@ -378,7 +379,14 @@ class RemotePackingRepository @Inject constructor(
                 }
             }
             true to ""
-        }.getOrElse { false to (it.message ?: it.javaClass.simpleName) }
+        }.getOrElse { error ->
+            val printerAddress = "${printer.ipAddress}:${printer.port}"
+            false to if (error is IOException) {
+                strings.get(R.string.printer_tcp_connection_failed, printer.name, printerAddress)
+            } else {
+                error.message ?: strings.get(R.string.printer_print_failed)
+            }
+        }
     }
 
     private fun <T> mapResponse(response: retrofit2.Response<T>): T? {

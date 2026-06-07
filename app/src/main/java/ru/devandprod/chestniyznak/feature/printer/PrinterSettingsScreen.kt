@@ -31,10 +31,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.designsystem.theme.CurrentAppDecorColors
 import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 
@@ -72,9 +74,13 @@ fun PrinterSettingsScreen(
                         Column(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
-                            Text("ПРИНТЕР", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
-                                "Выбор активного устройства печати",
+                                stringResource(R.string.printer_toolbar_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                stringResource(R.string.printer_toolbar_subtitle),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                             )
@@ -172,18 +178,18 @@ private fun PrinterHeroCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = "PRINT ROUTING",
+                    text = stringResource(R.string.printer_routing_kicker),
                     style = MaterialTheme.typography.labelMedium,
                     letterSpacing = 1.2.sp,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Маршрутизация печати",
+                    text = stringResource(R.string.printer_hero_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
-                    text = "Доступно принтеров: $printerCount. Выбор сохраняется за текущим пользователем и используется при закрытии коробки.",
+                    text = stringResource(R.string.printer_hero_description, printerCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 )
@@ -218,18 +224,28 @@ private fun PrinterSummaryCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                "ACTIVE TARGET",
+                stringResource(R.string.printer_active_target_label),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 letterSpacing = 1.sp,
             )
-            Text("Текущий выбор", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+            Text(
+                stringResource(R.string.printer_current_selection),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                PrinterMetaChip("Выбор", "Личный")
-                PrinterMetaChip("Статус", state.statusText.ifBlank { "Ожидание" })
+                PrinterMetaChip(
+                    stringResource(R.string.printer_choice_label),
+                    stringResource(R.string.printer_choice_personal),
+                )
+                PrinterMetaChip(
+                    stringResource(R.string.common_status),
+                    state.statusText.ifBlank { stringResource(R.string.printer_waiting) },
+                )
             }
             Text(state.selectedPrinterLabel, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(state.statusText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
@@ -246,7 +262,7 @@ private fun PrinterSummaryCard(
                     contentColor = MaterialTheme.colorScheme.primary,
                 ),
             ) {
-                Text("Обновить")
+                Text(stringResource(R.string.common_refresh))
             }
         }
     }
@@ -303,18 +319,33 @@ private fun PrinterCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                if (printer.isSelected) "ACTIVE PRINTER" else "AVAILABLE PRINTER",
+                if (printer.isSelected) {
+                    stringResource(R.string.printer_active_label)
+                } else {
+                    stringResource(R.string.printer_available_label)
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = if (printer.isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
                 letterSpacing = 1.sp,
             )
             Text(printer.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-            Text("Адрес: ${printer.ipAddress}:${printer.port}", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                stringResource(R.string.printer_address, printer.ipAddress, printer.port),
+                style = MaterialTheme.typography.bodyMedium,
+            )
             if (printer.section.isNotBlank()) {
-                Text("Участок: ${printer.section}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f))
+                Text(
+                    stringResource(R.string.printer_section, printer.section),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                )
             }
             if (printer.isSelected) {
-                Text("Выбран для текущего пользователя", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    stringResource(R.string.printer_selected_for_user),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }

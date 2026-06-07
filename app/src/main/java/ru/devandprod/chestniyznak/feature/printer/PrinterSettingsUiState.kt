@@ -5,7 +5,7 @@ data class PrinterSettingsUiState(
     val isSaving: Boolean = false,
     val deviceId: String = "",
     val selectedPrinterId: Long? = null,
-    val selectedPrinterLabel: String = "Не выбран",
+    val selectedPrinterLabel: String = "",
     val statusText: String = "",
     val errorText: String? = null,
     val printers: List<PrinterItemUi> = emptyList(),

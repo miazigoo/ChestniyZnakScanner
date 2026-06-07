@@ -78,6 +78,7 @@ import ru.devandprod.chestniyznak.core.scanner.ScannerCommandBus
 fun ScanRoute(
     currentUserName: String,
     onOpenMenu: () -> Unit,
+    onOpenPrinterSettings: () -> Unit,
     viewModel: ScanViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -124,6 +125,7 @@ fun ScanRoute(
         currentUserName = currentUserName,
         onCameraCodeScanned = viewModel::onCameraCodeScanned,
         onOpenMenu = onOpenMenu,
+        onOpenPrinterSettings = onOpenPrinterSettings,
         onRetryPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
         onScanNextRequested = viewModel::onScanNextRequested,
         onScanModeSelected = viewModel::onScanModeSelected,
@@ -152,6 +154,7 @@ fun ScanScreen(
     currentUserName: String,
     onCameraCodeScanned: (String) -> Unit,
     onOpenMenu: () -> Unit,
+    onOpenPrinterSettings: () -> Unit,
     onRetryPermission: () -> Unit,
     onScanNextRequested: () -> Unit,
     onScanModeSelected: (ScanMode) -> Unit,
@@ -313,6 +316,7 @@ fun ScanScreen(
                             onCodeScanned = onCameraCodeScanned,
                             onRetryPermission = onRetryPermission,
                             onOpenBoxRequested = onOpenBoxRequested,
+                            onOpenPrinterSettings = onOpenPrinterSettings,
                             onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
                             onCountInPackingChanged = onCountInPackingChanged,
@@ -329,6 +333,7 @@ fun ScanScreen(
                         PackingContent(
                             state = state.packing,
                             onOpenBoxRequested = onOpenBoxRequested,
+                            onOpenPrinterSettings = onOpenPrinterSettings,
                             onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
                             onCountInPackingChanged = onCountInPackingChanged,
@@ -431,6 +436,7 @@ private fun PackingCameraContent(
     onCodeScanned: (String) -> Unit,
     onRetryPermission: () -> Unit,
     onOpenBoxRequested: () -> Unit,
+    onOpenPrinterSettings: () -> Unit,
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
@@ -453,6 +459,7 @@ private fun PackingCameraContent(
     CurrentBoxPanel(
         state = packingState,
         onOpenBoxRequested = onOpenBoxRequested,
+        onOpenPrinterSettings = onOpenPrinterSettings,
         onCloseBoxRequested = onCloseBoxRequested,
         onScanNextRequested = onScanNextRequested,
         onCountInPackingChanged = onCountInPackingChanged,
@@ -521,6 +528,7 @@ internal fun CameraVerifyContent(
 private fun PackingContent(
     state: PackingPaneUiState,
     onOpenBoxRequested: () -> Unit,
+    onOpenPrinterSettings: () -> Unit,
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
@@ -535,6 +543,7 @@ private fun PackingContent(
     CurrentBoxPanel(
         state = state,
         onOpenBoxRequested = onOpenBoxRequested,
+        onOpenPrinterSettings = onOpenPrinterSettings,
         onCloseBoxRequested = onCloseBoxRequested,
         onScanNextRequested = onScanNextRequested,
         onCountInPackingChanged = onCountInPackingChanged,
@@ -713,6 +722,7 @@ private fun OrderLineSelector(
 private fun CurrentBoxPanel(
     state: PackingPaneUiState,
     onOpenBoxRequested: () -> Unit,
+    onOpenPrinterSettings: () -> Unit,
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
@@ -772,6 +782,31 @@ private fun CurrentBoxPanel(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                         )
+                        if (selectedLine?.scanRequired == false) {
+                            OutlinedButton(
+                                onClick = {},
+                                enabled = false,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    stringResource(R.string.packing_open_not_needed),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        } else {
+                            Button(
+                                onClick = onOpenBoxRequested,
+                                enabled = !state.isBusy && state.selectedOrderLineId.isNotBlank(),
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                            ) {
+                                Text(stringResource(R.string.packing_open_box))
+                            }
+                        }
                     }
                 }
             } else {
@@ -889,6 +924,16 @@ private fun CurrentBoxPanel(
                 )
             }
 
+            if (state.showPrinterSettingsAction) {
+                OutlinedButton(
+                    onClick = onOpenPrinterSettings,
+                    enabled = !state.isBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.printer_open_settings))
+                }
+            }
+
             if (state.lastScannedCode.isNotBlank()) {
                 Surface(
                     shape = RoundedCornerShape(20.dp),
@@ -922,37 +967,11 @@ private fun CurrentBoxPanel(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (box == null) {
-                    if (selectedLine?.scanRequired == false) {
-                        OutlinedButton(
-                            onClick = {},
-                            enabled = false,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(
-                                stringResource(R.string.packing_open_not_needed),
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    } else {
-                        Button(
-                            onClick = onOpenBoxRequested,
-                            enabled = !state.isBusy && state.selectedOrderLineId.isNotBlank(),
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
-                        ) {
-                            Text(stringResource(R.string.packing_open_box))
-                        }
-                    }
-                } else {
+            if (box != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Button(
                         onClick = onCloseBoxRequested,
                         enabled = !state.isBusy,

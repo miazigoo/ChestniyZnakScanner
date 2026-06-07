@@ -7,6 +7,17 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+fun apiBaseUrlOverride(): String {
+    val value = providers.gradleProperty("apiBaseUrl")
+        .orElse(providers.environmentVariable("CHZ_API_BASE_URL"))
+        .orNull
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+    return value ?: "https://api.chestniy-z.ru/api/v1/"
+}
+
+fun quotedBuildConfigString(value: String): String = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
 android {
     namespace = "ru.devandprod.chestniyznak"
     compileSdk = 35
@@ -21,14 +32,14 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
-        buildConfigField("String", "API_BASE_URL", "\"https://api.chestniy-z.ru/api/v1/\"")
+        buildConfigField("String", "API_BASE_URL", quotedBuildConfigString(apiBaseUrlOverride()))
         buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
     }
 
     buildTypes {
         debug {
             isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", "\"https://api.chestniy-z.ru/api/v1/\"")
+            buildConfigField("String", "API_BASE_URL", quotedBuildConfigString(apiBaseUrlOverride()))
             buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
         }
         release {
