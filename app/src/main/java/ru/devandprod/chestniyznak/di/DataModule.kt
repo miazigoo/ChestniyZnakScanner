@@ -66,7 +66,9 @@ object StorageModule {
         context,
         AppDatabase::class.java,
         "chestniy_znak.db",
-    ).build()
+    )
+        .addMigrations(AppDatabase.MIGRATION_1_2)
+        .build()
 
     @Provides
     fun provideMarkingCodeDao(database: AppDatabase): MarkingCodeDao = database.markingCodeDao()

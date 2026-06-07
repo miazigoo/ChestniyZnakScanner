@@ -21,6 +21,7 @@ import ru.devandprod.chestniyznak.data.remote.dto.VerifyRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.toDomain
 import ru.devandprod.chestniyznak.domain.model.CatalogStats
 import ru.devandprod.chestniyznak.domain.model.DefectMarkResult
+import ru.devandprod.chestniyznak.domain.model.OrderLocalCode
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
 import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
@@ -43,8 +44,12 @@ class HybridChestniyZnakRepository @Inject constructor(
         refreshStats()
     }
 
-    override suspend fun replaceLocalPool(orderNumber: String, rawCodes: List<String>) = withContext(ioDispatcher) {
-        localRepository.replaceLocalPool(orderNumber, rawCodes)
+    override suspend fun replaceLocalPool(
+        orderNumber: String,
+        orderId: String,
+        codes: List<OrderLocalCode>,
+    ) = withContext(ioDispatcher) {
+        localRepository.replaceLocalPool(orderNumber, orderId, codes)
         statsFlow.value = localRepository.snapshotStats()
     }
 

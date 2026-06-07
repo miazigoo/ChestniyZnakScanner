@@ -41,6 +41,16 @@ data class LocalPoolCodeDto(
     val status: String,
     @SerialName("order_line_id")
     val orderLineId: String? = null,
+    @SerialName("package_unit_id")
+    val packageUnitId: String? = null,
+    @SerialName("package_code")
+    val packageCode: String? = null,
+    @SerialName("package_status")
+    val packageStatus: String? = null,
+    @SerialName("package_closed_at")
+    val packageClosedAt: String? = null,
+    @SerialName("updated_at")
+    val updatedAt: String? = null,
 )
 
 @Serializable
@@ -120,6 +130,11 @@ fun LocalPoolCodeDto.toDomain(): OrderLocalCode = OrderLocalCode(
     code = code,
     status = status,
     orderLineId = orderLineId,
+    packageUnitId = packageUnitId,
+    packageCode = packageCode,
+    packageStatus = packageStatus,
+    packageClosedAt = packageClosedAt,
+    updatedAt = updatedAt,
 )
 
 fun RemoteOrderDto.toDomain(): WorkOrder = WorkOrder(

@@ -8,12 +8,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -47,6 +51,8 @@ class ChzConnectionMonitor @Inject constructor(
         ),
     )
     val state: StateFlow<ConnectionState> = _state.asStateFlow()
+    private val _events = MutableSharedFlow<ChzRealtimeEvent>(extraBufferCapacity = 64)
+    val events: SharedFlow<ChzRealtimeEvent> = _events.asSharedFlow()
 
     private var socket: WebSocket? = null
     private var maintenanceJob: Job? = null
@@ -185,6 +191,19 @@ class ChzConnectionMonitor @Inject constructor(
                     lastInboundAt = System.currentTimeMillis()
                     val payload = runCatching { json.parseToJsonElement(text) }.getOrNull()
                     val type = payload?.jsonObject?.get("type")?.jsonPrimitive?.content.orEmpty()
+                    payload?.jsonObject?.let { body ->
+                        if (type.startsWith("package.")) {
+                            _events.tryEmit(
+                                ChzRealtimeEvent(
+                                    type = type,
+                                    orderId = body["order_id"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                                    orderLineId = body["order_line_id"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                                    packageId = body["package_id"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                                    packageCode = body["package_code"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                                ),
+                            )
+                        }
+                    }
                     Log.d(TAG, "onMessage type=${type.ifBlank { "unknown" }} bytes=${text.length}")
                     when (type) {
                         "connected" -> {
@@ -268,3 +287,11 @@ class ChzConnectionMonitor @Inject constructor(
         )
     }
 }
+
+data class ChzRealtimeEvent(
+    val type: String,
+    val orderId: String = "",
+    val orderLineId: String = "",
+    val packageId: String = "",
+    val packageCode: String = "",
+)

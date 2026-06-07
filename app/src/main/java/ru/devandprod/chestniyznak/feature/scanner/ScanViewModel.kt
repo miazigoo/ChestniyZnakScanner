@@ -14,6 +14,7 @@ import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
 import ru.devandprod.chestniyznak.core.device.DeviceIdentity
 import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
+import ru.devandprod.chestniyznak.core.runtime.ChzConnectionMonitor
 import ru.devandprod.chestniyznak.domain.model.ClosePackingBoxResult
 import ru.devandprod.chestniyznak.domain.model.PackageLabelPrintResult
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
@@ -44,6 +45,7 @@ import ru.devandprod.chestniyznak.domain.usecase.VerifyCodeExistsUseCase
 class ScanViewModel @Inject constructor(
     private val audioFeedbackPlayer: AudioFeedbackPlayer,
     private val strings: AppStringProvider,
+    private val connectionMonitor: ChzConnectionMonitor,
     private val ensureSeedDataUseCase: EnsureSeedDataUseCase,
     observeCatalogStatsUseCase: ObserveCatalogStatsUseCase,
     private val refreshCatalogStatsUseCase: RefreshCatalogStatsUseCase,
@@ -117,6 +119,14 @@ class ScanViewModel @Inject constructor(
                         statsLabel = strings.get(R.string.scan_stats_codes, stats.totalCodes),
                         scansLabel = strings.get(R.string.scan_stats_checks, stats.totalScans),
                     )
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            connectionMonitor.events.collect { event ->
+                if (event.type.startsWith("package.")) {
+                    refreshLocalPoolAfterRealtimeEvent(event.orderId)
                 }
             }
         }
@@ -871,8 +881,9 @@ class ScanViewModel @Inject constructor(
         }
     }
 
-    private fun downloadLocalPoolFor(selectedLine: PackingOrderLineUi) {
-        if (_uiState.value.packing.localPoolOrderId == selectedLine.orderId) return
+    private fun downloadLocalPoolFor(selectedLine: PackingOrderLineUi, force: Boolean = false) {
+        if (!force && _uiState.value.packing.localPoolOrderId == selectedLine.orderId) return
+        if (_uiState.value.packing.localPoolLoading) return
         _uiState.update { state ->
             state.copy(
                 packing = state.packing.copy(
@@ -913,6 +924,20 @@ class ScanViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    private fun refreshLocalPoolAfterRealtimeEvent(orderId: String) {
+        val state = _uiState.value
+        val selectedLine = state.packing.selectedOrderLine()
+        if (
+            selectedLine == null ||
+            !selectedLine.scanRequired ||
+            state.packing.localPoolLoading ||
+            (orderId.isNotBlank() && orderId != selectedLine.orderId)
+        ) {
+            return
+        }
+        downloadLocalPoolFor(selectedLine, force = true)
     }
 
     private fun handleLocalPackingScan(

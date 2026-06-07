@@ -11,4 +11,6 @@ data class MarkingCode(
     val orderNumber: String,
     val orderName: String = "",
     val deviceName: String = "",
+    val packageCode: String? = null,
+    val packageStatus: String? = null,
 )

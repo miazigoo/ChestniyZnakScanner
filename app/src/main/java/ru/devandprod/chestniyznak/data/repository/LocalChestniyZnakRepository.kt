@@ -20,6 +20,7 @@ import ru.devandprod.chestniyznak.data.local.seed.SeedAssetLoader
 import ru.devandprod.chestniyznak.domain.model.CatalogStats
 import ru.devandprod.chestniyznak.domain.model.DefectMarkResult
 import ru.devandprod.chestniyznak.domain.model.MarkingCode
+import ru.devandprod.chestniyznak.domain.model.OrderLocalCode
 import ru.devandprod.chestniyznak.domain.model.ParsedMarkingCode
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
@@ -60,22 +61,40 @@ class LocalChestniyZnakRepository @Inject constructor(
         markingCodeDao.insertAll(entities)
     }
 
-    override suspend fun replaceLocalPool(orderNumber: String, rawCodes: List<String>) = withContext(ioDispatcher) {
-        val entities = rawCodes.distinct().map { rawCode ->
-            val parsed = parser.parse(rawCode)
-            MarkingCodeEntity(
-                gtin = parsed.gtin,
-                serial = parsed.serial,
-                identityKey = parsed.identityKey,
-                aiPartsJson = json.encodeToString(parsed.aiParts),
-                rawCode = parsed.rawCode,
-                visibleCode = parsed.visibleCode,
-                rawCodeSha256 = rawHash(parsed.rawCode),
-                status1c = "downloaded",
-                appStatus = "local_pool",
-                orderNumber = orderNumber,
-            )
-        }
+    override suspend fun replaceLocalPool(
+        orderNumber: String,
+        orderId: String,
+        codes: List<OrderLocalCode>,
+    ) = withContext(ioDispatcher) {
+        val entities = codes
+            .distinctBy { it.code }
+            .map { code ->
+                val parsed = parser.parse(code.code)
+                MarkingCodeEntity(
+                    gtin = parsed.gtin,
+                    serial = parsed.serial,
+                    identityKey = parsed.identityKey,
+                    aiPartsJson = json.encodeToString(parsed.aiParts),
+                    rawCode = parsed.rawCode,
+                    visibleCode = parsed.visibleCode,
+                    rawCodeSha256 = rawHash(parsed.rawCode),
+                    status1c = code.status,
+                    appStatus = if (code.packageCode.isNullOrBlank()) {
+                        "local_pool"
+                    } else {
+                        "packed_remote"
+                    },
+                    orderNumber = orderNumber,
+                    orderId = orderId,
+                    orderLineId = code.orderLineId,
+                    remoteCodeId = code.id,
+                    packageUnitId = code.packageUnitId,
+                    packageCode = code.packageCode,
+                    packageStatus = code.packageStatus,
+                    packageClosedAt = code.packageClosedAt,
+                    remoteUpdatedAt = code.updatedAt,
+                )
+            }
         markingCodeDao.deleteAll()
         markingCodeDao.insertAll(entities)
     }
@@ -118,7 +137,13 @@ class LocalChestniyZnakRepository @Inject constructor(
 
         if (matchedCode != null) {
             val hasOkScan = scanLogDao.hasSuccessfulScan(matchedCode.id)
-            if (hasOkScan && !allowDuplicate) {
+            if (matchedCode.isPackedRemotely()) {
+                status = VerificationStatus.DUPLICATE_SCAN
+                message = matchedCode.packageCode
+                    ?.takeIf(String::isNotBlank)
+                    ?.let { strings.get(R.string.packing_code_in_named_box, it) }
+                    ?: strings.get(R.string.packing_code_in_other_box)
+            } else if (hasOkScan && !allowDuplicate) {
                 status = VerificationStatus.DUPLICATE_SCAN
                 message = strings.get(R.string.local_duplicate_scan)
             } else if (parsed.gsRestored) {
@@ -213,7 +238,12 @@ class LocalChestniyZnakRepository @Inject constructor(
         orderNumber = orderNumber,
         orderName = orderNumber,
         deviceName = "",
+        packageCode = packageCode,
+        packageStatus = packageStatus,
     )
+
+    private fun MarkingCodeEntity.isPackedRemotely(): Boolean =
+        status1c in PACKED_REMOTE_STATUSES || !packageCode.isNullOrBlank()
 
     private fun rawHash(rawCode: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -225,5 +255,6 @@ class LocalChestniyZnakRepository @Inject constructor(
     private companion object {
         const val EMPTY_JSON_OBJECT = "{}"
         const val EMPTY_JSON_ARRAY = "[]"
+        val PACKED_REMOTE_STATUSES = setOf("packed", "exported")
     }
 }

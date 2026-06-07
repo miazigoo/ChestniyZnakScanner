@@ -10,6 +10,8 @@ import androidx.room.PrimaryKey
         Index(value = ["rawCodeSha256"], unique = true),
         Index(value = ["gtin", "serial"]),
         Index(value = ["identityKey"]),
+        Index(value = ["orderId"]),
+        Index(value = ["packageCode"]),
     ],
 )
 data class MarkingCodeEntity(
@@ -25,4 +27,12 @@ data class MarkingCodeEntity(
     val status1c: String,
     val appStatus: String,
     val orderNumber: String,
+    val orderId: String = "",
+    val orderLineId: String? = null,
+    val remoteCodeId: String? = null,
+    val packageUnitId: String? = null,
+    val packageCode: String? = null,
+    val packageStatus: String? = null,
+    val packageClosedAt: String? = null,
+    val remoteUpdatedAt: String? = null,
 )

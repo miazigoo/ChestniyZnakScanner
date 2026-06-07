@@ -43,6 +43,11 @@ data class OrderLocalCode(
     val code: String,
     val status: String,
     val orderLineId: String? = null,
+    val packageUnitId: String? = null,
+    val packageCode: String? = null,
+    val packageStatus: String? = null,
+    val packageClosedAt: String? = null,
+    val updatedAt: String? = null,
 )
 
 data class OrderLocalPoolPage(

@@ -1,6 +1,7 @@
 package ru.devandprod.chestniyznak.domain.usecase
 
 import javax.inject.Inject
+import ru.devandprod.chestniyznak.domain.model.OrderLocalCode
 import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
 import ru.devandprod.chestniyznak.domain.repository.OrdersRepository
 
@@ -9,7 +10,7 @@ class DownloadOrderLocalPoolUseCase @Inject constructor(
     private val chestniyZnakRepository: ChestniyZnakRepository,
 ) {
     suspend operator fun invoke(orderId: String): Int {
-        val rawCodes = mutableListOf<String>()
+        val codes = mutableListOf<OrderLocalCode>()
         var orderNumber = ""
         var offset = 0
         do {
@@ -19,12 +20,16 @@ class DownloadOrderLocalPoolUseCase @Inject constructor(
                 offset = offset,
             )
             if (orderNumber.isBlank()) orderNumber = page.order.orderNumber
-            rawCodes += page.codes.map { it.code }
+            codes += page.codes
             offset = page.nextOffset ?: (offset + page.count)
         } while (page.hasMore)
 
-        chestniyZnakRepository.replaceLocalPool(orderNumber = orderNumber, rawCodes = rawCodes)
-        return rawCodes.size
+        chestniyZnakRepository.replaceLocalPool(
+            orderNumber = orderNumber,
+            orderId = orderId,
+            codes = codes,
+        )
+        return codes.size
     }
 
     private companion object {
