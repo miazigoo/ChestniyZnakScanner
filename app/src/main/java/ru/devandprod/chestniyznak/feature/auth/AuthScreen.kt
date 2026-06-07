@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -78,6 +79,7 @@ fun AuthRoute(
     val context = LocalContext.current
     var inputMode by rememberSaveable { mutableStateOf(AuthInputMode.Tsd) }
     var hasCameraPermission by rememberSaveable { mutableStateOf(false) }
+    var cameraRestartKey by rememberSaveable { mutableIntStateOf(0) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { granted ->
@@ -98,6 +100,14 @@ fun AuthRoute(
     LaunchedEffect(inputMode) {
         if (inputMode == AuthInputMode.Camera && !hasCameraPermission) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    LaunchedEffect(inputMode, selectedLanguage) {
+        if (inputMode == AuthInputMode.Camera) {
+            cameraRestartKey += 1
+            delay(120)
+            onCameraScannerRearmRequested()
         }
     }
 
@@ -131,6 +141,7 @@ fun AuthRoute(
         onTokenScanned = onTokenScanned,
         onLoginClicked = onLoginClicked,
         onRetryPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+        cameraRestartKey = cameraRestartKey,
     )
 }
 
@@ -145,6 +156,7 @@ private fun AuthScreen(
     onTokenScanned: (String) -> Unit,
     onLoginClicked: () -> Unit,
     onRetryPermission: () -> Unit,
+    cameraRestartKey: Int,
 ) {
     val scrollState = rememberScrollState()
     var manualToken by rememberSaveable { mutableStateOf("") }
@@ -197,6 +209,7 @@ private fun AuthScreen(
                     isScannerEnabled = isCameraEnabled,
                     onCodeScanned = onTokenScanned,
                     onRetryPermission = onRetryPermission,
+                    cameraRestartKey = cameraRestartKey,
                 )
             } else {
                 if (!isManualTokenFocused) {
@@ -353,6 +366,7 @@ private fun AuthScannerViewport(
     isScannerEnabled: Boolean,
     onCodeScanned: (String) -> Unit,
     onRetryPermission: () -> Unit,
+    cameraRestartKey: Int,
 ) {
     Surface(
         modifier = Modifier
@@ -373,6 +387,7 @@ private fun AuthScannerViewport(
                     isEnabled = isScannerEnabled,
                     onCodeScanned = onCodeScanned,
                     modifier = Modifier.fillMaxSize(),
+                    restartKey = cameraRestartKey,
                 )
             } else {
                 Column(

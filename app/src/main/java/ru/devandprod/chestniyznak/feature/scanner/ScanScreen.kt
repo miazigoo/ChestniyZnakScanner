@@ -8,6 +8,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
@@ -17,15 +18,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,10 +53,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -176,6 +180,7 @@ fun ScanScreen(
 ) {
     val themeSpec = CurrentAppThemeSpec
     val scrollState = rememberScrollState()
+    var isOrderSearchFocused by rememberSaveable { mutableStateOf(false) }
 
     state.packing.closeDialog?.let { dialog ->
         CloseBoxDialog(
@@ -297,7 +302,7 @@ fun ScanScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                if (state.scanMode == ScanMode.PackingTsd) {
+                if (state.scanMode == ScanMode.PackingTsd && !isOrderSearchFocused) {
                     HidScannerInputField(modifier = Modifier.size(1.dp))
                 }
 
@@ -322,6 +327,7 @@ fun ScanScreen(
                             onCountInPackingChanged = onCountInPackingChanged,
                             onOrderLineSelected = onOrderLineSelected,
                             onOrderSearchChanged = onOrderSearchChanged,
+                            onOrderSearchFocusChanged = { isOrderSearchFocused = it },
                             onItemLongPressed = onItemLongPressed,
                             onDismissItemMenu = onDismissItemMenu,
                             onRemoveItemRequested = onRemoveItemRequested,
@@ -339,6 +345,7 @@ fun ScanScreen(
                             onCountInPackingChanged = onCountInPackingChanged,
                             onOrderLineSelected = onOrderLineSelected,
                             onOrderSearchChanged = onOrderSearchChanged,
+                            onOrderSearchFocusChanged = { isOrderSearchFocused = it },
                             onItemLongPressed = onItemLongPressed,
                             onDismissItemMenu = onDismissItemMenu,
                             onRemoveItemRequested = onRemoveItemRequested,
@@ -442,6 +449,7 @@ private fun PackingCameraContent(
     onCountInPackingChanged: (Boolean) -> Unit,
     onOrderLineSelected: (String) -> Unit,
     onOrderSearchChanged: (String) -> Unit,
+    onOrderSearchFocusChanged: (Boolean) -> Unit,
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
@@ -465,6 +473,7 @@ private fun PackingCameraContent(
         onCountInPackingChanged = onCountInPackingChanged,
         onOrderLineSelected = onOrderLineSelected,
         onOrderSearchChanged = onOrderSearchChanged,
+        onOrderSearchFocusChanged = onOrderSearchFocusChanged,
         onItemLongPressed = onItemLongPressed,
         onDismissItemMenu = onDismissItemMenu,
         onRemoveItemRequested = onRemoveItemRequested,
@@ -534,6 +543,7 @@ private fun PackingContent(
     onCountInPackingChanged: (Boolean) -> Unit,
     onOrderLineSelected: (String) -> Unit,
     onOrderSearchChanged: (String) -> Unit,
+    onOrderSearchFocusChanged: (Boolean) -> Unit,
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
@@ -549,6 +559,7 @@ private fun PackingContent(
         onCountInPackingChanged = onCountInPackingChanged,
         onOrderLineSelected = onOrderLineSelected,
         onOrderSearchChanged = onOrderSearchChanged,
+        onOrderSearchFocusChanged = onOrderSearchFocusChanged,
         onItemLongPressed = onItemLongPressed,
         onDismissItemMenu = onDismissItemMenu,
         onRemoveItemRequested = onRemoveItemRequested,
@@ -600,11 +611,12 @@ private fun OrderLineSelector(
     state: PackingPaneUiState,
     onOrderLineSelected: (String) -> Unit,
     onOrderSearchChanged: (String) -> Unit,
+    onOrderSearchFocusChanged: (Boolean) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val selected = state.orderLines.firstOrNull {
         it.orderLineId == state.selectedOrderLineId
     }
+    val selectedPoolReady = selected != null && state.localPoolOrderId == selected.orderId && state.localPoolCount > 0
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -627,64 +639,113 @@ private fun OrderLineSelector(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
+            Text(
+                text = stringResource(R.string.packing_order_selector_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            )
             OutlinedTextField(
                 value = state.orderSearch,
                 onValueChange = onOrderSearchChanged,
                 enabled = !state.isBusy,
                 singleLine = true,
                 label = { Text(stringResource(R.string.common_search)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { onOrderSearchFocusChanged(it.isFocused) },
             )
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(
-                    onClick = { expanded = true },
-                    enabled = !state.isBusy && state.orderLines.isNotEmpty(),
+
+            selected?.let { line ->
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (selectedPoolReady) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
+                    } else {
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.62f)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(
-                        text = selected?.label ?: if (state.ordersLoading) {
-                            stringResource(R.string.packing_loading_orders)
-                        } else {
-                            stringResource(R.string.packing_no_orders)
-                        },
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    state.orderLines.forEach { option ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(option.orderNumber, fontWeight = FontWeight.SemiBold)
-                                    Text(
-                                        "${option.sku} · ${option.productName}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    option.packageCapacity?.let { capacity ->
-                                        Text(
-                                            stringResource(R.string.packing_box_capacity, capacity),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.primary,
-                                        )
-                                    }
-                                }
+                    Column(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.packing_selected_order, line.orderNumber),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedPoolReady) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSecondaryContainer
                             },
-                            onClick = {
-                                expanded = false
-                                onOrderLineSelected(option.orderLineId)
+                        )
+                        Text(
+                            text = "${line.sku} · ${line.productName}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (selectedPoolReady) {
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f)
+                            } else {
+                                MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.82f)
+                            },
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = when {
+                                state.localPoolLoading -> stringResource(R.string.local_pool_downloading)
+                                selectedPoolReady -> stringResource(R.string.local_pool_loaded, state.localPoolCount)
+                                line.scanRequired -> stringResource(R.string.local_pool_failed)
+                                else -> stringResource(R.string.packing_scanning_disabled)
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (selectedPoolReady) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSecondaryContainer
                             },
                         )
                     }
                 }
             }
+
+            if (state.orderLines.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 260.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(
+                        items = state.orderLines,
+                        key = { it.orderLineId },
+                    ) { option ->
+                        OrderLineOptionCard(
+                            option = option,
+                            isSelected = option.orderLineId == state.selectedOrderLineId,
+                            enabled = !state.isBusy,
+                            onClick = { onOrderLineSelected(option.orderLineId) },
+                        )
+                    }
+                }
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = if (state.ordersLoading) {
+                            stringResource(R.string.packing_loading_orders)
+                        } else {
+                            stringResource(R.string.packing_no_orders)
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                }
+            }
+
             if (state.ordersLoading) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -716,6 +777,89 @@ private fun OrderLineSelector(
     }
 }
 
+@Composable
+private fun OrderLineOptionCard(
+    option: PackingOrderLineUi,
+    isSelected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val containerColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
+    } else {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.74f)
+    }
+    val borderColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.28f)
+    }
+
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = containerColor,
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, borderColor, RoundedCornerShape(18.dp))
+            .clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = option.orderNumber,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (isSelected) {
+                    Surface(
+                        shape = RoundedCornerShape(100.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.common_selected),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                }
+            }
+            Text(
+                text = "${option.sku} · ${option.productName}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            option.packageCapacity?.let { capacity ->
+                Text(
+                    text = stringResource(R.string.packing_box_capacity, capacity),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            if (!option.scanRequired) {
+                Text(
+                    text = stringResource(R.string.packing_without_scanning_suffix),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            }
+        }
+    }
+}
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -728,6 +872,7 @@ private fun CurrentBoxPanel(
     onCountInPackingChanged: (Boolean) -> Unit,
     onOrderLineSelected: (String) -> Unit,
     onOrderSearchChanged: (String) -> Unit,
+    onOrderSearchFocusChanged: (Boolean) -> Unit,
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
@@ -755,6 +900,7 @@ private fun CurrentBoxPanel(
                     state = state,
                     onOrderLineSelected = onOrderLineSelected,
                     onOrderSearchChanged = onOrderSearchChanged,
+                    onOrderSearchFocusChanged = onOrderSearchFocusChanged,
                 )
                 Surface(
                     shape = RoundedCornerShape(22.dp),

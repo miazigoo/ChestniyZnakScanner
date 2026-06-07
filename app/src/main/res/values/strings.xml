@@ -6,6 +6,7 @@
     <string name="common_delete">Удалить</string>
     <string name="common_menu">Меню</string>
     <string name="common_search">Поиск</string>
+    <string name="common_selected">Выбран</string>
     <string name="common_device">Устройство</string>
     <string name="common_retry">Повторить</string>
     <string name="common_refresh">Обновить</string>
@@ -105,6 +106,7 @@
     <string name="packing_ready_to_open_box">Готово к открытию новой коробки</string>
     <string name="packing_scan_flow_active">Поток сканирования активен</string>
     <string name="packing_order_and_product">Заказ и номенклатура</string>
+    <string name="packing_order_selector_hint">Нажмите заказ в списке ниже. После выбора приложение скачает коды заказа в локальную базу.</string>
     <string name="packing_loading_orders">Загружаем заказы...</string>
     <string name="packing_no_orders">Нет доступных заказов</string>
     <string name="packing_refreshing_list">Обновляем список</string>

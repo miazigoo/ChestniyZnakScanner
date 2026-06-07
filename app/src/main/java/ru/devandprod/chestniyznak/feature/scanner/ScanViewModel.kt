@@ -160,7 +160,12 @@ class ScanViewModel @Inject constructor(
 
     fun onCameraCodeScanned(rawCode: String) {
         val state = _uiState.value
-        if (state.isLoading || state.verify.isProcessing) return
+        if (state.isLoading || state.verify.isProcessing) {
+            if (state.scanMode == ScanMode.PackingCamera) {
+                rearmPackingCameraScanner(delayMs = 250)
+            }
+            return
+        }
 
         when (state.scanMode) {
             ScanMode.CameraVerify -> handleVerifyScan(rawCode, "android-camera")
@@ -755,7 +760,12 @@ class ScanViewModel @Inject constructor(
             state.scanMode != requiredMode ||
             state.packing.isBusy ||
             state.packing.localPoolLoading
-        ) return
+        ) {
+            if (requiredMode == ScanMode.PackingCamera) {
+                rearmPackingCameraScanner(delayMs = 250)
+            }
+            return
+        }
 
         _uiState.update {
             it.copy(
@@ -782,19 +792,7 @@ class ScanViewModel @Inject constructor(
                 handleLocalPackingScan(rawCode = rawCode, scannerId = scannerId, result = result)
                 runCatching { refreshCatalogStatsUseCase() }
                 if (requiredMode == ScanMode.PackingCamera) {
-                    delay(900)
-                    _uiState.update { current ->
-                        if (current.scanMode == ScanMode.PackingCamera) {
-                            current.copy(
-                                verify = current.verify.copy(
-                                    isProcessing = false,
-                                    isScannerEnabled = current.verify.hasCameraPermission,
-                                ),
-                            )
-                        } else {
-                            current
-                        }
-                    }
+                    rearmPackingCameraScanner(delayMs = 650)
                 }
             }.onFailure { error ->
                 audioFeedbackPlayer.playError()
@@ -815,6 +813,27 @@ class ScanViewModel @Inject constructor(
                             isScannerEnabled = it.scanMode == ScanMode.PackingCamera && it.verify.hasCameraPermission,
                         ),
                     )
+                }
+                if (requiredMode == ScanMode.PackingCamera) {
+                    rearmPackingCameraScanner(delayMs = 650)
+                }
+            }
+        }
+    }
+
+    private fun rearmPackingCameraScanner(delayMs: Long) {
+        viewModelScope.launch {
+            delay(delayMs)
+            _uiState.update { current ->
+                if (current.scanMode == ScanMode.PackingCamera) {
+                    current.copy(
+                        verify = current.verify.copy(
+                            isProcessing = false,
+                            isScannerEnabled = current.verify.hasCameraPermission,
+                        ),
+                    )
+                } else {
+                    current
                 }
             }
         }

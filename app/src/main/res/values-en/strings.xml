@@ -6,6 +6,7 @@
     <string name="common_delete">Delete</string>
     <string name="common_menu">Menu</string>
     <string name="common_search">Search</string>
+    <string name="common_selected">Selected</string>
     <string name="common_device">Device</string>
     <string name="common_retry">Retry</string>
     <string name="common_refresh">Refresh</string>
@@ -105,6 +106,7 @@
     <string name="packing_ready_to_open_box">Ready to open a new box</string>
     <string name="packing_scan_flow_active">Scanning flow is active</string>
     <string name="packing_order_and_product">Order and product</string>
+    <string name="packing_order_selector_hint">Tap an order in the list below. After selection the app downloads that order code pool into the local database.</string>
     <string name="packing_loading_orders">Loading orders...</string>
     <string name="packing_no_orders">No available orders</string>
     <string name="packing_refreshing_list">Refreshing list</string>

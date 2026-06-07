@@ -6,6 +6,7 @@
     <string name="common_delete">删除</string>
     <string name="common_menu">菜单</string>
     <string name="common_search">搜索</string>
+    <string name="common_selected">已选择</string>
     <string name="common_device">设备</string>
     <string name="common_retry">重试</string>
     <string name="common_refresh">刷新</string>
@@ -105,6 +106,7 @@
     <string name="packing_ready_to_open_box">已准备好打开新箱子</string>
     <string name="packing_scan_flow_active">扫描流程已启用</string>
     <string name="packing_order_and_product">订单和品项</string>
+    <string name="packing_order_selector_hint">点击下方列表中的订单。选择后，应用会把该订单的标识码池下载到本地数据库。</string>
     <string name="packing_loading_orders">正在加载订单...</string>
     <string name="packing_no_orders">没有可用订单</string>
     <string name="packing_refreshing_list">正在刷新列表</string>

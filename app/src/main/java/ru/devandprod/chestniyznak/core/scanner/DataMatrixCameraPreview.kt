@@ -67,6 +67,7 @@ fun BarcodeCameraPreview(
     barcodeFormats: IntArray,
     onCodeScanned: (String) -> Unit,
     modifier: Modifier = Modifier,
+    restartKey: Any? = Unit,
     showZoomControls: Boolean = true,
     showTorchControl: Boolean = true,
     autoZoomEnabled: Boolean = true,
@@ -85,7 +86,7 @@ fun BarcodeCameraPreview(
     var lastAutoFocusAt by remember { mutableLongStateOf(0L) }
     var lastAutoZoomAt by remember { mutableLongStateOf(0L) }
 
-    val previewView = remember(context) {
+    val previewView = remember(context, restartKey) {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
         }
@@ -126,9 +127,9 @@ fun BarcodeCameraPreview(
         }
     }
 
-    val scanGate = remember { AtomicBoolean(isEnabled) }
-    val analyzerExecutor = remember { Executors.newSingleThreadExecutor() }
-    val analyzer = remember(barcodeFormats.contentHashCode()) {
+    val scanGate = remember(restartKey) { AtomicBoolean(isEnabled) }
+    val analyzerExecutor = remember(restartKey) { Executors.newSingleThreadExecutor() }
+    val analyzer = remember(barcodeFormats.contentHashCode(), restartKey) {
         BarcodeFrameAnalyzer(
             scanGate = scanGate,
             barcodeFormats = barcodeFormats,
@@ -176,7 +177,7 @@ fun BarcodeCameraPreview(
             },
         )
     }
-    val scaleGestureDetector = remember(context) {
+    val scaleGestureDetector = remember(context, restartKey) {
         ScaleGestureDetector(
             context,
             object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -189,7 +190,7 @@ fun BarcodeCameraPreview(
             },
         )
     }
-    val tapGestureDetector = remember(context) {
+    val tapGestureDetector = remember(context, restartKey) {
         GestureDetector(
             context,
             object : GestureDetector.SimpleOnGestureListener() {
@@ -243,7 +244,7 @@ fun BarcodeCameraPreview(
         }
     }
 
-    DisposableEffect(lifecycleOwner, previewView) {
+    DisposableEffect(lifecycleOwner, previewView, restartKey) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         val mainExecutor = ContextCompat.getMainExecutor(context)
         cameraProviderFuture.addListener(
@@ -435,12 +436,14 @@ fun DataMatrixCameraPreview(
     isEnabled: Boolean,
     onCodeScanned: (String) -> Unit,
     modifier: Modifier = Modifier,
+    restartKey: Any? = Unit,
 ) {
     BarcodeCameraPreview(
         isEnabled = isEnabled,
         barcodeFormats = intArrayOf(Barcode.FORMAT_DATA_MATRIX),
         onCodeScanned = onCodeScanned,
         modifier = modifier,
+        restartKey = restartKey,
     )
 }
 
@@ -449,6 +452,7 @@ fun SsccCameraPreview(
     isEnabled: Boolean,
     onCodeScanned: (String) -> Unit,
     modifier: Modifier = Modifier,
+    restartKey: Any? = Unit,
 ) {
     BarcodeCameraPreview(
         isEnabled = isEnabled,
@@ -458,6 +462,7 @@ fun SsccCameraPreview(
         ),
         onCodeScanned = onCodeScanned,
         modifier = modifier,
+        restartKey = restartKey,
     )
 }
 
@@ -466,6 +471,7 @@ fun QrCodeCameraPreview(
     isEnabled: Boolean,
     onCodeScanned: (String) -> Unit,
     modifier: Modifier = Modifier,
+    restartKey: Any? = Unit,
 ) {
     BarcodeCameraPreview(
         isEnabled = isEnabled,
@@ -474,6 +480,7 @@ fun QrCodeCameraPreview(
         showZoomControls = false,
         autoZoomEnabled = false,
         modifier = modifier,
+        restartKey = restartKey,
     )
 }
 
