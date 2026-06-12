@@ -137,7 +137,10 @@ class LocalChestniyZnakRepository @Inject constructor(
 
         if (matchedCode != null) {
             val hasOkScan = scanLogDao.hasSuccessfulScan(matchedCode.id)
-            if (matchedCode.isPackedRemotely()) {
+            if (matchedCode.isPendingLocalPacking()) {
+                status = VerificationStatus.DUPLICATE_SCAN
+                message = strings.get(R.string.packing_code_duplicate_current)
+            } else if (matchedCode.isPackedRemotely()) {
                 status = VerificationStatus.DUPLICATE_SCAN
                 message = matchedCode.packageCode
                     ?.takeIf(String::isNotBlank)
@@ -199,6 +202,38 @@ class LocalChestniyZnakRepository @Inject constructor(
         allowDuplicate = allowDuplicate,
     )
 
+    override suspend fun verifyLocalOnly(
+        rawInput: String,
+        scannerId: String,
+        allowDuplicate: Boolean,
+    ): VerificationResult = verify(
+        rawInput = rawInput,
+        scannerId = scannerId,
+        allowDuplicate = allowDuplicate,
+    )
+
+    override suspend fun markLocalPackingPending(
+        rawInput: String,
+        packageCode: String?,
+    ) = withContext(ioDispatcher) {
+        val parsed = parser.parse(rawInput)
+        markingCodeDao.markPackingPending(
+            rawHash = rawHash(parsed.rawCode),
+            packageCode = packageCode,
+        )
+    }
+
+    override suspend fun clearLocalPackingPending(rawCodes: List<String>) = withContext(ioDispatcher) {
+        val hashes = rawCodes
+            .mapNotNull { rawCode ->
+                runCatching { rawHash(parser.parse(rawCode).rawCode) }.getOrNull()
+            }
+            .distinct()
+        if (hashes.isNotEmpty()) {
+            markingCodeDao.clearPackingPending(hashes)
+        }
+    }
+
     override suspend fun markDefect(
         rawInput: String,
         scannerId: String,
@@ -243,7 +278,10 @@ class LocalChestniyZnakRepository @Inject constructor(
     )
 
     private fun MarkingCodeEntity.isPackedRemotely(): Boolean =
-        status1c in PACKED_REMOTE_STATUSES || !packageCode.isNullOrBlank()
+        !isPendingLocalPacking() && (status1c in PACKED_REMOTE_STATUSES || !packageCode.isNullOrBlank())
+
+    private fun MarkingCodeEntity.isPendingLocalPacking(): Boolean =
+        appStatus == "pending_local"
 
     private fun rawHash(rawCode: String): String {
         val digest = MessageDigest.getInstance("SHA-256")

@@ -11,6 +11,9 @@ interface ChestniyZnakRepository {
     suspend fun replaceLocalPool(orderNumber: String, orderId: String, codes: List<OrderLocalCode>)
     suspend fun verify(rawInput: String, scannerId: String = "", allowDuplicate: Boolean = false): VerificationResult
     suspend fun verifyExists(rawInput: String, scannerId: String = "", allowDuplicate: Boolean = false): VerificationResult
+    suspend fun verifyLocalOnly(rawInput: String, scannerId: String = "", allowDuplicate: Boolean = false): VerificationResult
+    suspend fun markLocalPackingPending(rawInput: String, packageCode: String?)
+    suspend fun clearLocalPackingPending(rawCodes: List<String>)
     suspend fun markDefect(rawInput: String, scannerId: String = ""): DefectMarkResult
     suspend fun refreshStats()
     fun observeStats(): Flow<CatalogStats>

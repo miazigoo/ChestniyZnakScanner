@@ -147,6 +147,29 @@ class HybridChestniyZnakRepository @Inject constructor(
         }
     }
 
+    override suspend fun verifyLocalOnly(
+        rawInput: String,
+        scannerId: String,
+        allowDuplicate: Boolean,
+    ): VerificationResult = withContext(ioDispatcher) {
+        localRepository.verifyLocalOnly(rawInput, scannerId, allowDuplicate).also {
+            statsFlow.value = localRepository.snapshotStats()
+        }
+    }
+
+    override suspend fun markLocalPackingPending(
+        rawInput: String,
+        packageCode: String?,
+    ) = withContext(ioDispatcher) {
+        localRepository.markLocalPackingPending(rawInput, packageCode)
+        statsFlow.value = localRepository.snapshotStats()
+    }
+
+    override suspend fun clearLocalPackingPending(rawCodes: List<String>) = withContext(ioDispatcher) {
+        localRepository.clearLocalPackingPending(rawCodes)
+        statsFlow.value = localRepository.snapshotStats()
+    }
+
     override suspend fun markDefect(
         rawInput: String,
         scannerId: String,

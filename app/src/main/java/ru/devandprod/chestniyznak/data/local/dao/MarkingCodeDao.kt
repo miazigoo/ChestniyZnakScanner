@@ -24,6 +24,33 @@ interface MarkingCodeDao {
     @Query("SELECT * FROM marking_codes WHERE rawCodeSha256 = :rawHash LIMIT 1")
     suspend fun findByRawHash(rawHash: String): MarkingCodeEntity?
 
+    @Query(
+        """
+        UPDATE marking_codes
+        SET appStatus = 'pending_local',
+            packageCode = :packageCode,
+            packageStatus = 'local_pending',
+            packageClosedAt = NULL
+        WHERE rawCodeSha256 = :rawHash
+        """,
+    )
+    suspend fun markPackingPending(rawHash: String, packageCode: String?)
+
+    @Query(
+        """
+        UPDATE marking_codes
+        SET appStatus = CASE
+                WHEN packageUnitId IS NULL AND (packageCode IS NULL OR packageCode = '') THEN 'local_pool'
+                ELSE appStatus
+            END,
+            packageCode = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageCode END,
+            packageStatus = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageStatus END,
+            packageClosedAt = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageClosedAt END
+        WHERE rawCodeSha256 IN (:rawHashes) AND appStatus = 'pending_local'
+        """,
+    )
+    suspend fun clearPackingPending(rawHashes: List<String>)
+
     @Query("SELECT EXISTS(SELECT 1 FROM marking_codes WHERE gtin = :gtin AND serial = :serial)")
     suspend fun existsByIdentity(gtin: String, serial: String): Boolean
 }

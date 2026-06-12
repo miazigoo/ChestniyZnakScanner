@@ -26,12 +26,14 @@ import ru.devandprod.chestniyznak.domain.model.VerificationResult
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
 import ru.devandprod.chestniyznak.domain.model.WorkOrderPage
 import ru.devandprod.chestniyznak.domain.usecase.ClosePackingBoxUseCase
+import ru.devandprod.chestniyznak.domain.usecase.ClearLocalPackingPendingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.DeleteEmptyPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.DownloadOrderLocalPoolUseCase
 import ru.devandprod.chestniyznak.domain.usecase.EnsureSeedDataUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetCurrentPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetClientPrinterSelectionUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ListWorkOrdersUseCase
+import ru.devandprod.chestniyznak.domain.usecase.MarkLocalPackingPendingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ObserveCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.PrintPackingBoxLabelUseCase
@@ -40,6 +42,7 @@ import ru.devandprod.chestniyznak.domain.usecase.RemovePackingBoxItemUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ScanCodesToPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.SetPackingBoxCountInPackingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.VerifyCodeExistsUseCase
+import ru.devandprod.chestniyznak.domain.usecase.VerifyLocalPoolCodeUseCase
 
 @HiltViewModel
 class ScanViewModel @Inject constructor(
@@ -50,6 +53,9 @@ class ScanViewModel @Inject constructor(
     observeCatalogStatsUseCase: ObserveCatalogStatsUseCase,
     private val refreshCatalogStatsUseCase: RefreshCatalogStatsUseCase,
     private val verifyCodeExistsUseCase: VerifyCodeExistsUseCase,
+    private val verifyLocalPoolCodeUseCase: VerifyLocalPoolCodeUseCase,
+    private val markLocalPackingPendingUseCase: MarkLocalPackingPendingUseCase,
+    private val clearLocalPackingPendingUseCase: ClearLocalPackingPendingUseCase,
     private val listWorkOrdersUseCase: ListWorkOrdersUseCase,
     private val downloadOrderLocalPoolUseCase: DownloadOrderLocalPoolUseCase,
     private val getCurrentPackingBoxUseCase: GetCurrentPackingBoxUseCase,
@@ -564,7 +570,11 @@ class ScanViewModel @Inject constructor(
     fun onClearLocalBoxRequested() {
         val box = _uiState.value.packing.currentBox ?: return
         if (_uiState.value.packing.isBusy || _uiState.value.packing.localPendingCodes.isEmpty()) return
+        val localPendingCodes = _uiState.value.packing.localPendingCodes
         audioFeedbackPlayer.playWarning()
+        viewModelScope.launch {
+            runCatching { clearLocalPackingPendingUseCase(localPendingCodes) }
+        }
         _uiState.update { state ->
             val serverItems = box.items.filter { it.rawCode.isBlank() }
             state.copy(
@@ -783,10 +793,10 @@ class ScanViewModel @Inject constructor(
 
         viewModelScope.launch {
             runCatching {
-                verifyCodeExistsUseCase(
+                verifyLocalPoolCodeUseCase(
                     rawInput = rawCode,
                     scannerId = scannerId,
-                    allowDuplicate = true,
+                    allowDuplicate = false,
                 )
             }.onSuccess { result ->
                 handleLocalPackingScan(rawCode = rawCode, scannerId = scannerId, result = result)
@@ -959,7 +969,13 @@ class ScanViewModel @Inject constructor(
         downloadLocalPoolFor(selectedLine, force = true)
     }
 
-    private fun handleLocalPackingScan(
+    private fun refreshSelectedLocalPool(force: Boolean = true) {
+        val selectedLine = _uiState.value.packing.selectedOrderLine() ?: return
+        if (!selectedLine.scanRequired) return
+        downloadLocalPoolFor(selectedLine, force = force)
+    }
+
+    private suspend fun handleLocalPackingScan(
         rawCode: String,
         scannerId: String,
         result: VerificationResult,
@@ -1049,6 +1065,12 @@ class ScanViewModel @Inject constructor(
                 }
             }
             else -> {
+                runCatching {
+                    markLocalPackingPendingUseCase(
+                        rawInput = normalizedRawCode,
+                        packageCode = box.sscc ?: strings.get(R.string.packing_box_number, box.boxId),
+                    )
+                }
                 audioFeedbackPlayer.playSuccess()
                 val localItem = PackingBoxItemUi(
                     id = result.scanId?.let { -it } ?: -(box.items.size.toLong() + 1L),
@@ -1096,6 +1118,9 @@ class ScanViewModel @Inject constructor(
 
     private fun removeLocalPendingItem(item: PackingBoxItemUi) {
         audioFeedbackPlayer.playWarning()
+        viewModelScope.launch {
+            runCatching { clearLocalPackingPendingUseCase(listOf(item.rawCode)) }
+        }
         _uiState.update { state ->
             val box = state.packing.currentBox ?: return@update state
             val updatedItems = box.items.filterNot { it.id == item.id }
@@ -1177,6 +1202,8 @@ class ScanViewModel @Inject constructor(
                         scannerId = "android-local-close",
                     )
                 }.getOrElse { error ->
+                    runCatching { clearLocalPackingPendingUseCase(localPendingCodes) }
+                    refreshSelectedLocalPool(force = true)
                     audioFeedbackPlayer.playError()
                     _uiState.update {
                         it.copy(
@@ -1195,9 +1222,12 @@ class ScanViewModel @Inject constructor(
                     return@launch
                 }
                 if (!scanResult.ok) {
+                    runCatching { clearLocalPackingPendingUseCase(localPendingCodes) }
+                    refreshSelectedLocalPool(force = true)
                     handlePackingScanResult(scanResult, refreshSnapshot = false)
                     return@launch
                 }
+                refreshSelectedLocalPool(force = true)
                 _uiState.update { state ->
                     state.copy(
                         packing = state.packing.copy(
@@ -1215,6 +1245,7 @@ class ScanViewModel @Inject constructor(
                         handleCloseBoxResult(closeResult)
                         return@onSuccess
                     }
+                    refreshSelectedLocalPool(force = true)
                     _uiState.update {
                         it.copy(
                             packing = it.packing.copy(
