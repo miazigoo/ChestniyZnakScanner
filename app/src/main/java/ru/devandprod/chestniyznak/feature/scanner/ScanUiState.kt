@@ -15,6 +15,7 @@ data class VerifyPaneUiState(
     val hasCameraPermission: Boolean = false,
     val isScannerEnabled: Boolean = false,
     val isProcessing: Boolean = false,
+    val scannerRearmKey: Long = 0L,
     val resultCard: ScanResultCardUi? = null,
     val boxInfo: VerificationBoxInfo? = null,
     val orderName: String? = null,

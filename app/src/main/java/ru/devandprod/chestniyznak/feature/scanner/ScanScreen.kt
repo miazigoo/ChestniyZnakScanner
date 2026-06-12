@@ -460,6 +460,7 @@ private fun PackingCameraContent(
         hasCameraPermission = verifyState.hasCameraPermission,
         isLoading = verifyState.isProcessing,
         isScannerEnabled = verifyState.isScannerEnabled,
+        scannerRearmKey = verifyState.scannerRearmKey,
         onCodeScanned = onCodeScanned,
         onRetryPermission = onRetryPermission,
     )
@@ -495,6 +496,7 @@ internal fun CameraVerifyContent(
         hasCameraPermission = state.hasCameraPermission,
         isLoading = state.isProcessing,
         isScannerEnabled = state.isScannerEnabled,
+        scannerRearmKey = state.scannerRearmKey,
         onCodeScanned = onCodeScanned,
         onRetryPermission = onRetryPermission,
     )
@@ -573,6 +575,7 @@ internal fun ScannerViewport(
     hasCameraPermission: Boolean,
     isLoading: Boolean,
     isScannerEnabled: Boolean,
+    scannerRearmKey: Long = 0L,
     onCodeScanned: (String) -> Unit,
     onRetryPermission: () -> Unit,
 ) {
@@ -593,6 +596,7 @@ internal fun ScannerViewport(
                 else -> {
                     DataMatrixCameraPreview(
                         isEnabled = isScannerEnabled,
+                        rearmKey = scannerRearmKey,
                         onCodeScanned = onCodeScanned,
                         modifier = Modifier.fillMaxSize(),
                     )

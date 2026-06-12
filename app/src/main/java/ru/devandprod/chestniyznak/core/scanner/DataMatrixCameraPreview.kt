@@ -53,6 +53,7 @@ import java.util.Locale
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.delay
 import ru.devandprod.chestniyznak.R
 
 private const val ROI_LEFT = 0.12f
@@ -68,6 +69,7 @@ fun BarcodeCameraPreview(
     onCodeScanned: (String) -> Unit,
     modifier: Modifier = Modifier,
     restartKey: Any? = Unit,
+    rearmKey: Any? = Unit,
     showZoomControls: Boolean = true,
     showTorchControl: Boolean = true,
     autoZoomEnabled: Boolean = true,
@@ -83,6 +85,7 @@ fun BarcodeCameraPreview(
     var hasFlashUnit by remember { mutableStateOf(false) }
     var torchEnabled by remember { mutableStateOf(false) }
     var trackedDetection by remember { mutableStateOf<BarcodeFrameDetection?>(null) }
+    var detectionSerial by remember { mutableLongStateOf(0L) }
     var lastAutoFocusAt by remember { mutableLongStateOf(0L) }
     var lastAutoZoomAt by remember { mutableLongStateOf(0L) }
 
@@ -135,6 +138,7 @@ fun BarcodeCameraPreview(
             barcodeFormats = barcodeFormats,
             onBarcodeFrame = { detection ->
                 trackedDetection = detection
+                detectionSerial += 1
                 if (detection != null && isEnabledUpdated) {
                     val now = System.currentTimeMillis()
                     if (autoZoomEnabled && now - lastAutoZoomAt >= 320L) {
@@ -213,15 +217,26 @@ fun BarcodeCameraPreview(
         )
     }
 
-    LaunchedEffect(isEnabled) {
+    LaunchedEffect(isEnabled, rearmKey) {
         scanGate.set(isEnabled)
+        trackedDetection = null
+        detectionSerial += 1
         if (isEnabled) {
             previewView.post {
                 focusAt(previewView.width / 2f, previewView.height / 2f)
             }
         } else {
             camera?.cameraControl?.enableTorch(false)
+        }
+    }
+
+    LaunchedEffect(detectionSerial, isEnabled) {
+        if (!isEnabled || trackedDetection == null) return@LaunchedEffect
+        val serial = detectionSerial
+        delay(900L)
+        if (serial == detectionSerial) {
             trackedDetection = null
+            detectionSerial += 1
         }
     }
 
@@ -437,6 +452,7 @@ fun DataMatrixCameraPreview(
     onCodeScanned: (String) -> Unit,
     modifier: Modifier = Modifier,
     restartKey: Any? = Unit,
+    rearmKey: Any? = Unit,
 ) {
     BarcodeCameraPreview(
         isEnabled = isEnabled,
@@ -444,6 +460,7 @@ fun DataMatrixCameraPreview(
         onCodeScanned = onCodeScanned,
         modifier = modifier,
         restartKey = restartKey,
+        rearmKey = rearmKey,
     )
 }
 
@@ -453,6 +470,7 @@ fun SsccCameraPreview(
     onCodeScanned: (String) -> Unit,
     modifier: Modifier = Modifier,
     restartKey: Any? = Unit,
+    rearmKey: Any? = Unit,
 ) {
     BarcodeCameraPreview(
         isEnabled = isEnabled,
@@ -463,6 +481,7 @@ fun SsccCameraPreview(
         onCodeScanned = onCodeScanned,
         modifier = modifier,
         restartKey = restartKey,
+        rearmKey = rearmKey,
     )
 }
 

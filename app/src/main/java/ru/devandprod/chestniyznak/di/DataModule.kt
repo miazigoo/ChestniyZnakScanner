@@ -98,6 +98,9 @@ object StorageModule {
         .callTimeout(40, TimeUnit.SECONDS)
         .addInterceptor(
             HttpLoggingInterceptor().apply {
+                redactHeader("Authorization")
+                redactHeader("Cookie")
+                redactHeader("Set-Cookie")
                 level = if (BuildConfig.ENABLE_HTTP_LOGGING) {
                     HttpLoggingInterceptor.Level.BODY
                 } else {

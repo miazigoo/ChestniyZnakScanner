@@ -80,6 +80,15 @@ class ScanViewModel @Inject constructor(
     )
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
 
+    private fun VerifyPaneUiState.readyForPackingCamera(scanMode: ScanMode): VerifyPaneUiState {
+        val enabled = scanMode == ScanMode.PackingCamera && hasCameraPermission
+        return copy(
+            isProcessing = false,
+            isScannerEnabled = enabled,
+            scannerRearmKey = if (enabled) scannerRearmKey + 1 else scannerRearmKey,
+        )
+    }
+
     init {
         viewModelScope.launch {
             runCatching { ensureSeedDataUseCase() }
@@ -735,10 +744,7 @@ class ScanViewModel @Inject constructor(
                         errorText = strings.get(R.string.packing_open_not_needed),
                         lastScannedCode = rawCode,
                     ),
-                    verify = it.verify.copy(
-                        isProcessing = false,
-                        isScannerEnabled = it.scanMode == ScanMode.PackingCamera && it.verify.hasCameraPermission,
-                    ),
+                    verify = it.verify.readyForPackingCamera(it.scanMode),
                 )
             }
             return
@@ -757,10 +763,7 @@ class ScanViewModel @Inject constructor(
                         errorText = strings.get(R.string.packing_open_box_first),
                         lastScannedCode = rawCode,
                     ),
-                    verify = it.verify.copy(
-                        isProcessing = false,
-                        isScannerEnabled = it.scanMode == ScanMode.PackingCamera && it.verify.hasCameraPermission,
-                    ),
+                    verify = it.verify.readyForPackingCamera(it.scanMode),
                 )
             }
             return
@@ -772,7 +775,7 @@ class ScanViewModel @Inject constructor(
             state.packing.localPoolLoading
         ) {
             if (requiredMode == ScanMode.PackingCamera) {
-                rearmPackingCameraScanner(delayMs = 250)
+                rearmPackingCameraScanner(delayMs = 120)
             }
             return
         }
@@ -800,9 +803,8 @@ class ScanViewModel @Inject constructor(
                 )
             }.onSuccess { result ->
                 handleLocalPackingScan(rawCode = rawCode, scannerId = scannerId, result = result)
-                runCatching { refreshCatalogStatsUseCase() }
                 if (requiredMode == ScanMode.PackingCamera) {
-                    rearmPackingCameraScanner(delayMs = 650)
+                    rearmPackingCameraScanner(delayMs = 120)
                 }
             }.onFailure { error ->
                 audioFeedbackPlayer.playError()
@@ -818,14 +820,11 @@ class ScanViewModel @Inject constructor(
                             statusText = strings.get(R.string.packing_error),
                             errorText = error.message,
                         ),
-                        verify = it.verify.copy(
-                            isProcessing = false,
-                            isScannerEnabled = it.scanMode == ScanMode.PackingCamera && it.verify.hasCameraPermission,
-                        ),
+                        verify = it.verify.readyForPackingCamera(it.scanMode),
                     )
                 }
                 if (requiredMode == ScanMode.PackingCamera) {
-                    rearmPackingCameraScanner(delayMs = 650)
+                    rearmPackingCameraScanner(delayMs = 120)
                 }
             }
         }
@@ -837,10 +836,7 @@ class ScanViewModel @Inject constructor(
             _uiState.update { current ->
                 if (current.scanMode == ScanMode.PackingCamera) {
                     current.copy(
-                        verify = current.verify.copy(
-                            isProcessing = false,
-                            isScannerEnabled = current.verify.hasCameraPermission,
-                        ),
+                        verify = current.verify.readyForPackingCamera(current.scanMode),
                     )
                 } else {
                     current
@@ -998,10 +994,7 @@ class ScanViewModel @Inject constructor(
                             statusText = strings.get(R.string.packing_open_box_not_selected),
                             errorText = strings.get(R.string.packing_open_box_first),
                         ),
-                        verify = current.verify.copy(
-                            isProcessing = false,
-                            isScannerEnabled = current.scanMode == ScanMode.PackingCamera && current.verify.hasCameraPermission,
-                        ),
+                        verify = current.verify.readyForPackingCamera(current.scanMode),
                     )
                 }
             }
@@ -1015,10 +1008,7 @@ class ScanViewModel @Inject constructor(
                             statusText = strings.get(R.string.packing_code_not_added),
                             errorText = result.message,
                         ),
-                        verify = current.verify.copy(
-                            isProcessing = false,
-                            isScannerEnabled = current.scanMode == ScanMode.PackingCamera && current.verify.hasCameraPermission,
-                        ),
+                        verify = current.verify.readyForPackingCamera(current.scanMode),
                     )
                 }
             }
@@ -1036,10 +1026,7 @@ class ScanViewModel @Inject constructor(
                             statusText = strings.get(R.string.packing_code_duplicate_box),
                             errorText = null,
                         ),
-                        verify = current.verify.copy(
-                            isProcessing = false,
-                            isScannerEnabled = current.scanMode == ScanMode.PackingCamera && current.verify.hasCameraPermission,
-                        ),
+                        verify = current.verify.readyForPackingCamera(current.scanMode),
                     )
                 }
             }
@@ -1057,10 +1044,7 @@ class ScanViewModel @Inject constructor(
                             statusText = strings.get(R.string.packing_box_full),
                             errorText = strings.get(R.string.packing_box_full),
                         ),
-                        verify = current.verify.copy(
-                            isProcessing = false,
-                            isScannerEnabled = current.scanMode == ScanMode.PackingCamera && current.verify.hasCameraPermission,
-                        ),
+                        verify = current.verify.readyForPackingCamera(current.scanMode),
                     )
                 }
             }
@@ -1106,10 +1090,7 @@ class ScanViewModel @Inject constructor(
                             },
                             errorText = null,
                         ),
-                        verify = current.verify.copy(
-                            isProcessing = false,
-                            isScannerEnabled = current.scanMode == ScanMode.PackingCamera && current.verify.hasCameraPermission,
-                        ),
+                        verify = current.verify.readyForPackingCamera(current.scanMode),
                     )
                 }
             }
