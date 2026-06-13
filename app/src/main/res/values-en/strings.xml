@@ -487,6 +487,7 @@
     <string name="order_selection_error_headline">ERROR</string>
     <string name="order_selection_open_box_headline">BOX IS OPEN</string>
     <string name="order_selection_open_box_message">Box #%1$d is currently open. To choose another order, close or delete this box in packing first.</string>
+    <string name="order_selection_return_to_open_box">Return to the open box</string>
     <string name="order_selection_choose_first">Select an order</string>
     <string name="order_selection_continue">Go to packing</string>
     <string name="order_selection_wait_pool">Wait for the code pool</string>

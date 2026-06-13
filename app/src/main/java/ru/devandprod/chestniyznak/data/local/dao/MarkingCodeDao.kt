@@ -26,6 +26,19 @@ interface MarkingCodeDao {
 
     @Query(
         """
+        SELECT * FROM marking_codes
+        WHERE appStatus = 'pending_local'
+            AND packageCode = :packageCode
+        ORDER BY id ASC
+        """,
+    )
+    suspend fun findLocalPackingPending(packageCode: String): List<MarkingCodeEntity>
+
+    @Query("SELECT * FROM marking_codes WHERE appStatus = 'pending_local'")
+    suspend fun findAllLocalPackingPending(): List<MarkingCodeEntity>
+
+    @Query(
+        """
         UPDATE marking_codes
         SET appStatus = 'pending_local',
             packageCode = :packageCode,

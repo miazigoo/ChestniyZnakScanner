@@ -487,6 +487,7 @@
     <string name="order_selection_error_headline">错误</string>
     <string name="order_selection_open_box_headline">箱子已打开</string>
     <string name="order_selection_open_box_message">当前已打开箱子 #%1$d。要选择其他订单，请先在包装中关闭或删除该箱子。</string>
+    <string name="order_selection_return_to_open_box">返回已打开的箱子</string>
     <string name="order_selection_choose_first">请选择订单</string>
     <string name="order_selection_continue">进入包装</string>
     <string name="order_selection_wait_pool">等待标识码池加载</string>

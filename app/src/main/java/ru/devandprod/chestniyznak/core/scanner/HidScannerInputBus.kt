@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 
 object HidScannerInputBus {
     private const val INPUT_TIMEOUT_MS = 1_000L
-    private const val DEDUPE_WINDOW_MS = 750L
+    private const val DEDUPE_WINDOW_MS = 5_000L
 
     private val scannedCodesFlow = MutableSharedFlow<String>(extraBufferCapacity = 32)
     private val buffer = StringBuilder()

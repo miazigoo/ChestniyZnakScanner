@@ -487,6 +487,7 @@
     <string name="order_selection_error_headline">ОШИБКА</string>
     <string name="order_selection_open_box_headline">ОТКРЫТА КОРОБКА</string>
     <string name="order_selection_open_box_message">Сейчас открыта коробка #%1$d. Чтобы выбрать другой заказ, сначала закройте или удалите эту коробку в упаковке.</string>
+    <string name="order_selection_return_to_open_box">Вернуться к открытой коробке</string>
     <string name="order_selection_choose_first">Выберите заказ</string>
     <string name="order_selection_continue">Перейти к упаковке</string>
     <string name="order_selection_wait_pool">Дождитесь загрузки пула</string>

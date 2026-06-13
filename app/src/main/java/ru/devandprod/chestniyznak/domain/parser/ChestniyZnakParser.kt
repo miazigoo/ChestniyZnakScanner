@@ -99,6 +99,7 @@ class ChestniyZnakParser private constructor(
             .replace("[GS]", GS)
             .replace("{GS}", GS)
             .replace("\\x1d", GS)
+            .replace("x1d", GS, ignoreCase = true)
             .replace("\\u001d", GS)
             .replace("\\035", GS)
 

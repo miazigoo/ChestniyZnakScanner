@@ -101,4 +101,19 @@ class ChestniyZnakParserTest {
         assertEquals("TAIL", result.aiParts["92"])
         assertTrue(result.visibleCode.contains("<GS>91ABCD<GS>92TAIL"))
     }
+
+    @Test
+    fun `parse supports bare x1d scanner separator`() {
+        val result = parser.parse("010460123456789121A200000001x1d91PH1Vx1d92CRYPTO")
+
+        assertEquals("04601234567891", result.gtin)
+        assertEquals("A200000001", result.serial)
+        assertEquals("PH1V", result.aiParts["91"])
+        assertEquals("CRYPTO", result.aiParts["92"])
+        assertTrue(result.visibleCode.contains("<GS>91PH1V<GS>92CRYPTO"))
+        assertEquals(
+            "010460123456789121A200000001\u001D91PH1V\u001D92CRYPTO",
+            result.rawCode,
+        )
+    }
 }

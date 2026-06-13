@@ -268,13 +268,6 @@ fun OrderSelectionScreen(
                     }
                 }
 
-                OrderLineSelector(
-                    state = state,
-                    onOrderLineSelected = onOrderLineSelected,
-                    onOrderSearchChanged = onOrderSearchChanged,
-                    onOrderSearchFocusChanged = { isOrderSearchFocused = it },
-                )
-
                 state.currentBox?.let { box ->
                     StatusCard(
                         result = ScanResultCardUi(
@@ -283,7 +276,28 @@ fun OrderSelectionScreen(
                             tone = ScanResultTone.Warning,
                         ),
                     )
+                    Button(
+                        onClick = onContinuePacking,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.order_selection_return_to_open_box),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
+
+                OrderLineSelector(
+                    state = state,
+                    onOrderLineSelected = onOrderLineSelected,
+                    onOrderSearchChanged = onOrderSearchChanged,
+                    onOrderSearchFocusChanged = { isOrderSearchFocused = it },
+                )
 
                 state.errorText?.takeIf(String::isNotBlank)?.let { error ->
                     StatusCard(
@@ -295,26 +309,28 @@ fun OrderSelectionScreen(
                     )
                 }
 
-                Button(
-                    onClick = onContinuePacking,
-                    enabled = selected != null && selectedPoolReady && !state.localPoolLoading && !state.ordersLoading,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                ) {
-                    Text(
-                        text = when {
-                            state.ordersLoading -> stringResource(R.string.packing_loading_orders)
-                            state.localPoolLoading -> stringResource(R.string.local_pool_downloading)
-                            selected == null -> stringResource(R.string.order_selection_choose_first)
-                            selectedPoolReady -> stringResource(R.string.order_selection_continue)
-                            else -> stringResource(R.string.order_selection_wait_pool)
-                        },
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                if (state.currentBox == null) {
+                    Button(
+                        onClick = onContinuePacking,
+                        enabled = selected != null && selectedPoolReady && !state.localPoolLoading && !state.ordersLoading,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    ) {
+                        Text(
+                            text = when {
+                                state.ordersLoading -> stringResource(R.string.packing_loading_orders)
+                                state.localPoolLoading -> stringResource(R.string.local_pool_downloading)
+                                selected == null -> stringResource(R.string.order_selection_choose_first)
+                                selectedPoolReady -> stringResource(R.string.order_selection_continue)
+                                else -> stringResource(R.string.order_selection_wait_pool)
+                            },
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
 
                 if (!isOrderSearchFocused) {

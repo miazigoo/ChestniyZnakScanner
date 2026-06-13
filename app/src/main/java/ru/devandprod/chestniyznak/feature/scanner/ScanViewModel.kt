@@ -32,6 +32,7 @@ import ru.devandprod.chestniyznak.domain.usecase.DownloadOrderLocalPoolUseCase
 import ru.devandprod.chestniyznak.domain.usecase.EnsureSeedDataUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetCurrentPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetClientPrinterSelectionUseCase
+import ru.devandprod.chestniyznak.domain.usecase.GetLocalPackingPendingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ListWorkOrdersUseCase
 import ru.devandprod.chestniyznak.domain.usecase.MarkLocalPackingPendingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ObserveCatalogStatsUseCase
@@ -59,6 +60,7 @@ class ScanViewModel @Inject constructor(
     private val listWorkOrdersUseCase: ListWorkOrdersUseCase,
     private val downloadOrderLocalPoolUseCase: DownloadOrderLocalPoolUseCase,
     private val getCurrentPackingBoxUseCase: GetCurrentPackingBoxUseCase,
+    private val getLocalPackingPendingUseCase: GetLocalPackingPendingUseCase,
     private val getClientPrinterSelectionUseCase: GetClientPrinterSelectionUseCase,
     private val openPackingBoxUseCase: OpenPackingBoxUseCase,
     private val scanCodesToPackingBoxUseCase: ScanCodesToPackingBoxUseCase,
@@ -1292,15 +1294,21 @@ class ScanViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { getCurrentPackingBoxUseCase() }
                 .onSuccess { detail ->
+                    val serverBox = detail?.toUi()
+                    val restoredLocalItems = serverBox
+                        ?.let { box -> restoreLocalPendingItems(box) }
+                        .orEmpty()
                     _uiState.update { state ->
-                        val serverBox = detail?.toUi()
                         val localItems = state.packing.currentBox
                             ?.takeIf { current -> current.boxId == serverBox?.boxId }
                             ?.items
                             ?.filter { it.rawCode.isNotBlank() }
                             .orEmpty()
-                        val mergedBox = if (serverBox != null && localItems.isNotEmpty()) {
-                            val mergedItems = serverBox.items + localItems
+                        val pendingItems = (localItems + restoredLocalItems)
+                            .distinctBy { it.rawCode.ifBlank { it.id.toString() } }
+                        val mergedBox = if (serverBox != null && pendingItems.isNotEmpty()) {
+                            val mergedItems = (serverBox.items + pendingItems)
+                                .distinctBy { it.rawCode.ifBlank { it.id.toString() } }
                             serverBox.copy(
                                 filled = mergedItems.size,
                                 items = mergedItems,
@@ -1313,6 +1321,9 @@ class ScanViewModel @Inject constructor(
                                 isBusy = false,
                                 currentBox = mergedBox,
                                 countInPacking = detail?.box?.countInPacking ?: state.packing.countInPacking,
+                                localPendingCodes = pendingItems.mapNotNull { item ->
+                                    item.rawCode.takeIf(String::isNotBlank)
+                                },
                                 statusText = statusText ?: if (detail == null) {
                                     strings.get(R.string.packing_open_box_not_found)
                                 } else {
@@ -1598,6 +1609,21 @@ class ScanViewModel @Inject constructor(
         serial = serial,
         visibleCode = visibleCode,
     )
+
+    private suspend fun restoreLocalPendingItems(box: PackingBoxUi): List<PackingBoxItemUi> {
+        val packageCode = box.sscc
+            ?.takeIf(String::isNotBlank)
+            ?: strings.get(R.string.packing_box_number, box.boxId)
+        return getLocalPackingPendingUseCase(packageCode).map { code ->
+            PackingBoxItemUi(
+                id = -code.id,
+                gtin = code.gtin,
+                serial = code.serial,
+                visibleCode = code.visibleCode,
+                rawCode = code.rawCode,
+            )
+        }
+    }
 
     private fun WorkOrderPage.toPackingOrderLines(): List<PackingOrderLineUi> =
         orders.flatMap { order ->

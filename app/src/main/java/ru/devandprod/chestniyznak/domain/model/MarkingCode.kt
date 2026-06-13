@@ -14,3 +14,11 @@ data class MarkingCode(
     val packageCode: String? = null,
     val packageStatus: String? = null,
 )
+
+data class LocalPackingPendingCode(
+    val id: Long,
+    val gtin: String,
+    val serial: String,
+    val visibleCode: String,
+    val rawCode: String,
+)

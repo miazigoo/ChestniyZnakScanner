@@ -19,6 +19,7 @@ import ru.devandprod.chestniyznak.data.local.entity.ScanLogEntity
 import ru.devandprod.chestniyznak.data.local.seed.SeedAssetLoader
 import ru.devandprod.chestniyznak.domain.model.CatalogStats
 import ru.devandprod.chestniyznak.domain.model.DefectMarkResult
+import ru.devandprod.chestniyznak.domain.model.LocalPackingPendingCode
 import ru.devandprod.chestniyznak.domain.model.MarkingCode
 import ru.devandprod.chestniyznak.domain.model.OrderLocalCode
 import ru.devandprod.chestniyznak.domain.model.ParsedMarkingCode
@@ -66,10 +67,14 @@ class LocalChestniyZnakRepository @Inject constructor(
         orderId: String,
         codes: List<OrderLocalCode>,
     ) = withContext(ioDispatcher) {
+        val localPendingByHash = markingCodeDao.findAllLocalPackingPending()
+            .associateBy { it.rawCodeSha256 }
         val entities = codes
             .distinctBy { it.code }
             .map { code ->
                 val parsed = parser.parse(code.code)
+                val rawCodeSha256 = rawHash(parsed.rawCode)
+                val localPending = localPendingByHash[rawCodeSha256]
                 MarkingCodeEntity(
                     gtin = parsed.gtin,
                     serial = parsed.serial,
@@ -77,9 +82,9 @@ class LocalChestniyZnakRepository @Inject constructor(
                     aiPartsJson = json.encodeToString(parsed.aiParts),
                     rawCode = parsed.rawCode,
                     visibleCode = parsed.visibleCode,
-                    rawCodeSha256 = rawHash(parsed.rawCode),
+                    rawCodeSha256 = rawCodeSha256,
                     status1c = code.status,
-                    appStatus = if (code.packageCode.isNullOrBlank()) {
+                    appStatus = localPending?.appStatus ?: if (code.packageCode.isNullOrBlank()) {
                         "local_pool"
                     } else {
                         "packed_remote"
@@ -89,9 +94,9 @@ class LocalChestniyZnakRepository @Inject constructor(
                     orderLineId = code.orderLineId,
                     remoteCodeId = code.id,
                     packageUnitId = code.packageUnitId,
-                    packageCode = code.packageCode,
-                    packageStatus = code.packageStatus,
-                    packageClosedAt = code.packageClosedAt,
+                    packageCode = localPending?.packageCode ?: code.packageCode,
+                    packageStatus = localPending?.packageStatus ?: code.packageStatus,
+                    packageClosedAt = localPending?.packageClosedAt ?: code.packageClosedAt,
                     remoteUpdatedAt = code.updatedAt,
                 )
             }
@@ -211,6 +216,20 @@ class LocalChestniyZnakRepository @Inject constructor(
         scannerId = scannerId,
         allowDuplicate = allowDuplicate,
     )
+
+    override suspend fun getLocalPackingPending(packageCode: String): List<LocalPackingPendingCode> =
+        withContext(ioDispatcher) {
+            markingCodeDao.findLocalPackingPending(packageCode)
+                .map { entity ->
+                    LocalPackingPendingCode(
+                        id = entity.id,
+                        gtin = entity.gtin,
+                        serial = entity.serial,
+                        visibleCode = entity.visibleCode,
+                        rawCode = entity.rawCode,
+                    )
+                }
+        }
 
     override suspend fun markLocalPackingPending(
         rawInput: String,

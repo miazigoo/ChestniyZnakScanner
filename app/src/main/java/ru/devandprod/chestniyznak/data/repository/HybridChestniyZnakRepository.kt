@@ -21,6 +21,7 @@ import ru.devandprod.chestniyznak.data.remote.dto.VerifyRequestDto
 import ru.devandprod.chestniyznak.data.remote.dto.toDomain
 import ru.devandprod.chestniyznak.domain.model.CatalogStats
 import ru.devandprod.chestniyznak.domain.model.DefectMarkResult
+import ru.devandprod.chestniyznak.domain.model.LocalPackingPendingCode
 import ru.devandprod.chestniyznak.domain.model.OrderLocalCode
 import ru.devandprod.chestniyznak.domain.model.VerificationResult
 import ru.devandprod.chestniyznak.domain.model.VerificationStatus
@@ -156,6 +157,11 @@ class HybridChestniyZnakRepository @Inject constructor(
             statsFlow.value = localRepository.snapshotStats()
         }
     }
+
+    override suspend fun getLocalPackingPending(packageCode: String): List<LocalPackingPendingCode> =
+        withContext(ioDispatcher) {
+            localRepository.getLocalPackingPending(packageCode)
+        }
 
     override suspend fun markLocalPackingPending(
         rawInput: String,
