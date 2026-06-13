@@ -123,6 +123,7 @@
     <string name="packing_count_enabled_hint">关闭箱子会增加包装计数</string>
     <string name="packing_count_disabled_hint">关闭箱子时不会增加包装计数</string>
     <string name="packing_count_mode_blocked_local_pending">请先关闭箱子或清空本地箱。存在未发送标识码时不能更改计数模式。</string>
+    <string name="packing_virtual_box_hint">虚拟箱用于多码产品：如果有一个码未读到，请清空整个箱，更换标签后重新扫描该产品。</string>
     <string name="packing_open_box">打开箱子</string>
     <string name="packing_close_box">关闭箱子</string>
     <string name="packing_clear_box">清空箱子</string>

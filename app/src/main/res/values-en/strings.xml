@@ -123,6 +123,7 @@
     <string name="packing_count_enabled_hint">Closing the box will increase the packaging counter</string>
     <string name="packing_count_disabled_hint">The box will close without increasing the packaging counter</string>
     <string name="packing_count_mode_blocked_local_pending">Close the box or clear the local box first. The count mode cannot be changed while there are unsent codes.</string>
+    <string name="packing_virtual_box_hint">The virtual box is for multi-code items: if one code was not read, clear the whole box, replace the label, and scan the item again.</string>
     <string name="packing_open_box">Open box</string>
     <string name="packing_close_box">Close box</string>
     <string name="packing_clear_box">Clear box</string>

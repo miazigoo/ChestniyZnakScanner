@@ -1299,6 +1299,20 @@ private fun CurrentBoxPanel(
                     onDeleteEmptyBoxRequested = onDeleteEmptyBoxRequested,
                     onScanNextRequested = onScanNextRequested,
                 )
+                if (state.localPendingCodes.isNotEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.64f),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.packing_virtual_box_hint),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
                 MetricRow(
                     leftTitle = "ID",
                     leftValue = box.boxId.toString(),
