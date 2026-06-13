@@ -199,6 +199,8 @@
     <string name="printer_job_missing_printer">Print job has no printer</string>
     <string name="printer_empty_job">Backend returned an empty print job</string>
     <string name="printer_select_required">Select a printer for SSCC printing before closing the box.</string>
+    <string name="printer_select_before_open_box_title">Select a printer</string>
+    <string name="printer_select_before_open_box_message">Select an SSCC printer before opening a box. This lets the operator print the label immediately after closing the box.</string>
     <string name="printer_tcp_connection_failed">Printer %1$s is unavailable at %2$s. Check power, network, or select another printer.</string>
     <string name="printer_open_settings">Open printer settings</string>
     <string name="printer_toolbar_title">PRINTER</string>

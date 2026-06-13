@@ -168,6 +168,14 @@ class ScanViewModel @Inject constructor(
         loadWorkOrders()
     }
 
+    fun onDismissPrinterRequiredDialog() {
+        _uiState.update { state ->
+            state.copy(
+                packing = state.packing.copy(showPrinterRequiredDialog = false),
+            )
+        }
+    }
+
     fun onCameraPermissionChanged(isGranted: Boolean) {
         _uiState.update { state ->
             state.copy(
@@ -348,6 +356,10 @@ class ScanViewModel @Inject constructor(
 
         viewModelScope.launch {
             runCatching {
+                val printerSelection = getClientPrinterSelectionUseCase(DeviceIdentity.clientDeviceId)
+                if (printerSelection.selectedPrinterId == null) {
+                    throw PrinterSelectionRequiredException
+                }
                 if (_uiState.value.packing.localPoolOrderId != selectedLine.orderId) {
                     val count = downloadOrderLocalPoolUseCase(selectedLine.orderId)
                     _uiState.update { current ->
@@ -370,6 +382,25 @@ class ScanViewModel @Inject constructor(
                 .onSuccess(::handleOpenBoxResult)
                 .onFailure { error ->
                     audioFeedbackPlayer.playError()
+                    if (error is PrinterSelectionRequiredException) {
+                        _uiState.update {
+                            it.copy(
+                                packing = it.packing.copy(
+                                    isBusy = false,
+                                    showPrinterRequiredDialog = true,
+                                    showPrinterSettingsAction = true,
+                                    resultCard = ScanResultCardUi(
+                                        headline = "NO",
+                                        message = strings.get(R.string.printer_select_before_open_box_message),
+                                        tone = ScanResultTone.Warning,
+                                    ),
+                                    statusText = strings.get(R.string.printer_select_before_open_box_title),
+                                    errorText = strings.get(R.string.printer_select_before_open_box_message),
+                                ),
+                            )
+                        }
+                        return@onFailure
+                    }
                     _uiState.update {
                         it.copy(
                             packing = it.packing.copy(
@@ -1675,6 +1706,8 @@ class ScanViewModel @Inject constructor(
 
     private fun isCameraMode(mode: ScanMode): Boolean =
         mode == ScanMode.CameraVerify || mode == ScanMode.PackingCamera
+
+    private data object PrinterSelectionRequiredException : RuntimeException()
 
     private companion object {
         val WRONG_ORDER_CODES = setOf("wrong_order", "mark_code_wrong_order")

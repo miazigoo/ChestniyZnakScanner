@@ -199,6 +199,8 @@
     <string name="printer_job_missing_printer">打印任务中没有打印机</string>
     <string name="printer_empty_job">后端返回了空打印任务</string>
     <string name="printer_select_required">关闭箱子前请选择用于打印 SSCC 的打印机。</string>
+    <string name="printer_select_before_open_box_title">请选择打印机</string>
+    <string name="printer_select_before_open_box_message">打开箱子前请选择用于打印 SSCC 的打印机。这样操作员在关闭箱子后可以立即打印标签。</string>
     <string name="printer_tcp_connection_failed">打印机 %1$s 在 %2$s 不可用。请检查电源、网络，或选择其他打印机。</string>
     <string name="printer_open_settings">打开打印机设置</string>
     <string name="printer_toolbar_title">打印机</string>

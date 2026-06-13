@@ -199,6 +199,8 @@
     <string name="printer_job_missing_printer">В задании печати нет принтера</string>
     <string name="printer_empty_job">Backend вернул пустое задание печати</string>
     <string name="printer_select_required">Выберите принтер для печати SSCC перед закрытием коробки.</string>
+    <string name="printer_select_before_open_box_title">Выберите принтер</string>
+    <string name="printer_select_before_open_box_message">Перед открытием коробки выберите принтер для печати SSCC. Так оператор сразу получит этикетку после закрытия коробки.</string>
     <string name="printer_tcp_connection_failed">Принтер %1$s недоступен по адресу %2$s. Проверьте питание, сеть или выберите другой принтер.</string>
     <string name="printer_open_settings">Открыть настройки принтера</string>
     <string name="printer_toolbar_title">ПРИНТЕР</string>

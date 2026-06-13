@@ -42,6 +42,7 @@ data class PackingPaneUiState(
     val statusText: String = "",
     val errorText: String? = null,
     val showPrinterSettingsAction: Boolean = false,
+    val showPrinterRequiredDialog: Boolean = false,
     val lastScannedCode: String = "",
     val activeBoxesDialog: ActiveBoxesDialogUi? = null,
     val closeDialog: CloseBoxDialogUi? = null,

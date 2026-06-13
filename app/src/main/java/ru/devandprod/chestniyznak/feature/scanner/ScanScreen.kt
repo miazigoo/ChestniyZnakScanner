@@ -140,6 +140,7 @@ fun ScanRoute(
         onDismissCloseDialog = viewModel::onDismissCloseDialog,
         onActiveBoxSelected = viewModel::onActiveBoxSelected,
         onDismissActiveBoxesDialog = viewModel::onDismissActiveBoxesDialog,
+        onDismissPrinterRequiredDialog = viewModel::onDismissPrinterRequiredDialog,
         onCountInPackingChanged = viewModel::onCountInPackingChanged,
         onOrderLineSelected = viewModel::onOrderLineSelected,
         onOrderSearchChanged = viewModel::onOrderSearchChanged,
@@ -232,6 +233,65 @@ fun OrderSelectionScreen(
                 },
             )
         },
+        bottomBar = {
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                tonalElevation = 4.dp,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    if (state.currentBox == null) {
+                        Button(
+                            onClick = onContinuePacking,
+                            enabled = selected != null && selectedPoolReady && !state.localPoolLoading && !state.ordersLoading,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) {
+                            Text(
+                                text = when {
+                                    state.ordersLoading -> stringResource(R.string.packing_loading_orders)
+                                    state.localPoolLoading -> stringResource(R.string.local_pool_downloading)
+                                    selected == null -> stringResource(R.string.order_selection_choose_first)
+                                    selectedPoolReady -> stringResource(R.string.order_selection_continue)
+                                    else -> stringResource(R.string.order_selection_wait_pool)
+                                },
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = onContinuePacking,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.order_selection_return_to_open_box),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    if (!isOrderSearchFocused) {
+                        Text(
+                            text = stringResource(R.string.order_selection_hint_no_scan),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        )
+                    }
+                }
+            }
+        },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         ThemedAppBackground(
@@ -282,20 +342,6 @@ fun OrderSelectionScreen(
                             tone = ScanResultTone.Warning,
                         ),
                     )
-                    Button(
-                        onClick = onContinuePacking,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.order_selection_return_to_open_box),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                 }
 
                 OrderLineSelector(
@@ -315,37 +361,6 @@ fun OrderSelectionScreen(
                     )
                 }
 
-                if (state.currentBox == null) {
-                    Button(
-                        onClick = onContinuePacking,
-                        enabled = selected != null && selectedPoolReady && !state.localPoolLoading && !state.ordersLoading,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Text(
-                            text = when {
-                                state.ordersLoading -> stringResource(R.string.packing_loading_orders)
-                                state.localPoolLoading -> stringResource(R.string.local_pool_downloading)
-                                selected == null -> stringResource(R.string.order_selection_choose_first)
-                                selectedPoolReady -> stringResource(R.string.order_selection_continue)
-                                else -> stringResource(R.string.order_selection_wait_pool)
-                            },
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-
-                if (!isOrderSearchFocused) {
-                    Text(
-                        text = stringResource(R.string.order_selection_hint_no_scan),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    )
-                }
             }
         }
     }
@@ -368,6 +383,7 @@ fun ScanScreen(
     onDismissCloseDialog: () -> Unit,
     onActiveBoxSelected: (Long) -> Unit,
     onDismissActiveBoxesDialog: () -> Unit,
+    onDismissPrinterRequiredDialog: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
     onOrderLineSelected: (String) -> Unit,
     onOrderSearchChanged: (String) -> Unit,
@@ -410,6 +426,29 @@ fun ScanScreen(
             },
             dismissButton = {
                 TextButton(onClick = onDismissDeleteEmptyBoxDialog) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+
+    if (state.packing.showPrinterRequiredDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissPrinterRequiredDialog,
+            title = { Text(stringResource(R.string.printer_select_before_open_box_title)) },
+            text = { Text(stringResource(R.string.printer_select_before_open_box_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDismissPrinterRequiredDialog()
+                        onOpenPrinterSettings()
+                    },
+                ) {
+                    Text(stringResource(R.string.printer_open_settings))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissPrinterRequiredDialog) {
                     Text(stringResource(R.string.common_cancel))
                 }
             },
@@ -905,7 +944,7 @@ private fun OrderLineSelector(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 360.dp, max = 620.dp),
+                        .heightIn(min = 260.dp, max = 430.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(
