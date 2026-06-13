@@ -38,6 +38,7 @@ import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 @Composable
 fun MenuRoute(
     onBack: () -> Unit,
+    onOpenOrderSelection: () -> Unit,
     onOpenDataMatrixVerify: () -> Unit,
     onOpenDefectMark: () -> Unit,
     onOpenBox: () -> Unit,
@@ -52,6 +53,7 @@ fun MenuRoute(
 ) {
     MenuScreen(
         onBack = onBack,
+        onOpenOrderSelection = onOpenOrderSelection,
         onOpenDataMatrixVerify = onOpenDataMatrixVerify,
         onOpenDefectMark = onOpenDefectMark,
         onOpenBox = onOpenBox,
@@ -70,6 +72,7 @@ fun MenuRoute(
 @Composable
 fun MenuScreen(
     onBack: () -> Unit,
+    onOpenOrderSelection: () -> Unit,
     onOpenDataMatrixVerify: () -> Unit,
     onOpenDefectMark: () -> Unit,
     onOpenBox: () -> Unit,
@@ -135,6 +138,12 @@ fun MenuScreen(
             ) {
                 MenuHeroCard()
                 MenuSectionTitle(stringResource(R.string.menu_section_boxes))
+                MenuItemCard(
+                    title = stringResource(R.string.menu_order_selection_title),
+                    subtitle = stringResource(R.string.menu_order_selection_subtitle),
+                    panelColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
+                    onClick = onOpenOrderSelection,
+                )
                 MenuItemCard(
                     title = stringResource(R.string.menu_open_box_title),
                     subtitle = stringResource(R.string.menu_open_box_subtitle),

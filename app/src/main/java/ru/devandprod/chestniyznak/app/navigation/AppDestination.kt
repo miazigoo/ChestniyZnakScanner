@@ -13,6 +13,7 @@ enum class AppDestination(val route: String) {
     DataMatrixVerify("data-matrix-verify"),
     DefectMark("defect-mark"),
     Login("login"),
+    OrderSelection("order-selection"),
     Scanner("scanner");
 
     companion object {

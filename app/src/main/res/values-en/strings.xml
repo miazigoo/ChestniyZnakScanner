@@ -479,4 +479,16 @@
     <string name="box_edit_status_edit_mode_opened">Edit mode opened. You can scan now.</string>
     <string name="box_edit_status_edit_mode_not_opened">Edit mode was not opened</string>
     <string name="box_edit_error_open_edit_mode_failed">Could not open edit mode</string>
+    <string name="menu_order_selection_title">Select order</string>
+    <string name="menu_order_selection_subtitle">Choose an order first and download its local code pool.</string>
+    <string name="order_selection_toolbar_title">ORDER SELECTION</string>
+    <string name="order_selection_hero_title">What are we working on?</string>
+    <string name="order_selection_hero_description">Select an order before packing. The app downloads the code pool into the local database so scans are checked quickly without extra requests.</string>
+    <string name="order_selection_error_headline">ERROR</string>
+    <string name="order_selection_open_box_headline">BOX IS OPEN</string>
+    <string name="order_selection_open_box_message">Box #%1$d is currently open. To choose another order, close or delete this box in packing first.</string>
+    <string name="order_selection_choose_first">Select an order</string>
+    <string name="order_selection_continue">Go to packing</string>
+    <string name="order_selection_wait_pool">Wait for the code pool</string>
+    <string name="order_selection_hint_no_scan">Item scanning is disabled on this screen. Select an order first, then continue to packing.</string>
 </resources>

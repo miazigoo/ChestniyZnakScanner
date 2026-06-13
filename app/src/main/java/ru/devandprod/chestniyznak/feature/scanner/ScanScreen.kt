@@ -151,6 +151,184 @@ fun ScanRoute(
     )
 }
 
+@Composable
+fun OrderSelectionRoute(
+    currentUserName: String,
+    onOpenMenu: () -> Unit,
+    onContinuePacking: () -> Unit,
+    viewModel: ScanViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsState()
+
+    OrderSelectionScreen(
+        state = state.packing,
+        currentUserName = currentUserName,
+        onOpenMenu = onOpenMenu,
+        onOrderLineSelected = viewModel::onOrderLineSelected,
+        onOrderSearchChanged = viewModel::onOrderSearchChanged,
+        onContinuePacking = onContinuePacking,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OrderSelectionScreen(
+    state: PackingPaneUiState,
+    currentUserName: String,
+    onOpenMenu: () -> Unit,
+    onOrderLineSelected: (String) -> Unit,
+    onOrderSearchChanged: (String) -> Unit,
+    onContinuePacking: () -> Unit,
+) {
+    val selected = state.orderLines.firstOrNull { it.orderLineId == state.selectedOrderLineId }
+    val selectedPoolReady = selected != null &&
+        (!selected.scanRequired || (state.localPoolOrderId == selected.orderId && state.localPoolCount > 0))
+    var isOrderSearchFocused by rememberSaveable { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.order_selection_toolbar_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = currentUserName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+                    ) {
+                        IconButton(onClick = onOpenMenu) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_menu_sort_by_size),
+                                contentDescription = stringResource(R.string.common_menu),
+                            )
+                        }
+                    }
+                },
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { innerPadding ->
+        ThemedAppBackground(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.42f),
+                                RoundedCornerShape(28.dp),
+                            )
+                            .padding(horizontal = 18.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.order_selection_hero_title),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                        )
+                        Text(
+                            text = stringResource(R.string.order_selection_hero_description),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                    }
+                }
+
+                OrderLineSelector(
+                    state = state,
+                    onOrderLineSelected = onOrderLineSelected,
+                    onOrderSearchChanged = onOrderSearchChanged,
+                    onOrderSearchFocusChanged = { isOrderSearchFocused = it },
+                )
+
+                state.currentBox?.let { box ->
+                    StatusCard(
+                        result = ScanResultCardUi(
+                            headline = stringResource(R.string.order_selection_open_box_headline),
+                            message = stringResource(R.string.order_selection_open_box_message, box.boxId),
+                            tone = ScanResultTone.Warning,
+                        ),
+                    )
+                }
+
+                state.errorText?.takeIf(String::isNotBlank)?.let { error ->
+                    StatusCard(
+                        result = ScanResultCardUi(
+                            headline = stringResource(R.string.order_selection_error_headline),
+                            message = error,
+                            tone = ScanResultTone.Error,
+                        ),
+                    )
+                }
+
+                Button(
+                    onClick = onContinuePacking,
+                    enabled = selected != null && selectedPoolReady && !state.localPoolLoading && !state.ordersLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) {
+                    Text(
+                        text = when {
+                            state.ordersLoading -> stringResource(R.string.packing_loading_orders)
+                            state.localPoolLoading -> stringResource(R.string.local_pool_downloading)
+                            selected == null -> stringResource(R.string.order_selection_choose_first)
+                            selectedPoolReady -> stringResource(R.string.order_selection_continue)
+                            else -> stringResource(R.string.order_selection_wait_pool)
+                        },
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                if (!isOrderSearchFocused) {
+                    Text(
+                        text = stringResource(R.string.order_selection_hint_no_scan),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    )
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScanScreen(

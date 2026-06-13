@@ -56,7 +56,9 @@ import ru.devandprod.chestniyznak.feature.menu.MenuRoute
 import ru.devandprod.chestniyznak.feature.printer.PrinterSettingsRoute
 import ru.devandprod.chestniyznak.feature.scanner.DataMatrixVerifyRoute
 import ru.devandprod.chestniyznak.feature.scanner.DefectMarkRoute
+import ru.devandprod.chestniyznak.feature.scanner.OrderSelectionRoute
 import ru.devandprod.chestniyznak.feature.scanner.ScanRoute
+import ru.devandprod.chestniyznak.feature.scanner.ScanViewModel
 import ru.devandprod.chestniyznak.feature.settings.SettingsRoute
 import ru.devandprod.chestniyznak.feature.sound.SoundSettingsRoute
 import ru.devandprod.chestniyznak.feature.themes.ThemeSelectionRoute
@@ -127,6 +129,7 @@ private fun AuthenticatedNavHost(
     val context = LocalContext.current
     val activity = context as? Activity
     var showExitDialog by remember { mutableStateOf(false) }
+    val scanViewModel: ScanViewModel = hiltViewModel()
 
     BackHandler {
         if (navController.previousBackStackEntry != null) {
@@ -143,18 +146,36 @@ private fun AuthenticatedNavHost(
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
-            startDestination = AppDestination.Scanner.route,
+            startDestination = AppDestination.OrderSelection.route,
         ) {
+            composable(AppDestination.OrderSelection.route) {
+                OrderSelectionRoute(
+                    currentUserName = currentUserName,
+                    onOpenMenu = { navController.navigate(AppDestination.Menu.route) },
+                    onContinuePacking = {
+                        navController.navigate(AppDestination.Scanner.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    viewModel = scanViewModel,
+                )
+            }
             composable(AppDestination.Scanner.route) {
                 ScanRoute(
                     currentUserName = currentUserName,
                     onOpenMenu = { navController.navigate(AppDestination.Menu.route) },
                     onOpenPrinterSettings = { navController.navigate(AppDestination.PrinterSettings.route) },
+                    viewModel = scanViewModel,
                 )
             }
             composable(AppDestination.Menu.route) {
                 MenuRoute(
                     onBack = { navController.popBackStack() },
+                    onOpenOrderSelection = {
+                        navController.navigate(AppDestination.OrderSelection.route) {
+                            launchSingleTop = true
+                        }
+                    },
                     onOpenDataMatrixVerify = {
                         navController.navigate(AppDestination.DataMatrixVerify.route)
                     },

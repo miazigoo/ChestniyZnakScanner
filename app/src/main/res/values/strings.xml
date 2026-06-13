@@ -479,4 +479,16 @@
     <string name="box_edit_status_edit_mode_opened">Режим редактирования открыт. Можно сканировать.</string>
     <string name="box_edit_status_edit_mode_not_opened">Редактирование не открыто</string>
     <string name="box_edit_error_open_edit_mode_failed">Не удалось открыть режим редактирования</string>
+    <string name="menu_order_selection_title">Выбор заказа</string>
+    <string name="menu_order_selection_subtitle">Сначала выберите заказ и скачайте локальный пул кодов.</string>
+    <string name="order_selection_toolbar_title">ВЫБОР ЗАКАЗА</string>
+    <string name="order_selection_hero_title">С чего работаем?</string>
+    <string name="order_selection_hero_description">Выберите заказ перед упаковкой. Приложение скачает пул кодов в локальную базу, чтобы сканы проверялись быстро и без лишних запросов.</string>
+    <string name="order_selection_error_headline">ОШИБКА</string>
+    <string name="order_selection_open_box_headline">ОТКРЫТА КОРОБКА</string>
+    <string name="order_selection_open_box_message">Сейчас открыта коробка #%1$d. Чтобы выбрать другой заказ, сначала закройте или удалите эту коробку в упаковке.</string>
+    <string name="order_selection_choose_first">Выберите заказ</string>
+    <string name="order_selection_continue">Перейти к упаковке</string>
+    <string name="order_selection_wait_pool">Дождитесь загрузки пула</string>
+    <string name="order_selection_hint_no_scan">На этом экране сканирование изделий не выполняется. Сначала выберите заказ, затем переходите к упаковке.</string>
 </resources>

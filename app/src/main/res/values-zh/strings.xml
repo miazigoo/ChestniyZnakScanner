@@ -479,4 +479,16 @@
     <string name="box_edit_status_edit_mode_opened">编辑模式已打开，可以扫描。</string>
     <string name="box_edit_status_edit_mode_not_opened">编辑模式未打开</string>
     <string name="box_edit_error_open_edit_mode_failed">无法打开编辑模式</string>
+    <string name="menu_order_selection_title">选择订单</string>
+    <string name="menu_order_selection_subtitle">先选择订单并下载本地标识码池。</string>
+    <string name="order_selection_toolbar_title">选择订单</string>
+    <string name="order_selection_hero_title">要处理哪个订单？</string>
+    <string name="order_selection_hero_description">包装前请选择订单。应用会把标识码池下载到本地数据库，以便快速校验扫描结果。</string>
+    <string name="order_selection_error_headline">错误</string>
+    <string name="order_selection_open_box_headline">箱子已打开</string>
+    <string name="order_selection_open_box_message">当前已打开箱子 #%1$d。要选择其他订单，请先在包装中关闭或删除该箱子。</string>
+    <string name="order_selection_choose_first">请选择订单</string>
+    <string name="order_selection_continue">进入包装</string>
+    <string name="order_selection_wait_pool">等待标识码池加载</string>
+    <string name="order_selection_hint_no_scan">此页面不扫描商品。请先选择订单，然后进入包装。</string>
 </resources>
