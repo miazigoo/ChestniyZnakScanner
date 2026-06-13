@@ -222,6 +222,7 @@ class ScanViewModel @Inject constructor(
             val result = verifyCodeExistsUseCase(
                 rawInput = rawCode,
                 scannerId = scannerId,
+                allowDuplicate = true,
             )
             if (result.isSuccess) {
                 audioFeedbackPlayer.playSuccess()

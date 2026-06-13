@@ -201,11 +201,44 @@ class LocalChestniyZnakRepository @Inject constructor(
         rawInput: String,
         scannerId: String,
         allowDuplicate: Boolean,
-    ): VerificationResult = verify(
-        rawInput = rawInput,
-        scannerId = scannerId,
-        allowDuplicate = allowDuplicate,
-    )
+    ): VerificationResult = withContext(ioDispatcher) {
+        val parsed = try {
+            parser.parse(rawInput)
+        } catch (exception: ChestniyZnakParseException) {
+            return@withContext VerificationResult(
+                status = VerificationStatus.BAD_FORMAT,
+                message = exception.message.orEmpty(),
+            )
+        }
+
+        val matchedCode = markingCodeDao.findByRawHash(rawHash(parsed.rawCode))
+        val status: VerificationStatus
+        val message: String
+
+        if (matchedCode != null) {
+            if (parsed.gsRestored) {
+                status = VerificationStatus.OK_GS_RESTORED
+                message = strings.get(R.string.local_found_gs_restored)
+            } else {
+                status = VerificationStatus.OK
+                message = strings.get(R.string.local_found)
+            }
+        } else if (markingCodeDao.existsByIdentity(parsed.gtin, parsed.serial)) {
+            status = VerificationStatus.TAIL_MISMATCH
+            message = strings.get(R.string.local_tail_mismatch)
+        } else {
+            status = VerificationStatus.NOT_FOUND
+            message = strings.get(R.string.local_not_found)
+        }
+
+        VerificationResult(
+            status = status,
+            message = message,
+            parsed = parsed,
+            code = matchedCode?.toDomain(json),
+            warnings = parsed.warnings,
+        )
+    }
 
     override suspend fun verifyLocalOnly(
         rawInput: String,

@@ -65,11 +65,11 @@ class HybridChestniyZnakRepository @Inject constructor(
                     code = rawInput,
                     scannerId = scannerId,
                     allowDuplicate = allowDuplicate,
-                    saveScan = true,
+                    saveScan = false,
                 ),
             )
         } catch (_: IOException) {
-            val local = localRepository.verify(rawInput, scannerId, allowDuplicate)
+            val local = localRepository.verifyExists(rawInput, scannerId, allowDuplicate)
             statsFlow.value = localRepository.snapshotStats()
             return@withContext local
         } catch (exception: Exception) {
@@ -92,7 +92,7 @@ class HybridChestniyZnakRepository @Inject constructor(
                 )
             }
             else -> {
-                val local = localRepository.verify(rawInput, scannerId, allowDuplicate)
+                val local = localRepository.verifyExists(rawInput, scannerId, allowDuplicate)
                 statsFlow.value = localRepository.snapshotStats()
                 local.copy(
                     warnings = local.warnings + errorParser.message(response),
