@@ -83,6 +83,7 @@ fun ScanRoute(
     currentUserName: String,
     onOpenMenu: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
+    onChooseOrderRequested: () -> Unit,
     viewModel: ScanViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -130,6 +131,7 @@ fun ScanRoute(
         onCameraCodeScanned = viewModel::onCameraCodeScanned,
         onOpenMenu = onOpenMenu,
         onOpenPrinterSettings = onOpenPrinterSettings,
+        onChooseOrderRequested = onChooseOrderRequested,
         onRetryPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
         onScanNextRequested = viewModel::onScanNextRequested,
         onScanModeSelected = viewModel::onScanModeSelected,
@@ -159,6 +161,10 @@ fun OrderSelectionRoute(
     viewModel: ScanViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(viewModel) {
+        viewModel.onOrderSelectionOpened()
+    }
 
     OrderSelectionScreen(
         state = state.packing,
@@ -353,6 +359,7 @@ fun ScanScreen(
     onCameraCodeScanned: (String) -> Unit,
     onOpenMenu: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
+    onChooseOrderRequested: () -> Unit,
     onRetryPermission: () -> Unit,
     onScanNextRequested: () -> Unit,
     onScanModeSelected: (ScanMode) -> Unit,
@@ -516,12 +523,10 @@ fun ScanScreen(
                             onRetryPermission = onRetryPermission,
                             onOpenBoxRequested = onOpenBoxRequested,
                             onOpenPrinterSettings = onOpenPrinterSettings,
+                            onChooseOrderRequested = onChooseOrderRequested,
                             onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
                             onCountInPackingChanged = onCountInPackingChanged,
-                            onOrderLineSelected = onOrderLineSelected,
-                            onOrderSearchChanged = onOrderSearchChanged,
-                            onOrderSearchFocusChanged = { isOrderSearchFocused = it },
                             onItemLongPressed = onItemLongPressed,
                             onDismissItemMenu = onDismissItemMenu,
                             onRemoveItemRequested = onRemoveItemRequested,
@@ -534,12 +539,10 @@ fun ScanScreen(
                             state = state.packing,
                             onOpenBoxRequested = onOpenBoxRequested,
                             onOpenPrinterSettings = onOpenPrinterSettings,
+                            onChooseOrderRequested = onChooseOrderRequested,
                             onCloseBoxRequested = onCloseBoxRequested,
                             onScanNextRequested = onScanNextRequested,
                             onCountInPackingChanged = onCountInPackingChanged,
-                            onOrderLineSelected = onOrderLineSelected,
-                            onOrderSearchChanged = onOrderSearchChanged,
-                            onOrderSearchFocusChanged = { isOrderSearchFocused = it },
                             onItemLongPressed = onItemLongPressed,
                             onDismissItemMenu = onDismissItemMenu,
                             onRemoveItemRequested = onRemoveItemRequested,
@@ -638,12 +641,10 @@ private fun PackingCameraContent(
     onRetryPermission: () -> Unit,
     onOpenBoxRequested: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
+    onChooseOrderRequested: () -> Unit,
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
-    onOrderLineSelected: (String) -> Unit,
-    onOrderSearchChanged: (String) -> Unit,
-    onOrderSearchFocusChanged: (Boolean) -> Unit,
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
@@ -663,12 +664,10 @@ private fun PackingCameraContent(
         state = packingState,
         onOpenBoxRequested = onOpenBoxRequested,
         onOpenPrinterSettings = onOpenPrinterSettings,
+        onChooseOrderRequested = onChooseOrderRequested,
         onCloseBoxRequested = onCloseBoxRequested,
         onScanNextRequested = onScanNextRequested,
         onCountInPackingChanged = onCountInPackingChanged,
-        onOrderLineSelected = onOrderLineSelected,
-        onOrderSearchChanged = onOrderSearchChanged,
-        onOrderSearchFocusChanged = onOrderSearchFocusChanged,
         onItemLongPressed = onItemLongPressed,
         onDismissItemMenu = onDismissItemMenu,
         onRemoveItemRequested = onRemoveItemRequested,
@@ -734,12 +733,10 @@ private fun PackingContent(
     state: PackingPaneUiState,
     onOpenBoxRequested: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
+    onChooseOrderRequested: () -> Unit,
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
-    onOrderLineSelected: (String) -> Unit,
-    onOrderSearchChanged: (String) -> Unit,
-    onOrderSearchFocusChanged: (Boolean) -> Unit,
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
@@ -750,12 +747,10 @@ private fun PackingContent(
         state = state,
         onOpenBoxRequested = onOpenBoxRequested,
         onOpenPrinterSettings = onOpenPrinterSettings,
+        onChooseOrderRequested = onChooseOrderRequested,
         onCloseBoxRequested = onCloseBoxRequested,
         onScanNextRequested = onScanNextRequested,
         onCountInPackingChanged = onCountInPackingChanged,
-        onOrderLineSelected = onOrderLineSelected,
-        onOrderSearchChanged = onOrderSearchChanged,
-        onOrderSearchFocusChanged = onOrderSearchFocusChanged,
         onItemLongPressed = onItemLongPressed,
         onDismissItemMenu = onDismissItemMenu,
         onRemoveItemRequested = onRemoveItemRequested,
@@ -910,7 +905,7 @@ private fun OrderLineSelector(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 260.dp),
+                        .heightIn(min = 360.dp, max = 620.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(
@@ -1058,6 +1053,56 @@ private fun OrderLineOptionCard(
     }
 }
 
+@Composable
+private fun SelectedPackingOrderCard(
+    selectedLine: PackingOrderLineUi,
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                RoundedCornerShape(18.dp),
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.packing_working_order),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.74f),
+            )
+            Text(
+                text = selectedLine.orderNumber,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "${selectedLine.sku} · ${selectedLine.productName}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            selectedLine.packageCapacity?.let { capacity ->
+                Text(
+                    text = stringResource(R.string.packing_box_capacity, capacity),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+    }
+}
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -1065,12 +1110,10 @@ private fun CurrentBoxPanel(
     state: PackingPaneUiState,
     onOpenBoxRequested: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
+    onChooseOrderRequested: () -> Unit,
     onCloseBoxRequested: () -> Unit,
     onScanNextRequested: () -> Unit,
     onCountInPackingChanged: (Boolean) -> Unit,
-    onOrderLineSelected: (String) -> Unit,
-    onOrderSearchChanged: (String) -> Unit,
-    onOrderSearchFocusChanged: (Boolean) -> Unit,
     onItemLongPressed: (Long) -> Unit,
     onDismissItemMenu: () -> Unit,
     onRemoveItemRequested: (Long) -> Unit,
@@ -1094,12 +1137,6 @@ private fun CurrentBoxPanel(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             if (box == null) {
-                OrderLineSelector(
-                    state = state,
-                    onOrderLineSelected = onOrderLineSelected,
-                    onOrderSearchChanged = onOrderSearchChanged,
-                    onOrderSearchFocusChanged = onOrderSearchFocusChanged,
-                )
                 Surface(
                     shape = RoundedCornerShape(22.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
@@ -1126,6 +1163,27 @@ private fun CurrentBoxPanel(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                         )
+                        if (selectedLine == null) {
+                            Button(
+                                onClick = onChooseOrderRequested,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                            ) {
+                                Text(stringResource(R.string.packing_choose_order_button))
+                            }
+                            StatusCard(
+                                result = ScanResultCardUi(
+                                    headline = stringResource(R.string.packing_no_order_selected_title),
+                                    message = stringResource(R.string.packing_no_order_selected_message),
+                                    tone = ScanResultTone.Warning,
+                                ),
+                            )
+                        } else {
+                            SelectedPackingOrderCard(selectedLine = selectedLine)
+                        }
                         if (selectedLine?.scanRequired == false) {
                             OutlinedButton(
                                 onClick = {},
@@ -1141,7 +1199,7 @@ private fun CurrentBoxPanel(
                         } else {
                             Button(
                                 onClick = onOpenBoxRequested,
-                                enabled = !state.isBusy && state.selectedOrderLineId.isNotBlank(),
+                                enabled = !state.isBusy && selectedLine != null,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,

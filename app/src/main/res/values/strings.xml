@@ -133,6 +133,10 @@
     <string name="scan_stats_codes">В базе %1$d кодов</string>
     <string name="scan_stats_checks">Проверок %1$d</string>
     <string name="packing_select_order_product">Выберите заказ и номенклатуру</string>
+    <string name="packing_no_order_selected_title">ЗАКАЗ НЕ ВЫБРАН</string>
+    <string name="packing_no_order_selected_message">Перед открытием коробки выберите заказ. Приложение скачает пул кодов в локальную базу и после этого разрешит упаковку.</string>
+    <string name="packing_choose_order_button">Выбрать заказ</string>
+    <string name="packing_working_order">Работаем по заказу</string>
     <string name="packing_open_requires_order_line">Коробку нельзя открыть без строки заказа</string>
     <string name="packing_scanning_disabled">Сканирование по заказу отключено</string>
     <string name="packing_open_not_needed">Работа в приложении не требуется: коды обрабатываются в кабинете поставщика</string>

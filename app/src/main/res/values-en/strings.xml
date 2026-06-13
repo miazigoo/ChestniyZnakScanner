@@ -133,6 +133,10 @@
     <string name="scan_stats_codes">%1$d codes in database</string>
     <string name="scan_stats_checks">%1$d checks</string>
     <string name="packing_select_order_product">Select an order and item</string>
+    <string name="packing_no_order_selected_title">NO ORDER SELECTED</string>
+    <string name="packing_no_order_selected_message">Select an order before opening a box. The app will download the code pool into the local database and then allow packing.</string>
+    <string name="packing_choose_order_button">Select order</string>
+    <string name="packing_working_order">Working order</string>
     <string name="packing_open_requires_order_line">A box cannot be opened without an order line</string>
     <string name="packing_scanning_disabled">Order scanning is disabled</string>
     <string name="packing_open_not_needed">No app work is required: codes are handled in the supplier web cabinet</string>

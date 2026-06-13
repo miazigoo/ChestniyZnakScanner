@@ -164,6 +164,10 @@ class ScanViewModel @Inject constructor(
         }
     }
 
+    fun onOrderSelectionOpened() {
+        loadWorkOrders()
+    }
+
     fun onCameraPermissionChanged(isGranted: Boolean) {
         _uiState.update { state ->
             state.copy(
@@ -870,7 +874,7 @@ class ScanViewModel @Inject constructor(
                     val currentSelected = state.packing.selectedOrderLineId
                     val selected = currentSelected.takeIf { id ->
                         lines.any { it.orderLineId == id }
-                    } ?: lines.firstOrNull()?.orderLineId.orEmpty()
+                    }.orEmpty()
                     val selectedLine = lines.firstOrNull { it.orderLineId == selected }
                     nextSelectedLine = selectedLine
                     state.copy(

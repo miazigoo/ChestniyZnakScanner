@@ -133,6 +133,10 @@
     <string name="scan_stats_codes">数据库中有 %1$d 个标识码</string>
     <string name="scan_stats_checks">已检查 %1$d 次</string>
     <string name="packing_select_order_product">请选择订单和品项</string>
+    <string name="packing_no_order_selected_title">未选择订单</string>
+    <string name="packing_no_order_selected_message">打开箱子前请先选择订单。应用会把标识码池下载到本地数据库，然后允许包装。</string>
+    <string name="packing_choose_order_button">选择订单</string>
+    <string name="packing_working_order">当前订单</string>
     <string name="packing_open_requires_order_line">没有订单行时无法打开箱子</string>
     <string name="packing_scanning_disabled">此订单已关闭扫描</string>
     <string name="packing_open_not_needed">应用内无需操作：标识码在供应商 Web 工作台处理</string>

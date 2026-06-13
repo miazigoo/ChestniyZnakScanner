@@ -25,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +42,8 @@ import androidx.navigation.compose.composable
 import java.util.Locale
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.app.AppRuntimeViewModel
 import ru.devandprod.chestniyznak.core.scanner.ScannerCommand
@@ -125,6 +128,7 @@ private fun AuthenticatedNavHost(
     val showConnectionRestored by runtimeViewModel.showConnectionRestored.collectAsState()
     val updateStatusDialogText by runtimeViewModel.updateStatusDialogText.collectAsState()
     val navController = rememberNavController()
+    val scannerCommandScope = rememberCoroutineScope()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val context = LocalContext.current
     val activity = context as? Activity
@@ -165,6 +169,11 @@ private fun AuthenticatedNavHost(
                     currentUserName = currentUserName,
                     onOpenMenu = { navController.navigate(AppDestination.Menu.route) },
                     onOpenPrinterSettings = { navController.navigate(AppDestination.PrinterSettings.route) },
+                    onChooseOrderRequested = {
+                        navController.navigate(AppDestination.OrderSelection.route) {
+                            launchSingleTop = true
+                        }
+                    },
                     viewModel = scanViewModel,
                 )
             }
@@ -183,9 +192,14 @@ private fun AuthenticatedNavHost(
                         navController.navigate(AppDestination.DefectMark.route)
                     },
                     onOpenBox = {
-                        ScannerCommandBus.send(ScannerCommand.SwitchToTsd)
-                        ScannerCommandBus.send(ScannerCommand.OpenBox)
-                        navController.popBackStack()
+                        navController.navigate(AppDestination.Scanner.route) {
+                            launchSingleTop = true
+                        }
+                        scannerCommandScope.launch {
+                            delay(120)
+                            ScannerCommandBus.send(ScannerCommand.SwitchToTsd)
+                            ScannerCommandBus.send(ScannerCommand.OpenBox)
+                        }
                     },
                     onShowCurrentBox = {
                         navController.navigate(AppDestination.BoxLookup.route)
