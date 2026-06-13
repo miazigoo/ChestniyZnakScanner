@@ -100,8 +100,20 @@ class LocalChestniyZnakRepository @Inject constructor(
                     remoteUpdatedAt = code.updatedAt,
                 )
             }
-        markingCodeDao.deleteAll()
+        markingCodeDao.deleteByOrderId(orderId)
         markingCodeDao.insertAll(entities)
+    }
+
+    override suspend fun retainLocalOrders(orderIds: List<String>) = withContext(ioDispatcher) {
+        val normalized = orderIds
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+        if (normalized.isEmpty()) {
+            markingCodeDao.deleteOrderPools()
+        } else {
+            markingCodeDao.deleteOrdersNotIn(normalized)
+        }
     }
 
     override suspend fun verify(

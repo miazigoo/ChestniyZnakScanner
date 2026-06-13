@@ -18,6 +18,22 @@ interface MarkingCodeDao {
     @Query("DELETE FROM marking_codes")
     suspend fun deleteAll()
 
+    @Query("DELETE FROM marking_codes WHERE orderId = :orderId AND appStatus != 'pending_local'")
+    suspend fun deleteByOrderId(orderId: String)
+
+    @Query("DELETE FROM marking_codes WHERE orderId != '' AND appStatus != 'pending_local'")
+    suspend fun deleteOrderPools()
+
+    @Query(
+        """
+        DELETE FROM marking_codes
+        WHERE orderId != ''
+            AND orderId NOT IN (:orderIds)
+            AND appStatus != 'pending_local'
+        """,
+    )
+    suspend fun deleteOrdersNotIn(orderIds: List<String>)
+
     @Query("SELECT COUNT(*) FROM marking_codes")
     fun observeCount(): Flow<Int>
 

@@ -54,6 +54,11 @@ class HybridChestniyZnakRepository @Inject constructor(
         statsFlow.value = localRepository.snapshotStats()
     }
 
+    override suspend fun retainLocalOrders(orderIds: List<String>) = withContext(ioDispatcher) {
+        localRepository.retainLocalOrders(orderIds)
+        statsFlow.value = localRepository.snapshotStats()
+    }
+
     override suspend fun verify(
         rawInput: String,
         scannerId: String,

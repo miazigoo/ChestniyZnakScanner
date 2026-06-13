@@ -40,6 +40,7 @@ import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.PrintPackingBoxLabelUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RefreshCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RemovePackingBoxItemUseCase
+import ru.devandprod.chestniyznak.domain.usecase.RetainLocalOrdersUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ScanCodesToPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.SetPackingBoxCountInPackingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.VerifyCodeExistsUseCase
@@ -59,6 +60,7 @@ class ScanViewModel @Inject constructor(
     private val clearLocalPackingPendingUseCase: ClearLocalPackingPendingUseCase,
     private val listWorkOrdersUseCase: ListWorkOrdersUseCase,
     private val downloadOrderLocalPoolUseCase: DownloadOrderLocalPoolUseCase,
+    private val retainLocalOrdersUseCase: RetainLocalOrdersUseCase,
     private val getCurrentPackingBoxUseCase: GetCurrentPackingBoxUseCase,
     private val getLocalPackingPendingUseCase: GetLocalPackingPendingUseCase,
     private val getClientPrinterSelectionUseCase: GetClientPrinterSelectionUseCase,
@@ -81,6 +83,7 @@ class ScanViewModel @Inject constructor(
         ),
     )
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
+    private var localPoolPrefetchInProgress = false
 
     private fun VerifyPaneUiState.readyForPackingCamera(scanMode: ScanMode): VerifyPaneUiState {
         val enabled = scanMode == ScanMode.PackingCamera && hasCameraPermission
@@ -930,6 +933,7 @@ class ScanViewModel @Inject constructor(
                         downloadLocalPoolFor(selected)
                     }
                 }
+                prefetchLocalPoolsFor(lines, skipOrderId = nextSelectedLine?.orderId.orEmpty())
             }.onFailure { error ->
                 _uiState.update { state ->
                     state.copy(
@@ -986,6 +990,30 @@ class ScanViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    private fun prefetchLocalPoolsFor(lines: List<PackingOrderLineUi>, skipOrderId: String = "") {
+        if (localPoolPrefetchInProgress) return
+        val orderIds = lines
+            .filter { it.scanRequired }
+            .map { it.orderId }
+            .filter(String::isNotBlank)
+            .distinct()
+        if (orderIds.isEmpty()) return
+        localPoolPrefetchInProgress = true
+        viewModelScope.launch {
+            runCatching {
+                retainLocalOrdersUseCase(orderIds)
+                orderIds
+                    .filter { it != skipOrderId }
+                    .forEach { orderId ->
+                        runCatching { downloadOrderLocalPoolUseCase(orderId) }
+                    }
+                refreshCatalogStatsUseCase()
+            }.also {
+                localPoolPrefetchInProgress = false
+            }
         }
     }
 
