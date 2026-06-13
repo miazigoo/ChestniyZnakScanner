@@ -9,7 +9,12 @@ import ru.devandprod.chestniyznak.domain.model.VerificationResult
 
 interface ChestniyZnakRepository {
     suspend fun ensureSeedData()
-    suspend fun replaceLocalPool(orderNumber: String, orderId: String, codes: List<OrderLocalCode>)
+    suspend fun replaceLocalPool(
+        orderNumber: String,
+        orderId: String,
+        codes: List<OrderLocalCode>,
+        preserveLocalPending: Boolean,
+    )
     suspend fun retainLocalOrders(orderIds: List<String>)
     suspend fun verify(rawInput: String, scannerId: String = "", allowDuplicate: Boolean = false): VerificationResult
     suspend fun verifyExists(rawInput: String, scannerId: String = "", allowDuplicate: Boolean = false): VerificationResult
@@ -17,6 +22,11 @@ interface ChestniyZnakRepository {
     suspend fun getLocalPackingPending(packageCode: String): List<LocalPackingPendingCode>
     suspend fun markLocalPackingPending(rawInput: String, packageCode: String?)
     suspend fun clearLocalPackingPending(rawCodes: List<String>)
+    suspend fun markLocalPackingCommitted(
+        rawCodes: List<String>,
+        packageCode: String,
+        packageClosedAt: String?,
+    )
     suspend fun markDefect(rawInput: String, scannerId: String = ""): DefectMarkResult
     suspend fun refreshStats()
     fun observeStats(): Flow<CatalogStats>

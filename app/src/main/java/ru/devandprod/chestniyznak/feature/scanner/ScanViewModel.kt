@@ -34,6 +34,7 @@ import ru.devandprod.chestniyznak.domain.usecase.GetCurrentPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetClientPrinterSelectionUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetLocalPackingPendingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ListWorkOrdersUseCase
+import ru.devandprod.chestniyznak.domain.usecase.MarkLocalPackingCommittedUseCase
 import ru.devandprod.chestniyznak.domain.usecase.MarkLocalPackingPendingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ObserveCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxUseCase
@@ -57,6 +58,7 @@ class ScanViewModel @Inject constructor(
     private val verifyCodeExistsUseCase: VerifyCodeExistsUseCase,
     private val verifyLocalPoolCodeUseCase: VerifyLocalPoolCodeUseCase,
     private val markLocalPackingPendingUseCase: MarkLocalPackingPendingUseCase,
+    private val markLocalPackingCommittedUseCase: MarkLocalPackingCommittedUseCase,
     private val clearLocalPackingPendingUseCase: ClearLocalPackingPendingUseCase,
     private val listWorkOrdersUseCase: ListWorkOrdersUseCase,
     private val downloadOrderLocalPoolUseCase: DownloadOrderLocalPoolUseCase,
@@ -442,6 +444,24 @@ class ScanViewModel @Inject constructor(
 
         if (currentBox.countInPacking == countInPacking) return
 
+        if (state.packing.localPendingCodes.isNotEmpty()) {
+            audioFeedbackPlayer.playWarning()
+            _uiState.update {
+                it.copy(
+                    packing = it.packing.copy(
+                        resultCard = ScanResultCardUi(
+                            headline = "NO",
+                            message = strings.get(R.string.packing_count_mode_blocked_local_pending),
+                            tone = ScanResultTone.Warning,
+                        ),
+                        statusText = strings.get(R.string.packing_count_mode_not_updated),
+                        errorText = strings.get(R.string.packing_count_mode_blocked_local_pending),
+                    ),
+                )
+            }
+            return
+        }
+
         _uiState.update {
             it.copy(
                 packing = it.packing.copy(
@@ -519,7 +539,9 @@ class ScanViewModel @Inject constructor(
                 )
             }
         }
-        selectedLine?.let(::downloadLocalPoolFor)
+        selectedLine?.let { line ->
+            downloadLocalPoolFor(line, force = true)
+        }
     }
 
     fun onOrderSearchChanged(search: String) {
@@ -624,26 +646,43 @@ class ScanViewModel @Inject constructor(
         audioFeedbackPlayer.playWarning()
         viewModelScope.launch {
             runCatching { clearLocalPackingPendingUseCase(localPendingCodes) }
-        }
-        _uiState.update { state ->
-            val serverItems = box.items.filter { it.rawCode.isBlank() }
-            state.copy(
-                packing = state.packing.copy(
-                    currentBox = box.copy(
-                        filled = maxOf(0, box.filled - state.packing.localPendingCodes.size),
-                        items = serverItems,
-                    ),
-                    localPendingCodes = emptyList(),
-                    itemMenuItemId = null,
-                    resultCard = ScanResultCardUi(
-                        headline = "OK",
-                        message = strings.get(R.string.packing_local_box_cleared),
-                        tone = ScanResultTone.Warning,
-                    ),
-                    statusText = strings.get(R.string.packing_local_box_cleared),
-                    errorText = null,
-                ),
-            )
+                .onSuccess {
+                    _uiState.update { state ->
+                        val serverItems = box.items.filter { it.rawCode.isBlank() }
+                        state.copy(
+                            packing = state.packing.copy(
+                                currentBox = box.copy(
+                                    filled = maxOf(0, box.filled - state.packing.localPendingCodes.size),
+                                    items = serverItems,
+                                ),
+                                localPendingCodes = emptyList(),
+                                itemMenuItemId = null,
+                                resultCard = ScanResultCardUi(
+                                    headline = "OK",
+                                    message = strings.get(R.string.packing_local_box_cleared),
+                                    tone = ScanResultTone.Warning,
+                                ),
+                                statusText = strings.get(R.string.packing_local_box_cleared),
+                                errorText = null,
+                            ),
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    audioFeedbackPlayer.playError()
+                    _uiState.update {
+                        it.copy(
+                            packing = it.packing.copy(
+                                resultCard = ScanResultCardUi(
+                                    headline = "NO",
+                                    message = error.message ?: strings.get(R.string.packing_add_code_failed),
+                                    tone = ScanResultTone.Error,
+                                ),
+                                errorText = error.message,
+                            ),
+                        )
+                    }
+                }
         }
     }
 
@@ -961,7 +1000,13 @@ class ScanViewModel @Inject constructor(
             )
         }
         viewModelScope.launch {
-            runCatching { downloadOrderLocalPoolUseCase(selectedLine.orderId) }
+            val preserveLocalPending = _uiState.value.packing.currentBox != null
+            runCatching {
+                downloadOrderLocalPoolUseCase(
+                    orderId = selectedLine.orderId,
+                    preserveLocalPending = preserveLocalPending,
+                )
+            }
                 .onSuccess { count ->
                     _uiState.update { state ->
                         state.copy(
@@ -1249,7 +1294,6 @@ class ScanViewModel @Inject constructor(
                         scannerId = "android-local-close",
                     )
                 }.getOrElse { error ->
-                    runCatching { clearLocalPackingPendingUseCase(localPendingCodes) }
                     refreshSelectedLocalPool(force = true)
                     audioFeedbackPlayer.playError()
                     _uiState.update {
@@ -1269,11 +1313,11 @@ class ScanViewModel @Inject constructor(
                     return@launch
                 }
                 if (!scanResult.ok) {
-                    runCatching { clearLocalPackingPendingUseCase(localPendingCodes) }
                     refreshSelectedLocalPool(force = true)
                     handlePackingScanResult(scanResult, refreshSnapshot = false)
                     return@launch
                 }
+                runCatching { clearLocalPackingPendingUseCase(localPendingCodes) }
                 refreshSelectedLocalPool(force = true)
                 _uiState.update { state ->
                     state.copy(
@@ -1292,6 +1336,17 @@ class ScanViewModel @Inject constructor(
                         handleCloseBoxResult(closeResult)
                         return@onSuccess
                     }
+                    closeResult.box.sscc
+                        ?.takeIf(String::isNotBlank)
+                        ?.let { sscc ->
+                            runCatching {
+                                markLocalPackingCommittedUseCase(
+                                    rawCodes = localPendingCodes,
+                                    packageCode = sscc,
+                                    packageClosedAt = null,
+                                )
+                            }
+                        }
                     refreshSelectedLocalPool(force = true)
                     _uiState.update {
                         it.copy(

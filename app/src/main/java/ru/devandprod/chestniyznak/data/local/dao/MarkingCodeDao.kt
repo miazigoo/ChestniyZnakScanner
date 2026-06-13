@@ -69,7 +69,7 @@ interface MarkingCodeDao {
         """
         UPDATE marking_codes
         SET appStatus = CASE
-                WHEN packageUnitId IS NULL AND (packageCode IS NULL OR packageCode = '') THEN 'local_pool'
+                WHEN packageUnitId IS NULL THEN 'local_pool'
                 ELSE appStatus
             END,
             packageCode = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageCode END,
@@ -79,6 +79,23 @@ interface MarkingCodeDao {
         """,
     )
     suspend fun clearPackingPending(rawHashes: List<String>)
+
+    @Query(
+        """
+        UPDATE marking_codes
+        SET appStatus = 'packed_remote',
+            status1c = 'packed',
+            packageCode = :packageCode,
+            packageStatus = 'closed',
+            packageClosedAt = :packageClosedAt
+        WHERE rawCodeSha256 IN (:rawHashes)
+        """,
+    )
+    suspend fun markPackingCommitted(
+        rawHashes: List<String>,
+        packageCode: String,
+        packageClosedAt: String?,
+    )
 
     @Query("SELECT EXISTS(SELECT 1 FROM marking_codes WHERE gtin = :gtin AND serial = :serial)")
     suspend fun existsByIdentity(gtin: String, serial: String): Boolean

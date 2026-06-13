@@ -66,15 +66,21 @@ class LocalChestniyZnakRepository @Inject constructor(
         orderNumber: String,
         orderId: String,
         codes: List<OrderLocalCode>,
+        preserveLocalPending: Boolean,
     ) = withContext(ioDispatcher) {
-        val localPendingByHash = markingCodeDao.findAllLocalPackingPending()
-            .associateBy { it.rawCodeSha256 }
+        val localPendingByHash = if (preserveLocalPending) {
+            markingCodeDao.findAllLocalPackingPending()
+                .associateBy { it.rawCodeSha256 }
+        } else {
+            emptyMap()
+        }
         val entities = codes
             .distinctBy { it.code }
             .map { code ->
                 val parsed = parser.parse(code.code)
                 val rawCodeSha256 = rawHash(parsed.rawCode)
                 val localPending = localPendingByHash[rawCodeSha256]
+                    ?.takeIf { !it.packageCode.isNullOrBlank() }
                 MarkingCodeEntity(
                     gtin = parsed.gtin,
                     serial = parsed.serial,
@@ -289,12 +295,37 @@ class LocalChestniyZnakRepository @Inject constructor(
 
     override suspend fun clearLocalPackingPending(rawCodes: List<String>) = withContext(ioDispatcher) {
         val hashes = rawCodes
-            .mapNotNull { rawCode ->
-                runCatching { rawHash(parser.parse(rawCode).rawCode) }.getOrNull()
+            .flatMap { rawCode ->
+                listOfNotNull(
+                    runCatching { rawHash(parser.parse(rawCode).rawCode) }.getOrNull(),
+                    rawHash(rawCode),
+                )
             }
             .distinct()
         if (hashes.isNotEmpty()) {
             markingCodeDao.clearPackingPending(hashes)
+        }
+    }
+
+    override suspend fun markLocalPackingCommitted(
+        rawCodes: List<String>,
+        packageCode: String,
+        packageClosedAt: String?,
+    ) = withContext(ioDispatcher) {
+        val hashes = rawCodes
+            .flatMap { rawCode ->
+                listOfNotNull(
+                    runCatching { rawHash(parser.parse(rawCode).rawCode) }.getOrNull(),
+                    rawHash(rawCode),
+                )
+            }
+            .distinct()
+        if (hashes.isNotEmpty() && packageCode.isNotBlank()) {
+            markingCodeDao.markPackingCommitted(
+                rawHashes = hashes,
+                packageCode = packageCode,
+                packageClosedAt = packageClosedAt,
+            )
         }
     }
 

@@ -9,7 +9,10 @@ class DownloadOrderLocalPoolUseCase @Inject constructor(
     private val ordersRepository: OrdersRepository,
     private val chestniyZnakRepository: ChestniyZnakRepository,
 ) {
-    suspend operator fun invoke(orderId: String): Int {
+    suspend operator fun invoke(
+        orderId: String,
+        preserveLocalPending: Boolean = true,
+    ): Int {
         val codes = mutableListOf<OrderLocalCode>()
         var orderNumber = ""
         var offset = 0
@@ -28,6 +31,7 @@ class DownloadOrderLocalPoolUseCase @Inject constructor(
             orderNumber = orderNumber,
             orderId = orderId,
             codes = codes,
+            preserveLocalPending = preserveLocalPending,
         )
         return codes.size
     }

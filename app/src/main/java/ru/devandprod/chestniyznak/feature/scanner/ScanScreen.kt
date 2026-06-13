@@ -1291,6 +1291,14 @@ private fun CurrentBoxPanel(
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
                 )
+                PackingBoxActionRow(
+                    state = state,
+                    box = box,
+                    onCloseBoxRequested = onCloseBoxRequested,
+                    onClearLocalBoxRequested = onClearLocalBoxRequested,
+                    onDeleteEmptyBoxRequested = onDeleteEmptyBoxRequested,
+                    onScanNextRequested = onScanNextRequested,
+                )
                 MetricRow(
                     leftTitle = "ID",
                     leftValue = box.boxId.toString(),
@@ -1339,7 +1347,9 @@ private fun CurrentBoxPanel(
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = if (state.countInPacking) {
+                                text = if (state.localPendingCodes.isNotEmpty()) {
+                                    stringResource(R.string.packing_count_mode_blocked_local_pending)
+                                } else if (state.countInPacking) {
                                     stringResource(R.string.packing_count_enabled_hint)
                                 } else {
                                     stringResource(R.string.packing_count_disabled_hint)
@@ -1351,7 +1361,7 @@ private fun CurrentBoxPanel(
                         Switch(
                             checked = state.countInPacking,
                             onCheckedChange = onCountInPackingChanged,
-                            enabled = !state.isBusy,
+                            enabled = !state.isBusy && state.localPendingCodes.isEmpty(),
                         )
                     }
                 }
@@ -1403,44 +1413,6 @@ private fun CurrentBoxPanel(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-
-            if (box != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Button(
-                        onClick = onCloseBoxRequested,
-                        enabled = !state.isBusy,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Text(stringResource(R.string.packing_close_box))
-                    }
-                    OutlinedButton(
-                        onClick = when {
-                            state.localPendingCodes.isNotEmpty() -> onClearLocalBoxRequested
-                            box.items.isEmpty() -> onDeleteEmptyBoxRequested
-                            else -> onScanNextRequested
-                        },
-                        enabled = !state.isBusy,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(
-                            if (state.localPendingCodes.isNotEmpty()) {
-                                stringResource(R.string.packing_clear_box)
-                            } else if (box.items.isEmpty()) {
-                                stringResource(R.string.packing_delete_box)
-                            } else {
-                                stringResource(R.string.packing_reset_status)
-                            },
                         )
                     }
                 }
@@ -1503,6 +1475,52 @@ private fun CurrentBoxPanel(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PackingBoxActionRow(
+    state: PackingPaneUiState,
+    box: PackingBoxUi,
+    onCloseBoxRequested: () -> Unit,
+    onClearLocalBoxRequested: () -> Unit,
+    onDeleteEmptyBoxRequested: () -> Unit,
+    onScanNextRequested: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Button(
+            onClick = onCloseBoxRequested,
+            enabled = !state.isBusy && box.items.isNotEmpty(),
+            modifier = Modifier.weight(1f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+        ) {
+            Text(stringResource(R.string.packing_close_box))
+        }
+        OutlinedButton(
+            onClick = when {
+                state.localPendingCodes.isNotEmpty() -> onClearLocalBoxRequested
+                box.items.isEmpty() -> onDeleteEmptyBoxRequested
+                else -> onScanNextRequested
+            },
+            enabled = !state.isBusy,
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                if (state.localPendingCodes.isNotEmpty()) {
+                    stringResource(R.string.packing_clear_box)
+                } else if (box.items.isEmpty()) {
+                    stringResource(R.string.packing_delete_box)
+                } else {
+                    stringResource(R.string.packing_reset_status)
+                },
+            )
         }
     }
 }

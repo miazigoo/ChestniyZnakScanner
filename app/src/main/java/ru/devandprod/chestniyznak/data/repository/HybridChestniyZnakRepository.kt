@@ -49,8 +49,9 @@ class HybridChestniyZnakRepository @Inject constructor(
         orderNumber: String,
         orderId: String,
         codes: List<OrderLocalCode>,
+        preserveLocalPending: Boolean,
     ) = withContext(ioDispatcher) {
-        localRepository.replaceLocalPool(orderNumber, orderId, codes)
+        localRepository.replaceLocalPool(orderNumber, orderId, codes, preserveLocalPending)
         statsFlow.value = localRepository.snapshotStats()
     }
 
@@ -178,6 +179,15 @@ class HybridChestniyZnakRepository @Inject constructor(
 
     override suspend fun clearLocalPackingPending(rawCodes: List<String>) = withContext(ioDispatcher) {
         localRepository.clearLocalPackingPending(rawCodes)
+        statsFlow.value = localRepository.snapshotStats()
+    }
+
+    override suspend fun markLocalPackingCommitted(
+        rawCodes: List<String>,
+        packageCode: String,
+        packageClosedAt: String?,
+    ) = withContext(ioDispatcher) {
+        localRepository.markLocalPackingCommitted(rawCodes, packageCode, packageClosedAt)
         statsFlow.value = localRepository.snapshotStats()
     }
 

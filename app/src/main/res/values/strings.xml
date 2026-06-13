@@ -122,6 +122,7 @@
     <string name="packing_count_in_packaging">Учитывать в упаковке</string>
     <string name="packing_count_enabled_hint">Закрытие коробки увеличит счётчик упаковки</string>
     <string name="packing_count_disabled_hint">Коробка закроется без увеличения счётчика упаковки</string>
+    <string name="packing_count_mode_blocked_local_pending">Сначала закройте коробку или очистите локальный бокс. Пока есть неотправленные коды, режим учёта менять нельзя.</string>
     <string name="packing_open_box">Открыть коробку</string>
     <string name="packing_close_box">Закрыть коробку</string>
     <string name="packing_clear_box">Очистить коробку</string>
