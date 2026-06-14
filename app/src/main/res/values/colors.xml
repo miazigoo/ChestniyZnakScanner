@@ -1,7 +1,7 @@
 <resources>
-    <color name="icon_background">#EFE5D2</color>
-    <color name="icon_box">#24333A</color>
-    <color name="icon_accent">#158A57</color>
-    <color name="icon_scan">#B86A2B</color>
+    <color name="icon_background">#08131F</color>
+    <color name="icon_box">#0B1824</color>
+    <color name="icon_accent">#42DCC6</color>
+    <color name="icon_scan">#EAC875</color>
     <color name="window_background">#F4F1EA</color>
 </resources>
