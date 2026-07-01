@@ -1264,28 +1264,6 @@ class ScanViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val selection = runCatching {
-                getClientPrinterSelectionUseCase(DeviceIdentity.clientDeviceId)
-            }.getOrNull()
-            if (selection != null && selection.selectedPrinterId == null && selection.printers.size != 1) {
-                audioFeedbackPlayer.playWarning()
-                _uiState.update {
-                    it.copy(
-                        packing = it.packing.copy(
-                            isBusy = false,
-                            resultCard = ScanResultCardUi(
-                                headline = "NO",
-                                message = strings.get(R.string.printer_select_required),
-                                tone = ScanResultTone.Warning,
-                            ),
-                            statusText = strings.get(R.string.printer_select_required),
-                            errorText = strings.get(R.string.printer_select_required),
-                            showPrinterSettingsAction = true,
-                        ),
-                    )
-                }
-                return@launch
-            }
             if (localPendingCodes.isNotEmpty()) {
                 val scanResult = runCatching {
                     scanCodesToPackingBoxUseCase(
