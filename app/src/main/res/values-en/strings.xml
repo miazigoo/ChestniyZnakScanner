@@ -462,6 +462,8 @@
     <string name="box_edit_codes_in_box">Codes in box</string>
     <string name="box_edit_delete_action">Delete</string>
     <string name="box_edit_refresh_action">Refresh</string>
+    <string name="box_edit_actions_title">Box actions</string>
+    <string name="box_edit_empty_hint">This box has no codes yet. Add a code with the scanner or delete the empty box.</string>
     <string name="box_edit_hero_badge">EDIT FLOW</string>
     <string name="box_edit_hero_title">Box #%1$d</string>
     <string name="box_edit_hero_description">Edit box contents, remove extra items, and add new scans.</string>

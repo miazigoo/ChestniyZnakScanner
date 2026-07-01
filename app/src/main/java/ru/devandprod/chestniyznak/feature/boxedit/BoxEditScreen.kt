@@ -231,48 +231,15 @@ fun BoxEditScreen(
                     EditHeroCard(box = box)
                 }
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Button(
-                            onClick = onAddRequested,
-                            enabled = !state.isBusy,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(
-                                if (state.isAwaitingScan) {
-                                    stringResource(R.string.box_edit_add_waiting)
-                                } else {
-                                    stringResource(R.string.box_edit_add_button)
-                                },
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = onStopScanSession,
-                            enabled = !state.isBusy && state.isAwaitingScan,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(R.string.box_edit_stop_scan_button))
-                        }
-                        Button(
-                            onClick = onClearActionRequested,
-                            enabled = !state.isBusy,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError,
-                            ),
-                        ) {
-                            Text(
-                                if (box.items.isEmpty()) {
-                                    stringResource(R.string.box_edit_delete_box_button)
-                                } else {
-                                    stringResource(R.string.box_edit_delete_all_button)
-                                },
-                            )
-                        }
-                    }
+                    EditActionsCard(
+                        box = box,
+                        isBusy = state.isBusy,
+                        isAwaitingScan = state.isAwaitingScan,
+                        onAddRequested = onAddRequested,
+                        onStopScanSession = onStopScanSession,
+                        onRefresh = onRefresh,
+                        onClearActionRequested = onClearActionRequested,
+                    )
                 }
                 item {
                     EditMetricsCard(
@@ -311,10 +278,53 @@ fun BoxEditScreen(
                     }
                 }
                 item {
-                    Text(
-                        text = stringResource(R.string.box_edit_codes_in_box),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.box_edit_codes_in_box),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(100.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        ) {
+                            Text(
+                                text = "${box.items.size}",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+                if (box.items.isEmpty()) {
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.box_edit_empty_hint),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.38f),
+                                        RoundedCornerShape(24.dp),
+                                    )
+                                    .padding(16.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
+                        }
+                    }
                 }
                 items(box.items, key = { it.id }) { item ->
                     Box {
@@ -350,6 +360,16 @@ fun BoxEditScreen(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
+                                OutlinedButton(
+                                    onClick = { onRemoveItemRequested(item.id) },
+                                    enabled = !state.isBusy,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error,
+                                    ),
+                                ) {
+                                    Text(stringResource(R.string.box_edit_delete_action))
+                                }
                             }
                         }
 
@@ -364,15 +384,128 @@ fun BoxEditScreen(
                         }
                     }
                 }
-                item {
-                    OutlinedButton(
-                        onClick = onRefresh,
-                        enabled = !state.isBusy,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.box_edit_refresh_action))
-                    }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditActionsCard(
+    box: EditableBoxUi,
+    isBusy: Boolean,
+    isAwaitingScan: Boolean,
+    onAddRequested: () -> Unit,
+    onStopScanSession: () -> Unit,
+    onRefresh: () -> Unit,
+    onClearActionRequested: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(28.dp))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = stringResource(R.string.box_edit_actions_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = when {
+                            box.isEditMode -> stringResource(R.string.box_detail_edit_mode)
+                            box.isClosed -> stringResource(R.string.box_detail_closed)
+                            else -> stringResource(R.string.box_detail_open)
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                    )
                 }
+                Surface(
+                    shape = RoundedCornerShape(100.dp),
+                    color = if (box.items.isEmpty()) {
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.12f)
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    },
+                ) {
+                    Text(
+                        text = "${box.items.size}/${box.capacity}",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (box.items.isEmpty()) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                    )
+                }
+            }
+
+            Button(
+                onClick = onAddRequested,
+                enabled = !isBusy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    if (isAwaitingScan) {
+                        stringResource(R.string.box_edit_add_waiting)
+                    } else {
+                        stringResource(R.string.box_edit_add_button)
+                    },
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onStopScanSession,
+                    enabled = !isBusy && isAwaitingScan,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.box_edit_stop_scan_button), maxLines = 1)
+                }
+                OutlinedButton(
+                    onClick = onRefresh,
+                    enabled = !isBusy,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.box_edit_refresh_action), maxLines = 1)
+                }
+            }
+
+            Button(
+                onClick = onClearActionRequested,
+                enabled = !isBusy,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
+            ) {
+                Text(
+                    if (box.items.isEmpty()) {
+                        stringResource(R.string.box_edit_delete_box_button)
+                    } else {
+                        stringResource(R.string.box_edit_delete_all_button)
+                    },
+                )
             }
         }
     }

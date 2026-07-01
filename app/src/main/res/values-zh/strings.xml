@@ -462,6 +462,8 @@
     <string name="box_edit_codes_in_box">箱内标识码</string>
     <string name="box_edit_delete_action">删除</string>
     <string name="box_edit_refresh_action">刷新</string>
+    <string name="box_edit_actions_title">箱子操作</string>
+    <string name="box_edit_empty_hint">此箱内暂无标识码。请用扫描器添加标识码，或删除空箱。</string>
     <string name="box_edit_hero_badge">编辑流程</string>
     <string name="box_edit_hero_title">箱子 #%1$d</string>
     <string name="box_edit_hero_description">编辑箱内内容、移除多余项目，并添加新的扫描结果。</string>

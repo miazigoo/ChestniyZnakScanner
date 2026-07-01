@@ -85,6 +85,11 @@ class BoxDetailViewModel @Inject constructor(
 
     fun openEdit() {
         if (_uiState.value.isActionBusy) return
+        val box = _uiState.value.box ?: return
+        if (!box.isClosed) {
+            _openEditEvents.tryEmit(boxId)
+            return
+        }
         viewModelScope.launch {
             _uiState.update {
                 it.copy(

@@ -156,7 +156,7 @@ fun BoxDetailScreen(
                             ) {
                                 Button(
                                     onClick = onOpenEdit,
-                                    enabled = !state.isActionBusy && box.isClosed,
+                                    enabled = !state.isActionBusy,
                                     modifier = Modifier.weight(1f),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary,

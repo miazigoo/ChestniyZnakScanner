@@ -462,6 +462,8 @@
     <string name="box_edit_codes_in_box">Коды в коробке</string>
     <string name="box_edit_delete_action">Удалить</string>
     <string name="box_edit_refresh_action">Обновить</string>
+    <string name="box_edit_actions_title">Действия с коробкой</string>
+    <string name="box_edit_empty_hint">В коробке пока нет кодов. Добавьте код сканером или удалите пустую коробку.</string>
     <string name="box_edit_hero_badge">РЕДАКТИРОВАНИЕ</string>
     <string name="box_edit_hero_title">Коробка #%1$d</string>
     <string name="box_edit_hero_description">Редактируйте состав коробки, удаляйте лишние позиции и добавляйте новые сканы.</string>
