@@ -11,6 +11,8 @@
     <string name="common_retry">Retry</string>
     <string name="common_refresh">Refresh</string>
     <string name="common_edit">Edit</string>
+    <string name="common_edit_short">Edit</string>
+    <string name="common_open">Open</string>
     <string name="common_status">Status</string>
     <string name="common_not_specified">Not specified</string>
     <string name="common_unknown">unknown</string>
@@ -401,6 +403,8 @@
     <string name="status_closed">Closed</string>
     <string name="status_open">Open</string>
     <string name="status_editing">Editing</string>
+    <string name="status_empty">Empty</string>
+    <string name="status_full">Full</string>
     <string name="box_detail_edit_mode">Box is open in edit mode</string>
     <string name="box_detail_closed_ready">Box is closed and ready for control</string>
     <string name="box_detail_active_ready">Box is active and ready for scanning</string>

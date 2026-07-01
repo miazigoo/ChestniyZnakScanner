@@ -20,6 +20,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,6 +46,7 @@ import ru.devandprod.chestniyznak.core.designsystem.theme.ThemedAppBackground
 fun BoxesListRoute(
     onBack: () -> Unit,
     onOpenBox: (Long) -> Unit,
+    onEditBox: (Long) -> Unit,
     viewModel: BoxesListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -52,6 +54,7 @@ fun BoxesListRoute(
         state = state,
         onBack = onBack,
         onOpenBox = onOpenBox,
+        onEditBox = onEditBox,
         onRefresh = viewModel::refresh,
     )
 }
@@ -62,6 +65,7 @@ fun BoxesListScreen(
     state: BoxesListUiState,
     onBack: () -> Unit,
     onOpenBox: (Long) -> Unit,
+    onEditBox: (Long) -> Unit,
     onRefresh: () -> Unit,
 ) {
     val decor = CurrentAppDecorColors
@@ -234,26 +238,7 @@ fun BoxesListScreen(
                                                 overflow = TextOverflow.Ellipsis,
                                             )
                                         }
-                                        Surface(
-                                            shape = RoundedCornerShape(100.dp),
-                                            color = if (box.isClosed) {
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                            } else {
-                                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f)
-                                            },
-                                        ) {
-                                            Text(
-                                                text = if (box.isClosed) {
-                                                    stringResource(R.string.status_closed)
-                                                } else {
-                                                    stringResource(R.string.status_open)
-                                                },
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (box.isClosed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-                                            )
-                                        }
+                                        BoxStatusBadge(box)
                                     }
                                     BoxListMetricRow(
                                         leftTitle = stringResource(R.string.packing_fill),
@@ -268,6 +253,23 @@ fun BoxesListScreen(
                                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                         )
                                     }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Button(
+                                            onClick = { onOpenBox(box.boxId) },
+                                            modifier = Modifier.weight(1f),
+                                        ) {
+                                            Text(stringResource(R.string.common_open), maxLines = 1)
+                                        }
+                                        OutlinedButton(
+                                            onClick = { onEditBox(box.boxId) },
+                                            modifier = Modifier.weight(1f),
+                                        ) {
+                                            Text(stringResource(R.string.common_edit_short), maxLines = 1)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -275,6 +277,36 @@ fun BoxesListScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BoxStatusBadge(box: BoxListItemUi) {
+    val statusText = when {
+        box.isEditMode -> stringResource(R.string.status_editing)
+        box.filled == 0 -> stringResource(R.string.status_empty)
+        box.capacity > 0 && box.filled >= box.capacity -> stringResource(R.string.status_full)
+        box.isClosed -> stringResource(R.string.status_closed)
+        else -> stringResource(R.string.status_open)
+    }
+    val color = when {
+        box.isEditMode -> MaterialTheme.colorScheme.error
+        box.filled == 0 -> MaterialTheme.colorScheme.error
+        box.capacity > 0 && box.filled >= box.capacity -> MaterialTheme.colorScheme.primary
+        box.isClosed -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.tertiary
+    }
+    Surface(
+        shape = RoundedCornerShape(100.dp),
+        color = color.copy(alpha = 0.13f),
+    ) {
+        Text(
+            text = statusText,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = color,
+        )
     }
 }
 

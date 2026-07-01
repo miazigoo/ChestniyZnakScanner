@@ -282,6 +282,9 @@ private fun AuthenticatedNavHost(
                     onOpenBox = { boxId ->
                         navController.navigate(AppDestination.boxDetailRoute(boxId))
                     },
+                    onEditBox = { boxId ->
+                        navController.navigate(AppDestination.boxEditRoute(boxId))
+                    },
                 )
             }
             composable(AppDestination.Settings.route) {

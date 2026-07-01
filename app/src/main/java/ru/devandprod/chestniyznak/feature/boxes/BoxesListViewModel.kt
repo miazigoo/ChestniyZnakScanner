@@ -77,6 +77,7 @@ class BoxesListViewModel @Inject constructor(
         filled = filled,
         capacity = capacity,
         isClosed = isClosed,
+        isEditMode = isEditMode,
         activeUserName = activeUserName,
     )
 }

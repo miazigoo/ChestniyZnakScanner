@@ -11,6 +11,8 @@
     <string name="common_retry">Повторить</string>
     <string name="common_refresh">Обновить</string>
     <string name="common_edit">Редактировать</string>
+    <string name="common_edit_short">Править</string>
+    <string name="common_open">Открыть</string>
     <string name="common_status">Статус</string>
     <string name="common_not_specified">Не указан</string>
     <string name="common_unknown">неизвестно</string>
@@ -401,6 +403,8 @@
     <string name="status_closed">Закрыта</string>
     <string name="status_open">Открыта</string>
     <string name="status_editing">Редактирование</string>
+    <string name="status_empty">Пустая</string>
+    <string name="status_full">Заполнена</string>
     <string name="box_detail_edit_mode">Коробка открыта в режиме редактирования</string>
     <string name="box_detail_closed_ready">Коробка закрыта и готова к контролю</string>
     <string name="box_detail_active_ready">Коробка активна и готова к сканированию</string>

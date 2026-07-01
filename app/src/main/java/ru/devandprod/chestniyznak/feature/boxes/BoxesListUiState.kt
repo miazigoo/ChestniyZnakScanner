@@ -16,5 +16,6 @@ data class BoxListItemUi(
     val filled: Int,
     val capacity: Int,
     val isClosed: Boolean,
+    val isEditMode: Boolean,
     val activeUserName: String,
 )

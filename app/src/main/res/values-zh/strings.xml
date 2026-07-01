@@ -11,6 +11,8 @@
     <string name="common_retry">重试</string>
     <string name="common_refresh">刷新</string>
     <string name="common_edit">编辑</string>
+    <string name="common_edit_short">编辑</string>
+    <string name="common_open">打开</string>
     <string name="common_status">状态</string>
     <string name="common_not_specified">未填写</string>
     <string name="common_unknown">未知</string>
@@ -401,6 +403,8 @@
     <string name="status_closed">已关闭</string>
     <string name="status_open">打开</string>
     <string name="status_editing">编辑中</string>
+    <string name="status_empty">空箱</string>
+    <string name="status_full">已满</string>
     <string name="box_detail_edit_mode">箱子已在编辑模式下打开</string>
     <string name="box_detail_closed_ready">箱子已关闭，可进行检查</string>
     <string name="box_detail_active_ready">箱子处于活动状态，可继续扫描</string>
