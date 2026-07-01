@@ -91,6 +91,7 @@ fun BarcodeCameraPreview(
 
     val previewView = remember(context, restartKey) {
         PreviewView(context).apply {
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
             scaleType = PreviewView.ScaleType.FILL_CENTER
         }
     }

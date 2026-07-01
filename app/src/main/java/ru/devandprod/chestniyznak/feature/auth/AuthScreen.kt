@@ -193,7 +193,13 @@ private fun AuthScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState),
+                .then(
+                    if (inputMode == AuthInputMode.Camera) {
+                        Modifier
+                    } else {
+                        Modifier.verticalScroll(scrollState)
+                    },
+                ),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             AuthHeroCard(
@@ -387,7 +393,7 @@ private fun AuthScannerViewport(
                     isEnabled = isScannerEnabled,
                     onCodeScanned = onCodeScanned,
                     modifier = Modifier.fillMaxSize(),
-                    restartKey = cameraRestartKey,
+                    restartKey = "auth-qr-camera",
                 )
             } else {
                 Column(
