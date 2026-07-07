@@ -6,7 +6,7 @@ import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
 class ClearLocalPackingPendingUseCase @Inject constructor(
     private val repository: ChestniyZnakRepository,
 ) {
-    suspend operator fun invoke(rawCodes: List<String>) {
-        repository.clearLocalPackingPending(rawCodes)
+    suspend operator fun invoke(rawCodes: List<String>, orderId: String? = null) {
+        repository.clearLocalPackingPending(rawCodes, orderId)
     }
 }

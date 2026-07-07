@@ -63,6 +63,7 @@ data class PackingOrderLineUi(
 
 data class PackingBoxUi(
     val boxId: Long,
+    val orderUuid: String? = null,
     val orderName: String? = null,
     val sscc: String? = null,
     val filled: Int,

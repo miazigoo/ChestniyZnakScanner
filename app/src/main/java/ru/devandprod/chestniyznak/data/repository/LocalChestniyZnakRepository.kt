@@ -127,6 +127,21 @@ class LocalChestniyZnakRepository @Inject constructor(
         scannerId: String,
         allowDuplicate: Boolean,
     ): VerificationResult = withContext(ioDispatcher) {
+        verifyLocalCode(
+            rawInput = rawInput,
+            scannerId = scannerId,
+            allowDuplicate = allowDuplicate,
+            orderId = null,
+        )
+    }
+
+    private suspend fun verifyLocalCode(
+        rawInput: String,
+        scannerId: String,
+        allowDuplicate: Boolean,
+        orderId: String?,
+    ): VerificationResult {
+        val selectedOrderId = orderId.normalizedOrderId()
         val parsed = try {
             parser.parse(rawInput)
         } catch (exception: ChestniyZnakParseException) {
@@ -146,7 +161,7 @@ class LocalChestniyZnakRepository @Inject constructor(
                     gsRestored = false,
                 ),
             )
-            return@withContext VerificationResult(
+            return VerificationResult(
                 status = VerificationStatus.BAD_FORMAT,
                 message = exception.message.orEmpty(),
                 scanId = scanId,
@@ -154,7 +169,12 @@ class LocalChestniyZnakRepository @Inject constructor(
         }
 
         val hash = rawHash(parsed.rawCode)
-        val matchedCode = markingCodeDao.findByRawHash(hash)
+        val matchedCode = selectedOrderId
+            ?.let { markingCodeDao.findByRawHashInOrder(hash, it) }
+            ?: markingCodeDao.findByRawHash(hash)
+        val exactCodeInOtherOrder = selectedOrderId
+            ?.takeIf { matchedCode == null }
+            ?.let { markingCodeDao.findByRawHash(hash) }
         val status: VerificationStatus
         val message: String
 
@@ -179,9 +199,18 @@ class LocalChestniyZnakRepository @Inject constructor(
                 status = VerificationStatus.OK
                 message = strings.get(R.string.local_found)
             }
-        } else if (markingCodeDao.existsByIdentity(parsed.gtin, parsed.serial)) {
+        } else if (exactCodeInOtherOrder != null) {
+            status = VerificationStatus.WRONG_ORDER
+            message = strings.get(R.string.packing_other_order)
+        } else if (
+            selectedOrderId?.let { markingCodeDao.existsByIdentityInOrder(parsed.gtin, parsed.serial, it) }
+                ?: markingCodeDao.existsByIdentity(parsed.gtin, parsed.serial)
+        ) {
             status = VerificationStatus.TAIL_MISMATCH
             message = strings.get(R.string.local_tail_mismatch)
+        } else if (markingCodeDao.existsByIdentity(parsed.gtin, parsed.serial)) {
+            status = VerificationStatus.WRONG_ORDER
+            message = strings.get(R.string.packing_other_order)
         } else {
             status = VerificationStatus.NOT_FOUND
             message = strings.get(R.string.local_not_found)
@@ -205,7 +234,7 @@ class LocalChestniyZnakRepository @Inject constructor(
             ),
         )
 
-        VerificationResult(
+        return VerificationResult(
             status = status,
             message = message,
             scanId = scanId,
@@ -262,15 +291,26 @@ class LocalChestniyZnakRepository @Inject constructor(
         rawInput: String,
         scannerId: String,
         allowDuplicate: Boolean,
-    ): VerificationResult = verify(
-        rawInput = rawInput,
-        scannerId = scannerId,
-        allowDuplicate = allowDuplicate,
-    )
+        orderId: String?,
+    ): VerificationResult = withContext(ioDispatcher) {
+        verifyLocalCode(
+            rawInput = rawInput,
+            scannerId = scannerId,
+            allowDuplicate = allowDuplicate,
+            orderId = orderId,
+        )
+    }
 
-    override suspend fun getLocalPackingPending(packageCode: String): List<LocalPackingPendingCode> =
+    override suspend fun getLocalPackingPending(
+        packageCode: String,
+        orderId: String?,
+    ): List<LocalPackingPendingCode> =
         withContext(ioDispatcher) {
-            markingCodeDao.findLocalPackingPending(packageCode)
+            val selectedOrderId = orderId.normalizedOrderId()
+            val pendingCodes = selectedOrderId
+                ?.let { markingCodeDao.findLocalPackingPendingInOrder(packageCode, it) }
+                ?: markingCodeDao.findLocalPackingPending(packageCode)
+            pendingCodes
                 .map { entity ->
                     LocalPackingPendingCode(
                         id = entity.id,
@@ -285,15 +325,29 @@ class LocalChestniyZnakRepository @Inject constructor(
     override suspend fun markLocalPackingPending(
         rawInput: String,
         packageCode: String?,
+        orderId: String?,
     ) = withContext(ioDispatcher) {
         val parsed = parser.parse(rawInput)
-        markingCodeDao.markPackingPending(
-            rawHash = rawHash(parsed.rawCode),
-            packageCode = packageCode,
-        )
+        val hash = rawHash(parsed.rawCode)
+        val selectedOrderId = orderId.normalizedOrderId()
+        if (selectedOrderId == null) {
+            markingCodeDao.markPackingPending(
+                rawHash = hash,
+                packageCode = packageCode,
+            )
+        } else {
+            markingCodeDao.markPackingPendingInOrder(
+                rawHash = hash,
+                orderId = selectedOrderId,
+                packageCode = packageCode,
+            )
+        }
     }
 
-    override suspend fun clearLocalPackingPending(rawCodes: List<String>) = withContext(ioDispatcher) {
+    override suspend fun clearLocalPackingPending(
+        rawCodes: List<String>,
+        orderId: String?,
+    ) = withContext(ioDispatcher) {
         val hashes = rawCodes
             .flatMap { rawCode ->
                 listOfNotNull(
@@ -303,7 +357,12 @@ class LocalChestniyZnakRepository @Inject constructor(
             }
             .distinct()
         if (hashes.isNotEmpty()) {
-            markingCodeDao.clearPackingPending(hashes)
+            val selectedOrderId = orderId.normalizedOrderId()
+            if (selectedOrderId == null) {
+                markingCodeDao.clearPackingPending(hashes)
+            } else {
+                markingCodeDao.clearPackingPendingInOrder(hashes, selectedOrderId)
+            }
         }
     }
 
@@ -311,6 +370,7 @@ class LocalChestniyZnakRepository @Inject constructor(
         rawCodes: List<String>,
         packageCode: String,
         packageClosedAt: String?,
+        orderId: String?,
     ) = withContext(ioDispatcher) {
         val hashes = rawCodes
             .flatMap { rawCode ->
@@ -321,11 +381,21 @@ class LocalChestniyZnakRepository @Inject constructor(
             }
             .distinct()
         if (hashes.isNotEmpty() && packageCode.isNotBlank()) {
-            markingCodeDao.markPackingCommitted(
-                rawHashes = hashes,
-                packageCode = packageCode,
-                packageClosedAt = packageClosedAt,
-            )
+            val selectedOrderId = orderId.normalizedOrderId()
+            if (selectedOrderId == null) {
+                markingCodeDao.markPackingCommitted(
+                    rawHashes = hashes,
+                    packageCode = packageCode,
+                    packageClosedAt = packageClosedAt,
+                )
+            } else {
+                markingCodeDao.markPackingCommittedInOrder(
+                    rawHashes = hashes,
+                    packageCode = packageCode,
+                    packageClosedAt = packageClosedAt,
+                    orderId = selectedOrderId,
+                )
+            }
         }
     }
 
@@ -367,6 +437,8 @@ class LocalChestniyZnakRepository @Inject constructor(
         appStatus = appStatus,
         orderNumber = orderNumber,
         orderName = orderNumber,
+        orderId = orderId,
+        orderLineId = orderLineId,
         deviceName = "",
         packageCode = packageCode,
         packageStatus = packageStatus,
@@ -377,6 +449,9 @@ class LocalChestniyZnakRepository @Inject constructor(
 
     private fun MarkingCodeEntity.isPendingLocalPacking(): Boolean =
         appStatus == "pending_local"
+
+    private fun String?.normalizedOrderId(): String? =
+        this?.trim()?.takeIf(String::isNotBlank)
 
     private fun rawHash(rawCode: String): String {
         val digest = MessageDigest.getInstance("SHA-256")

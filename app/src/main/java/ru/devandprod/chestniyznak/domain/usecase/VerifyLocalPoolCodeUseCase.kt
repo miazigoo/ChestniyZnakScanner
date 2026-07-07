@@ -11,9 +11,11 @@ class VerifyLocalPoolCodeUseCase @Inject constructor(
         rawInput: String,
         scannerId: String = "",
         allowDuplicate: Boolean = false,
+        orderId: String? = null,
     ): VerificationResult = repository.verifyLocalOnly(
         rawInput = rawInput,
         scannerId = scannerId,
         allowDuplicate = allowDuplicate,
+        orderId = orderId,
     )
 }

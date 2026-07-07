@@ -158,27 +158,35 @@ class HybridChestniyZnakRepository @Inject constructor(
         rawInput: String,
         scannerId: String,
         allowDuplicate: Boolean,
+        orderId: String?,
     ): VerificationResult = withContext(ioDispatcher) {
-        localRepository.verifyLocalOnly(rawInput, scannerId, allowDuplicate).also {
+        localRepository.verifyLocalOnly(rawInput, scannerId, allowDuplicate, orderId).also {
             statsFlow.value = localRepository.snapshotStats()
         }
     }
 
-    override suspend fun getLocalPackingPending(packageCode: String): List<LocalPackingPendingCode> =
+    override suspend fun getLocalPackingPending(
+        packageCode: String,
+        orderId: String?,
+    ): List<LocalPackingPendingCode> =
         withContext(ioDispatcher) {
-            localRepository.getLocalPackingPending(packageCode)
+            localRepository.getLocalPackingPending(packageCode, orderId)
         }
 
     override suspend fun markLocalPackingPending(
         rawInput: String,
         packageCode: String?,
+        orderId: String?,
     ) = withContext(ioDispatcher) {
-        localRepository.markLocalPackingPending(rawInput, packageCode)
+        localRepository.markLocalPackingPending(rawInput, packageCode, orderId)
         statsFlow.value = localRepository.snapshotStats()
     }
 
-    override suspend fun clearLocalPackingPending(rawCodes: List<String>) = withContext(ioDispatcher) {
-        localRepository.clearLocalPackingPending(rawCodes)
+    override suspend fun clearLocalPackingPending(
+        rawCodes: List<String>,
+        orderId: String?,
+    ) = withContext(ioDispatcher) {
+        localRepository.clearLocalPackingPending(rawCodes, orderId)
         statsFlow.value = localRepository.snapshotStats()
     }
 
@@ -186,8 +194,9 @@ class HybridChestniyZnakRepository @Inject constructor(
         rawCodes: List<String>,
         packageCode: String,
         packageClosedAt: String?,
+        orderId: String?,
     ) = withContext(ioDispatcher) {
-        localRepository.markLocalPackingCommitted(rawCodes, packageCode, packageClosedAt)
+        localRepository.markLocalPackingCommitted(rawCodes, packageCode, packageClosedAt, orderId)
         statsFlow.value = localRepository.snapshotStats()
     }
 

@@ -43,6 +43,16 @@ interface MarkingCodeDao {
     @Query(
         """
         SELECT * FROM marking_codes
+        WHERE rawCodeSha256 = :rawHash
+            AND orderId = :orderId
+        LIMIT 1
+        """,
+    )
+    suspend fun findByRawHashInOrder(rawHash: String, orderId: String): MarkingCodeEntity?
+
+    @Query(
+        """
+        SELECT * FROM marking_codes
         WHERE appStatus = 'pending_local'
             AND packageCode = :packageCode
         ORDER BY id ASC
@@ -55,6 +65,20 @@ interface MarkingCodeDao {
 
     @Query(
         """
+        SELECT * FROM marking_codes
+        WHERE appStatus = 'pending_local'
+            AND packageCode = :packageCode
+            AND orderId = :orderId
+        ORDER BY id ASC
+        """,
+    )
+    suspend fun findLocalPackingPendingInOrder(
+        packageCode: String,
+        orderId: String,
+    ): List<MarkingCodeEntity>
+
+    @Query(
+        """
         UPDATE marking_codes
         SET appStatus = 'pending_local',
             packageCode = :packageCode,
@@ -64,6 +88,23 @@ interface MarkingCodeDao {
         """,
     )
     suspend fun markPackingPending(rawHash: String, packageCode: String?)
+
+    @Query(
+        """
+        UPDATE marking_codes
+        SET appStatus = 'pending_local',
+            packageCode = :packageCode,
+            packageStatus = 'local_pending',
+            packageClosedAt = NULL
+        WHERE rawCodeSha256 = :rawHash
+            AND orderId = :orderId
+        """,
+    )
+    suspend fun markPackingPendingInOrder(
+        rawHash: String,
+        orderId: String,
+        packageCode: String?,
+    )
 
     @Query(
         """
@@ -83,6 +124,23 @@ interface MarkingCodeDao {
     @Query(
         """
         UPDATE marking_codes
+        SET appStatus = CASE
+                WHEN packageUnitId IS NULL THEN 'local_pool'
+                ELSE appStatus
+            END,
+            packageCode = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageCode END,
+            packageStatus = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageStatus END,
+            packageClosedAt = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageClosedAt END
+        WHERE rawCodeSha256 IN (:rawHashes)
+            AND orderId = :orderId
+            AND appStatus = 'pending_local'
+        """,
+    )
+    suspend fun clearPackingPendingInOrder(rawHashes: List<String>, orderId: String)
+
+    @Query(
+        """
+        UPDATE marking_codes
         SET appStatus = 'packed_remote',
             status1c = 'packed',
             packageCode = :packageCode,
@@ -97,6 +155,37 @@ interface MarkingCodeDao {
         packageClosedAt: String?,
     )
 
+    @Query(
+        """
+        UPDATE marking_codes
+        SET appStatus = 'packed_remote',
+            status1c = 'packed',
+            packageCode = :packageCode,
+            packageStatus = 'closed',
+            packageClosedAt = :packageClosedAt
+        WHERE rawCodeSha256 IN (:rawHashes)
+            AND orderId = :orderId
+        """,
+    )
+    suspend fun markPackingCommittedInOrder(
+        rawHashes: List<String>,
+        packageCode: String,
+        packageClosedAt: String?,
+        orderId: String,
+    )
+
     @Query("SELECT EXISTS(SELECT 1 FROM marking_codes WHERE gtin = :gtin AND serial = :serial)")
     suspend fun existsByIdentity(gtin: String, serial: String): Boolean
+
+    @Query(
+        """
+        SELECT EXISTS(
+            SELECT 1 FROM marking_codes
+            WHERE gtin = :gtin
+                AND serial = :serial
+                AND orderId = :orderId
+        )
+        """,
+    )
+    suspend fun existsByIdentityInOrder(gtin: String, serial: String, orderId: String): Boolean
 }

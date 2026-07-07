@@ -10,11 +10,13 @@ class MarkLocalPackingCommittedUseCase @Inject constructor(
         rawCodes: List<String>,
         packageCode: String,
         packageClosedAt: String?,
+        orderId: String? = null,
     ) {
         repository.markLocalPackingCommitted(
             rawCodes = rawCodes,
             packageCode = packageCode,
             packageClosedAt = packageClosedAt,
+            orderId = orderId,
         )
     }
 }

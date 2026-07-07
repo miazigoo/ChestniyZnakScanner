@@ -640,12 +640,14 @@ class ScanViewModel @Inject constructor(
     }
 
     fun onClearLocalBoxRequested() {
-        val box = _uiState.value.packing.currentBox ?: return
-        if (_uiState.value.packing.isBusy || _uiState.value.packing.localPendingCodes.isEmpty()) return
-        val localPendingCodes = _uiState.value.packing.localPendingCodes
+        val initialState = _uiState.value
+        val box = initialState.packing.currentBox ?: return
+        if (initialState.packing.isBusy || initialState.packing.localPendingCodes.isEmpty()) return
+        val localPendingCodes = initialState.packing.localPendingCodes
+        val orderId = initialState.packing.currentPackingOrderId()
         audioFeedbackPlayer.playWarning()
         viewModelScope.launch {
-            runCatching { clearLocalPackingPendingUseCase(localPendingCodes) }
+            runCatching { clearLocalPackingPendingUseCase(localPendingCodes, orderId = orderId) }
                 .onSuccess {
                     _uiState.update { state ->
                         val serverItems = box.items.filter { it.rawCode.isBlank() }
@@ -859,6 +861,26 @@ class ScanViewModel @Inject constructor(
             }
             return
         }
+        val packingOrderId = state.packing.currentPackingOrderId()
+        if (packingOrderId.isNullOrBlank()) {
+            audioFeedbackPlayer.playError()
+            _uiState.update {
+                it.copy(
+                    packing = it.packing.copy(
+                        resultCard = ScanResultCardUi(
+                            headline = "NO",
+                            message = strings.get(R.string.packing_open_requires_order_line),
+                            tone = ScanResultTone.Error,
+                        ),
+                        statusText = strings.get(R.string.packing_box_not_open),
+                        errorText = strings.get(R.string.packing_open_requires_order_line),
+                        lastScannedCode = rawCode,
+                    ),
+                    verify = it.verify.readyForPackingCamera(it.scanMode),
+                )
+            }
+            return
+        }
 
         _uiState.update {
             it.copy(
@@ -880,9 +902,15 @@ class ScanViewModel @Inject constructor(
                     rawInput = rawCode,
                     scannerId = scannerId,
                     allowDuplicate = false,
+                    orderId = packingOrderId,
                 )
             }.onSuccess { result ->
-                handleLocalPackingScan(rawCode = rawCode, scannerId = scannerId, result = result)
+                handleLocalPackingScan(
+                    rawCode = rawCode,
+                    scannerId = scannerId,
+                    result = result,
+                    orderId = packingOrderId,
+                )
                 if (requiredMode == ScanMode.PackingCamera) {
                     rearmPackingCameraScanner(delayMs = 120)
                 }
@@ -1086,6 +1114,7 @@ class ScanViewModel @Inject constructor(
         rawCode: String,
         scannerId: String,
         result: VerificationResult,
+        orderId: String?,
     ) {
         val normalizedRawCode = result.parsed?.rawCode ?: rawCode
         val state = _uiState.value
@@ -1110,7 +1139,11 @@ class ScanViewModel @Inject constructor(
                 }
             }
             !result.isSuccess -> {
-                audioFeedbackPlayer.playError()
+                if (result.status == VerificationStatus.WRONG_ORDER) {
+                    audioFeedbackPlayer.playOtherOrder()
+                } else {
+                    audioFeedbackPlayer.playError()
+                }
                 _uiState.update { current ->
                     current.copy(
                         packing = current.packing.copy(
@@ -1164,6 +1197,7 @@ class ScanViewModel @Inject constructor(
                     markLocalPackingPendingUseCase(
                         rawInput = normalizedRawCode,
                         packageCode = box.sscc ?: strings.get(R.string.packing_box_number, box.boxId),
+                        orderId = orderId,
                     )
                 }
                 audioFeedbackPlayer.playSuccess()
@@ -1209,9 +1243,10 @@ class ScanViewModel @Inject constructor(
     }
 
     private fun removeLocalPendingItem(item: PackingBoxItemUi) {
+        val orderId = _uiState.value.packing.currentPackingOrderId()
         audioFeedbackPlayer.playWarning()
         viewModelScope.launch {
-            runCatching { clearLocalPackingPendingUseCase(listOf(item.rawCode)) }
+            runCatching { clearLocalPackingPendingUseCase(listOf(item.rawCode), orderId = orderId) }
         }
         _uiState.update { state ->
             val box = state.packing.currentBox ?: return@update state
@@ -1248,9 +1283,11 @@ class ScanViewModel @Inject constructor(
     }
 
     fun onCloseBoxRequested() {
-        val boxId = _uiState.value.packing.currentBox?.boxId ?: return
-        if (_uiState.value.packing.isBusy) return
-        val localPendingCodes = _uiState.value.packing.localPendingCodes
+        val initialState = _uiState.value
+        val boxId = initialState.packing.currentBox?.boxId ?: return
+        if (initialState.packing.isBusy) return
+        val localPendingCodes = initialState.packing.localPendingCodes
+        val orderId = initialState.packing.currentPackingOrderId()
 
         _uiState.update {
             it.copy(
@@ -1295,7 +1332,7 @@ class ScanViewModel @Inject constructor(
                     handlePackingScanResult(scanResult, refreshSnapshot = false)
                     return@launch
                 }
-                runCatching { clearLocalPackingPendingUseCase(localPendingCodes) }
+                runCatching { clearLocalPackingPendingUseCase(localPendingCodes, orderId = orderId) }
                 refreshSelectedLocalPool(force = true)
                 _uiState.update { state ->
                     state.copy(
@@ -1322,6 +1359,7 @@ class ScanViewModel @Inject constructor(
                                     rawCodes = localPendingCodes,
                                     packageCode = sscc,
                                     packageClosedAt = null,
+                                    orderId = orderId,
                                 )
                             }
                         }
@@ -1612,6 +1650,11 @@ class ScanViewModel @Inject constructor(
     }
 
     private fun VerificationResult.toVerifyCard(): ScanResultCardUi = when (status) {
+        VerificationStatus.WRONG_ORDER -> ScanResultCardUi(
+            headline = "NO",
+            message = message,
+            tone = ScanResultTone.Warning,
+        )
         VerificationStatus.DUPLICATE_SCAN -> ScanResultCardUi(
             headline = strings.get(R.string.verify_duplicate_headline),
             message = message,
@@ -1686,6 +1729,7 @@ class ScanViewModel @Inject constructor(
 
     private fun PackingBox.toUi(items: List<PackingBoxItemUi> = emptyList()): PackingBoxUi = PackingBoxUi(
         boxId = boxId,
+        orderUuid = orderUuid,
         orderName = orderName,
         sscc = sscc,
         filled = filled,
@@ -1711,7 +1755,7 @@ class ScanViewModel @Inject constructor(
         val packageCode = box.sscc
             ?.takeIf(String::isNotBlank)
             ?: strings.get(R.string.packing_box_number, box.boxId)
-        return getLocalPackingPendingUseCase(packageCode).map { code ->
+        return getLocalPackingPendingUseCase(packageCode, orderId = box.orderUuid).map { code ->
             PackingBoxItemUi(
                 id = -code.id,
                 gtin = code.gtin,
@@ -1754,6 +1798,10 @@ class ScanViewModel @Inject constructor(
 
     private fun PackingPaneUiState.selectedOrderLine(): PackingOrderLineUi? =
         orderLines.firstOrNull { it.orderLineId == selectedOrderLineId }
+
+    private fun PackingPaneUiState.currentPackingOrderId(): String? =
+        currentBox?.orderUuid?.takeIf(String::isNotBlank)
+            ?: selectedOrderLine()?.orderId?.takeIf(String::isNotBlank)
 
     private fun PackingOrderLineUi.toSelectedStatusText(): String =
         if (scanRequired) {

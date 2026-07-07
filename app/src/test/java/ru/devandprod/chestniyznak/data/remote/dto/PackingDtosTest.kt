@@ -43,6 +43,7 @@ class PackingDtosTest {
     fun `current box response maps count_in_packing to domain`() {
         val response = CurrentBoxResponseDto(
             boxId = 10,
+            orderUuid = "1b8f62c3-8c8f-48b0-a28c-8169b9e2af16",
             name = null,
             orderName = "26-0666/6938",
             sscc = "046306261900000012",
@@ -58,6 +59,7 @@ class PackingDtosTest {
         val detail = response.toDomain()
 
         assertEquals(10L, detail.box.boxId)
+        assertEquals("1b8f62c3-8c8f-48b0-a28c-8169b9e2af16", detail.box.orderUuid)
         assertFalse(detail.box.countInPacking)
         assertEquals("26-0666/6938", detail.box.orderName)
     }

@@ -4,6 +4,7 @@ enum class VerificationStatus {
     OK,
     OK_GS_RESTORED,
     DUPLICATE_SCAN,
+    WRONG_ORDER,
     BAD_FORMAT,
     NOT_FOUND,
     TAIL_MISMATCH,

@@ -3,6 +3,7 @@ package ru.devandprod.chestniyznak.domain.model
 data class PackingBox(
     val boxId: Long,
     val orderId: Long? = null,
+    val orderUuid: String? = null,
     val orderName: String? = null,
     val sscc: String? = null,
     val capacity: Int,

@@ -7,6 +7,6 @@ import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
 class GetLocalPackingPendingUseCase @Inject constructor(
     private val repository: ChestniyZnakRepository,
 ) {
-    suspend operator fun invoke(packageCode: String): List<LocalPackingPendingCode> =
-        repository.getLocalPackingPending(packageCode)
+    suspend operator fun invoke(packageCode: String, orderId: String? = null): List<LocalPackingPendingCode> =
+        repository.getLocalPackingPending(packageCode, orderId)
 }
