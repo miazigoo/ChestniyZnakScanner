@@ -169,9 +169,11 @@ class LocalChestniyZnakRepository @Inject constructor(
         }
 
         val hash = rawHash(parsed.rawCode)
-        val matchedCode = selectedOrderId
-            ?.let { markingCodeDao.findByRawHashInOrder(hash, it) }
-            ?: markingCodeDao.findByRawHash(hash)
+        val matchedCode = if (selectedOrderId != null) {
+            markingCodeDao.findByRawHashInOrder(hash, selectedOrderId)
+        } else {
+            markingCodeDao.findByRawHash(hash)
+        }
         val exactCodeInOtherOrder = selectedOrderId
             ?.takeIf { matchedCode == null }
             ?.let { markingCodeDao.findByRawHash(hash) }
