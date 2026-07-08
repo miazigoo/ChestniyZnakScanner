@@ -194,6 +194,7 @@
     <string name="packing_box_closed_id">Box #%1$d closed</string>
     <string name="packing_box_closed_and_printed">Box closed, label printed</string>
     <string name="packing_box_closed_print_failed">Box closed, print failed</string>
+    <string name="packing_box_closed_print_deferred">Box closed. No printer is selected, so SSCC can be printed later from the box card.</string>
     <string name="packing_printing_label">Printing the box label...</string>
     <string name="printer_load_failed">Could not load printers</string>
     <string name="printer_save_failed">Could not save printer selection</string>
@@ -205,6 +206,7 @@
     <string name="printer_select_required">Select a printer for SSCC printing before closing the box.</string>
     <string name="printer_select_before_open_box_title">Select a printer</string>
     <string name="printer_select_before_open_box_message">Select an SSCC printer before opening a box. This lets the operator print the label immediately after closing the box.</string>
+    <string name="printer_select_for_reprint">No printer is selected. Select a printer and reprint from the box card.</string>
     <string name="printer_tcp_connection_failed">Printer %1$s is unavailable at %2$s. Check power, network, or select another printer.</string>
     <string name="printer_open_settings">Open printer settings</string>
     <string name="printer_toolbar_title">PRINTER</string>

@@ -1576,14 +1576,16 @@ class ScanViewModel @Inject constructor(
         result: ClosePackingBoxResult,
         printResult: PackageLabelPrintResult? = null,
     ) {
+        val printerNotSelected = printResult?.printErrorCode == "printer_not_selected"
         when {
+            result.ok && printerNotSelected -> audioFeedbackPlayer.playWarning()
             result.ok && printResult?.printOk == false -> audioFeedbackPlayer.playError()
             result.ok -> audioFeedbackPlayer.playSuccess()
             else -> audioFeedbackPlayer.playError()
         }
         val boxUi = result.box.toUi()
         val isFull = result.box.filled >= result.box.capacity
-        val printError = printResult?.printError.orEmpty()
+        val printError = if (printerNotSelected) "" else printResult?.printError.orEmpty()
         val printerName = printResult?.printer?.name.orEmpty()
         _uiState.update { state ->
             state.copy(
@@ -1607,7 +1609,9 @@ class ScanViewModel @Inject constructor(
                     resultCard = if (result.ok) {
                         ScanResultCardUi(
                             headline = "OK",
-                            message = if (printResult?.printOk == false) {
+                            message = if (printerNotSelected) {
+                                strings.get(R.string.packing_box_closed_print_deferred)
+                            } else if (printResult?.printOk == false) {
                                 strings.get(R.string.packing_box_closed_print_failed)
                             } else if (printResult?.printOk == true) {
                                 strings.get(R.string.packing_box_closed_and_printed)
@@ -1628,7 +1632,9 @@ class ScanViewModel @Inject constructor(
                         )
                     },
                     statusText = if (result.ok) {
-                        if (printResult?.printOk == false) {
+                        if (printerNotSelected) {
+                            strings.get(R.string.packing_box_closed_print_deferred)
+                        } else if (printResult?.printOk == false) {
                             strings.get(R.string.packing_box_closed_print_failed)
                         } else if (printResult?.printOk == true) {
                             strings.get(R.string.packing_box_closed_and_printed)
@@ -1638,7 +1644,7 @@ class ScanViewModel @Inject constructor(
                     } else {
                         strings.get(R.string.packing_box_not_closed)
                     },
-                    errorText = if (result.ok && printResult?.printOk == false) {
+                    errorText = if (result.ok && printResult?.printOk == false && !printerNotSelected) {
                         printError.ifBlank { strings.get(R.string.printer_print_failed) }
                     } else {
                         result.error

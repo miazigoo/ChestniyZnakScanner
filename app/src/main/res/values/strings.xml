@@ -194,6 +194,7 @@
     <string name="packing_box_closed_id">Коробка #%1$d закрыта</string>
     <string name="packing_box_closed_and_printed">Коробка закрыта, этикетка напечатана</string>
     <string name="packing_box_closed_print_failed">Коробка закрыта, печать не выполнена</string>
+    <string name="packing_box_closed_print_deferred">Коробка закрыта. Принтер не выбран, SSCC можно распечатать позже из карточки коробки.</string>
     <string name="packing_printing_label">Печатаем этикетку коробки...</string>
     <string name="printer_load_failed">Не удалось загрузить принтеры</string>
     <string name="printer_save_failed">Не удалось сохранить выбор принтера</string>
@@ -205,6 +206,7 @@
     <string name="printer_select_required">Выберите принтер для печати SSCC перед закрытием коробки.</string>
     <string name="printer_select_before_open_box_title">Выберите принтер</string>
     <string name="printer_select_before_open_box_message">Перед открытием коробки выберите принтер для печати SSCC. Так оператор сразу получит этикетку после закрытия коробки.</string>
+    <string name="printer_select_for_reprint">Принтер не выбран. Выберите принтер и повторите печать из карточки коробки.</string>
     <string name="printer_tcp_connection_failed">Принтер %1$s недоступен по адресу %2$s. Проверьте питание, сеть или выберите другой принтер.</string>
     <string name="printer_open_settings">Открыть настройки принтера</string>
     <string name="printer_toolbar_title">ПРИНТЕР</string>

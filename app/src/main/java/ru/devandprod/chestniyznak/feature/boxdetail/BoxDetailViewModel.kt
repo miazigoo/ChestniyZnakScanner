@@ -152,6 +152,15 @@ class BoxDetailViewModel @Inject constructor(
                             errorText = null,
                         )
                     }
+                } else if (result.printErrorCode == "printer_not_selected") {
+                    audioFeedbackPlayer.playWarning()
+                    _uiState.update {
+                        it.copy(
+                            isActionBusy = false,
+                            statusText = strings.get(R.string.printer_select_for_reprint),
+                            errorText = null,
+                        )
+                    }
                 } else {
                     audioFeedbackPlayer.playError()
                     val errorText = result.printError.ifBlank { strings.get(R.string.printer_print_failed) }

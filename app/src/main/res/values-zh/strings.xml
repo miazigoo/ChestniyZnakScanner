@@ -194,6 +194,7 @@
     <string name="packing_box_closed_id">箱子 #%1$d 已关闭</string>
     <string name="packing_box_closed_and_printed">箱子已关闭，标签已打印</string>
     <string name="packing_box_closed_print_failed">箱子已关闭，打印失败</string>
+    <string name="packing_box_closed_print_deferred">箱子已关闭。未选择打印机，可稍后在箱子卡片中打印 SSCC。</string>
     <string name="packing_printing_label">正在打印箱标签...</string>
     <string name="printer_load_failed">无法加载打印机</string>
     <string name="printer_save_failed">无法保存打印机选择</string>
@@ -205,6 +206,7 @@
     <string name="printer_select_required">关闭箱子前请选择用于打印 SSCC 的打印机。</string>
     <string name="printer_select_before_open_box_title">请选择打印机</string>
     <string name="printer_select_before_open_box_message">打开箱子前请选择用于打印 SSCC 的打印机。这样操作员在关闭箱子后可以立即打印标签。</string>
+    <string name="printer_select_for_reprint">未选择打印机。请选择打印机后在箱子卡片中重新打印。</string>
     <string name="printer_tcp_connection_failed">打印机 %1$s 在 %2$s 不可用。请检查电源、网络，或选择其他打印机。</string>
     <string name="printer_open_settings">打开打印机设置</string>
     <string name="printer_toolbar_title">打印机</string>
