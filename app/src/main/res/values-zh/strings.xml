@@ -144,6 +144,8 @@
     <string name="packing_open_requires_order_line">没有订单行时无法打开箱子</string>
     <string name="packing_scanning_disabled">此订单已关闭扫描</string>
     <string name="packing_open_not_needed">应用内无需操作：标识码在供应商 Web 工作台处理</string>
+    <string name="packing_order_read_only">订单已提交/由工厂验收。除非工厂退回返工，否则包装已冻结。</string>
+    <string name="packing_order_read_only_hint">此订单当前为只读：工厂正在审核、已验收，或等待 ERP 导入确认。如需修改，工厂必须先退回返工。</string>
     <string name="packing_opening_box">正在打开箱子...</string>
     <string name="packing_open_failed">无法打开箱子</string>
     <string name="packing_updating_count_mode">正在更新包装计数模式...</string>
@@ -506,6 +508,7 @@
     <string name="order_selection_return_to_open_box">返回已打开的箱子</string>
     <string name="order_selection_choose_first">请选择订单</string>
     <string name="order_selection_continue">进入包装</string>
+    <string name="order_selection_read_only">只读</string>
     <string name="order_selection_wait_pool">等待标识码池加载</string>
     <string name="order_selection_hint_no_scan">此页面不扫描商品。请先选择订单，然后进入包装。</string>
 </resources>

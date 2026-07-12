@@ -343,6 +343,23 @@ class ScanViewModel @Inject constructor(
             }
             return
         }
+        if (selectedLine.readOnly) {
+            audioFeedbackPlayer.playWarning()
+            _uiState.update {
+                it.copy(
+                    packing = it.packing.copy(
+                        resultCard = ScanResultCardUi(
+                            headline = "NO",
+                            message = strings.get(R.string.packing_order_read_only),
+                            tone = ScanResultTone.Warning,
+                        ),
+                        statusText = strings.get(R.string.packing_order_read_only),
+                        errorText = strings.get(R.string.packing_order_read_only),
+                    ),
+                )
+            }
+            return
+        }
 
         _uiState.update {
             it.copy(
@@ -500,6 +517,20 @@ class ScanViewModel @Inject constructor(
             }
             if (selected == null || state.packing.currentBox != null) {
                 state
+            } else if (selected.readOnly) {
+                selectedLine = selected
+                state.copy(
+                    packing = state.packing.copy(
+                        selectedOrderLineId = "",
+                        resultCard = ScanResultCardUi(
+                            headline = "NO",
+                            message = strings.get(R.string.packing_order_read_only),
+                            tone = ScanResultTone.Warning,
+                        ),
+                        statusText = strings.get(R.string.packing_order_read_only),
+                        errorText = null,
+                    ),
+                )
             } else {
                 selectedLine = selected
                 state.copy(
@@ -512,7 +543,9 @@ class ScanViewModel @Inject constructor(
             }
         }
         selectedLine?.let { line ->
-            downloadLocalPoolFor(line, force = true)
+            if (!line.readOnly) {
+                downloadLocalPoolFor(line, force = true)
+            }
         }
     }
 
@@ -974,7 +1007,7 @@ class ScanViewModel @Inject constructor(
                     )
                 }
                 nextSelectedLine?.let { selected ->
-                    if (_uiState.value.packing.localPoolOrderId != selected.orderId) {
+                    if (!selected.readOnly && _uiState.value.packing.localPoolOrderId != selected.orderId) {
                         downloadLocalPoolFor(selected)
                     }
                 }
@@ -993,6 +1026,7 @@ class ScanViewModel @Inject constructor(
     }
 
     private fun downloadLocalPoolFor(selectedLine: PackingOrderLineUi, force: Boolean = false) {
+        if (selectedLine.readOnly) return
         if (!force && _uiState.value.packing.localPoolOrderId == selectedLine.orderId) return
         if (_uiState.value.packing.localPoolLoading) return
         _uiState.update { state ->
@@ -1048,6 +1082,7 @@ class ScanViewModel @Inject constructor(
         val selectedLine = state.packing.selectedOrderLine()
         if (
             selectedLine == null ||
+            selectedLine.readOnly ||
             !selectedLine.scanRequired ||
             state.packing.localPoolLoading ||
             (orderId.isNotBlank() && orderId != selectedLine.orderId)
@@ -1059,6 +1094,7 @@ class ScanViewModel @Inject constructor(
 
     private fun refreshSelectedLocalPool(force: Boolean = true) {
         val selectedLine = _uiState.value.packing.selectedOrderLine() ?: return
+        if (selectedLine.readOnly) return
         if (!selectedLine.scanRequired) return
         downloadLocalPoolFor(selectedLine, force = force)
     }
@@ -1786,6 +1822,8 @@ class ScanViewModel @Inject constructor(
 
     private fun WorkOrderPage.toPackingOrderLines(): List<PackingOrderLineUi> =
         orders.flatMap { order ->
+            val workflowStage = order.status
+            val readOnly = workflowStage in READ_ONLY_WORKFLOW_STAGES
             order.lines
                 .filter { it.status == "active" }
                 .map { line ->
@@ -1829,9 +1867,17 @@ class ScanViewModel @Inject constructor(
                             if (!order.scanRequired) {
                                 append(strings.get(R.string.packing_without_scanning_suffix))
                             }
+                            if (readOnly) {
+                                if (isNotEmpty()) {
+                                    append(" · ")
+                                }
+                                append(strings.get(R.string.order_selection_read_only))
+                            }
                         }.trim().trimEnd('·').trim(),
                         packageCapacity = line.packageCapacity,
                         scanRequired = order.scanRequired,
+                        readOnly = readOnly,
+                        workflowStage = workflowStage,
                     )
                 }
         }
@@ -1844,7 +1890,9 @@ class ScanViewModel @Inject constructor(
             ?: selectedOrderLine()?.orderId?.takeIf(String::isNotBlank)
 
     private fun PackingOrderLineUi.toSelectedStatusText(): String =
-        if (scanRequired) {
+        if (readOnly) {
+            strings.get(R.string.packing_order_read_only)
+        } else if (scanRequired) {
             val capacityText = packageCapacity?.let {
                 " · ${strings.get(R.string.packing_box_capacity, it)}"
             }.orEmpty()
@@ -1859,5 +1907,15 @@ class ScanViewModel @Inject constructor(
     private companion object {
         val WRONG_ORDER_CODES = setOf("wrong_order", "mark_code_wrong_order")
         val OTHER_BOX_CODES = setOf("code_in_other_box", "mark_code_already_packed")
+        val READ_ONLY_WORKFLOW_STAGES = setOf(
+            "awaiting_plant_review",
+            "ready_for_export",
+            "export_preparing",
+            "export_ready",
+            "awaiting_export_ack",
+            "closed",
+            "cancelled",
+            "canceled",
+        )
     }
 }

@@ -189,6 +189,7 @@ fun OrderSelectionScreen(
 ) {
     val selected = state.orderLines.firstOrNull { it.orderLineId == state.selectedOrderLineId }
     val selectedPoolReady = selected != null &&
+        !selected.readOnly &&
         (!selected.scanRequired || (state.localPoolOrderId == selected.orderId && state.localPoolCount > 0))
     var isOrderSearchFocused by rememberSaveable { mutableStateOf(false) }
 
@@ -259,6 +260,7 @@ fun OrderSelectionScreen(
                                     state.ordersLoading -> stringResource(R.string.packing_loading_orders)
                                     state.localPoolLoading -> stringResource(R.string.local_pool_downloading)
                                     selected == null -> stringResource(R.string.order_selection_choose_first)
+                                    selected.readOnly -> stringResource(R.string.order_selection_read_only)
                                     selectedPoolReady -> stringResource(R.string.order_selection_continue)
                                     else -> stringResource(R.string.order_selection_wait_pool)
                                 },
@@ -848,7 +850,10 @@ private fun OrderLineSelector(
     val selected = state.orderLines.firstOrNull {
         it.orderLineId == state.selectedOrderLineId
     }
-    val selectedPoolReady = selected != null && state.localPoolOrderId == selected.orderId && state.localPoolCount > 0
+    val selectedPoolReady = selected != null &&
+        !selected.readOnly &&
+        state.localPoolOrderId == selected.orderId &&
+        state.localPoolCount > 0
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -890,10 +895,10 @@ private fun OrderLineSelector(
             selected?.let { line ->
                 Surface(
                     shape = RoundedCornerShape(18.dp),
-                    color = if (selectedPoolReady) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
-                    } else {
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.62f)
+                    color = when {
+                        line.readOnly -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.62f)
+                        selectedPoolReady -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
+                        else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.62f)
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -905,20 +910,12 @@ private fun OrderLineSelector(
                             text = stringResource(R.string.packing_selected_order, line.orderNumber),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (selectedPoolReady) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSecondaryContainer
-                            },
+                            color = selectedOrderCardContentColor(line.readOnly, selectedPoolReady),
                         )
                         Text(
                             text = "${line.sku} · ${line.productName}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (selectedPoolReady) {
-                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f)
-                            } else {
-                                MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.82f)
-                            },
+                            color = selectedOrderCardContentColor(line.readOnly, selectedPoolReady).copy(alpha = 0.82f),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -926,28 +923,21 @@ private fun OrderLineSelector(
                             Text(
                                 text = line.label,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (selectedPoolReady) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f)
-                                } else {
-                                    MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.78f)
-                                },
+                                color = selectedOrderCardContentColor(line.readOnly, selectedPoolReady).copy(alpha = 0.78f),
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
                         Text(
                             text = when {
+                                line.readOnly -> stringResource(R.string.packing_order_read_only)
                                 state.localPoolLoading -> stringResource(R.string.local_pool_downloading)
                                 selectedPoolReady -> stringResource(R.string.local_pool_loaded, state.localPoolCount)
                                 line.scanRequired -> stringResource(R.string.local_pool_failed)
                                 else -> stringResource(R.string.packing_scanning_disabled)
                             },
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (selectedPoolReady) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSecondaryContainer
-                            },
+                            color = selectedOrderCardContentColor(line.readOnly, selectedPoolReady),
                         )
                     }
                 }
@@ -1004,7 +994,20 @@ private fun OrderLineSelector(
                     )
                 }
             }
-            if (selected?.scanRequired == false) {
+            if (selected?.readOnly == true) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = stringResource(R.string.packing_order_read_only_hint),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                }
+            } else if (selected?.scanRequired == false) {
                 Surface(
                     shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
@@ -1023,21 +1026,29 @@ private fun OrderLineSelector(
 }
 
 @Composable
+private fun selectedOrderCardContentColor(readOnly: Boolean, poolReady: Boolean): Color =
+    when {
+        readOnly -> MaterialTheme.colorScheme.onErrorContainer
+        poolReady -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSecondaryContainer
+    }
+
+@Composable
 private fun OrderLineOptionCard(
     option: PackingOrderLineUi,
     isSelected: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val containerColor = if (isSelected) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
-    } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.74f)
+    val containerColor = when {
+        option.readOnly -> MaterialTheme.colorScheme.errorContainer.copy(alpha = if (isSelected) 0.44f else 0.24f)
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.74f)
     }
-    val borderColor = if (isSelected) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
-    } else {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.28f)
+    val borderColor = when {
+        option.readOnly -> MaterialTheme.colorScheme.error.copy(alpha = 0.42f)
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
+        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.28f)
     }
 
     Surface(
@@ -1066,7 +1077,19 @@ private fun OrderLineOptionCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (isSelected) {
+                if (option.readOnly) {
+                    Surface(
+                        shape = RoundedCornerShape(100.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.order_selection_read_only),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                } else if (isSelected) {
                     Surface(
                         shape = RoundedCornerShape(100.dp),
                         color = MaterialTheme.colorScheme.primary,
@@ -1108,6 +1131,13 @@ private fun OrderLineOptionCard(
                     text = stringResource(R.string.packing_without_scanning_suffix),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.secondary,
+                )
+            }
+            if (option.readOnly) {
+                Text(
+                    text = stringResource(R.string.packing_order_read_only),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
         }

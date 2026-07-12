@@ -144,6 +144,8 @@
     <string name="packing_open_requires_order_line">Коробку нельзя открыть без строки заказа</string>
     <string name="packing_scanning_disabled">Сканирование по заказу отключено</string>
     <string name="packing_open_not_needed">Работа в приложении не требуется: коды обрабатываются в кабинете поставщика</string>
+    <string name="packing_order_read_only">Заказ передан/принят заводом. Упаковка заморожена до возврата на доработку.</string>
+    <string name="packing_order_read_only_hint">Этот заказ сейчас только для просмотра: завод проверяет результат, принял его или ожидает подтверждения импорта. Если нужны изменения, завод должен вернуть заказ на доработку.</string>
     <string name="packing_opening_box">Открываем коробку...</string>
     <string name="packing_open_failed">Не удалось открыть коробку</string>
     <string name="packing_updating_count_mode">Обновляем режим учёта упаковки...</string>
@@ -512,6 +514,7 @@
     <string name="order_selection_return_to_open_box">Вернуться к открытой коробке</string>
     <string name="order_selection_choose_first">Выберите заказ</string>
     <string name="order_selection_continue">Перейти к упаковке</string>
+    <string name="order_selection_read_only">Только просмотр</string>
     <string name="order_selection_wait_pool">Дождитесь загрузки пула</string>
     <string name="order_selection_hint_no_scan">На этом экране сканирование изделий не выполняется. Сначала выберите заказ, затем переходите к упаковке.</string>
 </resources>

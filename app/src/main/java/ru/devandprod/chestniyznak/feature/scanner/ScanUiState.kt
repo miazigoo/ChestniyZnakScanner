@@ -59,6 +59,8 @@ data class PackingOrderLineUi(
     val label: String,
     val packageCapacity: Int? = null,
     val scanRequired: Boolean = true,
+    val readOnly: Boolean = false,
+    val workflowStage: String = "",
 )
 
 data class PackingBoxUi(
