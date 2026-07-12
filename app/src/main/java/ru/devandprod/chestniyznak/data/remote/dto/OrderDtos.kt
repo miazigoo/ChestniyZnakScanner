@@ -16,6 +16,11 @@ data class OrdersResponseDto(
 )
 
 @Serializable
+data class WorkOrdersResponseDto(
+    val data: List<RemoteWorkOrderDto> = emptyList(),
+)
+
+@Serializable
 data class LocalCodePoolResponseDto(
     val data: LocalCodePoolDto,
 )
@@ -105,11 +110,94 @@ data class RemoteOrderProductDto(
     val unit: String = "pcs",
 )
 
+@Serializable
+data class RemoteWorkOrderDto(
+    @SerialName("order_id")
+    val orderId: String,
+    @SerialName("order_line_id")
+    val orderLineId: String? = null,
+    @SerialName("workflow_revision")
+    val workflowRevision: Int = 1,
+    val plant: RemoteWorkOrderPlantDto? = null,
+    @SerialName("order_number")
+    val orderNumber: String,
+    @SerialName("external_number")
+    val externalNumber: String? = null,
+    @SerialName("deadline_at")
+    val deadlineAt: String? = null,
+    val product: RemoteWorkOrderProductDto? = null,
+    @SerialName("package_rule")
+    val packageRule: RemoteWorkOrderPackageRuleDto? = null,
+    val workflow: RemoteWorkOrderWorkflowDto? = null,
+    val pool: RemoteWorkOrderPoolDto? = null,
+)
+
+@Serializable
+data class RemoteWorkOrderPlantDto(
+    val id: String,
+    val name: String? = null,
+)
+
+@Serializable
+data class RemoteWorkOrderProductDto(
+    val id: String? = null,
+    val sku: String? = null,
+    val name: String? = null,
+    val gtin: String? = null,
+)
+
+@Serializable
+data class RemoteWorkOrderPackageRuleDto(
+    val capacity: Int? = null,
+)
+
+@Serializable
+data class RemoteWorkOrderPoolDto(
+    @SerialName("server_available_count")
+    val serverAvailableCount: Int = 0,
+    val revision: Int = 1,
+)
+
+@Serializable
+data class RemoteWorkOrderWorkflowDto(
+    val mode: String = "scan_packaging",
+    val stage: String = "",
+    @SerialName("primary_action")
+    val primaryAction: RemoteWorkOrderPrimaryActionDto? = null,
+    val progress: RemoteWorkOrderProgressDto = RemoteWorkOrderProgressDto(),
+)
+
+@Serializable
+data class RemoteWorkOrderPrimaryActionDto(
+    val code: String = "",
+)
+
+@Serializable
+data class RemoteWorkOrderProgressDto(
+    @SerialName("required_codes")
+    val requiredCodes: Int = 0,
+    @SerialName("counted_packed_codes")
+    val countedPackedCodes: Int = 0,
+    @SerialName("remaining_to_pack")
+    val remainingToPack: Int = 0,
+    @SerialName("available_to_pack")
+    val availableToPack: Int = 0,
+    @SerialName("supplier_new_codes")
+    val supplierNewCodes: Int = 0,
+)
+
 fun OrdersResponseDto.toDomain(): WorkOrderPage = WorkOrderPage(
     orders = data.map { it.toDomain() },
     page = meta.page,
     perPage = meta.perPage,
     count = meta.count,
+)
+
+fun WorkOrdersResponseDto.toDomain(): WorkOrderPage = WorkOrderPage(
+    orders = data.map { it.toDomain() },
+    page = 1,
+    perPage = data.size,
+    count = data.size,
 )
 
 fun LocalCodePoolResponseDto.toDomain(): OrderLocalPoolPage = data.toDomain()
@@ -149,6 +237,41 @@ fun RemoteOrderDto.toDomain(): WorkOrder = WorkOrder(
     lines = lines.map { it.toDomain() },
 )
 
+fun RemoteWorkOrderDto.toDomain(): WorkOrder {
+    val progress = workflow?.progress ?: RemoteWorkOrderProgressDto()
+    val productId = product?.id ?: orderLineId ?: orderId
+    val line = WorkOrderLine(
+        id = orderLineId ?: orderId,
+        orderId = orderId,
+        productId = productId,
+        quantity = progress.requiredCodes,
+        requiredCodeQuantity = progress.requiredCodes,
+        packageCapacity = packageRule?.capacity,
+        status = "active",
+        product = product?.toDomain(productId),
+    )
+    return WorkOrder(
+        id = orderId,
+        plantId = plant?.id.orEmpty(),
+        supplierId = "",
+        orderNumber = orderNumber,
+        externalNumber = externalNumber,
+        status = workflow?.stage ?: "issued_to_supplier",
+        scanRequired = workflow?.mode != "manual_no_scan",
+        plannedDate = deadlineAt,
+        deadlineAt = deadlineAt,
+        workflowRevision = workflowRevision,
+        plantName = plant?.name,
+        requiredCodes = progress.requiredCodes,
+        packedCodes = progress.countedPackedCodes,
+        remainingToPack = progress.remainingToPack,
+        availableToPack = pool?.serverAvailableCount ?: progress.availableToPack,
+        supplierNewCodes = progress.supplierNewCodes,
+        primaryActionCode = workflow?.primaryAction?.code,
+        lines = listOf(line),
+    )
+}
+
 fun RemoteOrderLineDto.toDomain(): WorkOrderLine = WorkOrderLine(
     id = id,
     orderId = orderId,
@@ -166,4 +289,11 @@ fun RemoteOrderProductDto.toDomain(): WorkOrderProduct = WorkOrderProduct(
     name = name,
     gtin = gtin,
     unit = unit,
+)
+
+fun RemoteWorkOrderProductDto.toDomain(fallbackId: String): WorkOrderProduct = WorkOrderProduct(
+    id = id ?: fallbackId,
+    sku = sku ?: fallbackId,
+    name = name ?: sku ?: fallbackId,
+    gtin = gtin,
 )

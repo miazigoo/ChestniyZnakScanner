@@ -30,6 +30,55 @@ class RemoteOrdersRepository @Inject constructor(
         page: Int,
         perPage: Int,
     ): WorkOrderPage = withContext(ioDispatcher) {
+        val workOrdersResponse = runCatching {
+            ordersApi.listWorkOrders(
+                limit = perPage,
+                offset = ((page - 1).coerceAtLeast(0)) * perPage,
+            )
+        }.getOrElse {
+            throw RuntimeException(it.message ?: strings.get(R.string.orders_load_failed))
+        }
+
+        when {
+            workOrdersResponse.isSuccessful && workOrdersResponse.body() != null -> {
+                val pageResult = workOrdersResponse.body()!!.toDomain()
+                if (search.isNullOrBlank()) {
+                    pageResult
+                } else {
+                    val needle = search.trim()
+                    pageResult.copy(
+                        orders = pageResult.orders.filter { order ->
+                            order.orderNumber.contains(needle, ignoreCase = true) ||
+                                order.externalNumber.orEmpty().contains(needle, ignoreCase = true) ||
+                                order.plantName.orEmpty().contains(needle, ignoreCase = true) ||
+                                order.lines.any { line ->
+                                    line.product?.sku.orEmpty().contains(needle, ignoreCase = true) ||
+                                        line.product?.name.orEmpty().contains(needle, ignoreCase = true)
+                                }
+                        },
+                    )
+                }
+            }
+            workOrdersResponse.code() == 401 -> {
+                authRepository.invalidateSession()
+                throw RuntimeException(strings.get(R.string.common_session_expired))
+            }
+            workOrdersResponse.code() == 404 || workOrdersResponse.code() == 405 -> listLegacyOrders(
+                status = status,
+                search = search,
+                page = page,
+                perPage = perPage,
+            )
+            else -> throw RuntimeException(errorParser.message(workOrdersResponse))
+        }
+    }
+
+    private suspend fun listLegacyOrders(
+        status: String?,
+        search: String?,
+        page: Int,
+        perPage: Int,
+    ): WorkOrderPage {
         val response = runCatching {
             ordersApi.listOrders(
                 status = status,
@@ -41,7 +90,7 @@ class RemoteOrdersRepository @Inject constructor(
             throw RuntimeException(it.message ?: strings.get(R.string.orders_load_failed))
         }
 
-        when {
+        return when {
             response.isSuccessful && response.body() != null -> response.body()!!.toDomain()
             response.code() == 401 -> {
                 authRepository.invalidateSession()

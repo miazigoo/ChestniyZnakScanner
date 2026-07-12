@@ -28,6 +28,15 @@ data class WorkOrder(
     val status: String,
     val scanRequired: Boolean = true,
     val plannedDate: String? = null,
+    val deadlineAt: String? = null,
+    val workflowRevision: Int = 1,
+    val plantName: String? = null,
+    val requiredCodes: Int? = null,
+    val packedCodes: Int? = null,
+    val remainingToPack: Int? = null,
+    val availableToPack: Int? = null,
+    val supplierNewCodes: Int? = null,
+    val primaryActionCode: String? = null,
     val lines: List<WorkOrderLine> = emptyList(),
 )
 

@@ -922,6 +922,19 @@ private fun OrderLineSelector(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        if (line.label.isNotBlank()) {
+                            Text(
+                                text = line.label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (selectedPoolReady) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f)
+                                } else {
+                                    MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.78f)
+                                },
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                         Text(
                             text = when {
                                 state.localPoolLoading -> stringResource(R.string.local_pool_downloading)
@@ -1074,6 +1087,15 @@ private fun OrderLineOptionCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (option.label.isNotBlank()) {
+                Text(
+                    text = option.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             option.packageCapacity?.let { capacity ->
                 Text(
                     text = stringResource(R.string.packing_box_capacity, capacity),
@@ -1131,6 +1153,15 @@ private fun SelectedPackingOrderCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (selectedLine.label.isNotBlank()) {
+                Text(
+                    text = selectedLine.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             selectedLine.packageCapacity?.let { capacity ->
                 Text(
                     text = stringResource(R.string.packing_box_capacity, capacity),

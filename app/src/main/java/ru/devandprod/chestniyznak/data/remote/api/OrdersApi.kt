@@ -6,8 +6,15 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import ru.devandprod.chestniyznak.data.remote.dto.LocalCodePoolResponseDto
 import ru.devandprod.chestniyznak.data.remote.dto.OrdersResponseDto
+import ru.devandprod.chestniyznak.data.remote.dto.WorkOrdersResponseDto
 
 interface OrdersApi {
+    @GET("work-orders")
+    suspend fun listWorkOrders(
+        @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0,
+    ): Response<WorkOrdersResponseDto>
+
     @GET("orders")
     suspend fun listOrders(
         @Query("status") status: String? = null,

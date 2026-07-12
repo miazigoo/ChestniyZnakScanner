@@ -31,7 +31,6 @@ import ru.devandprod.chestniyznak.domain.usecase.DeleteEmptyPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.DownloadOrderLocalPoolUseCase
 import ru.devandprod.chestniyznak.domain.usecase.EnsureSeedDataUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetCurrentPackingBoxUseCase
-import ru.devandprod.chestniyznak.domain.usecase.GetClientPrinterSelectionUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetLocalPackingPendingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ListWorkOrdersUseCase
 import ru.devandprod.chestniyznak.domain.usecase.MarkLocalPackingCommittedUseCase
@@ -41,7 +40,6 @@ import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.PrintPackingBoxLabelUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RefreshCatalogStatsUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RemovePackingBoxItemUseCase
-import ru.devandprod.chestniyznak.domain.usecase.RetainLocalOrdersUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ScanCodesToPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.SetPackingBoxCountInPackingUseCase
 import ru.devandprod.chestniyznak.domain.usecase.VerifyCodeExistsUseCase
@@ -62,10 +60,8 @@ class ScanViewModel @Inject constructor(
     private val clearLocalPackingPendingUseCase: ClearLocalPackingPendingUseCase,
     private val listWorkOrdersUseCase: ListWorkOrdersUseCase,
     private val downloadOrderLocalPoolUseCase: DownloadOrderLocalPoolUseCase,
-    private val retainLocalOrdersUseCase: RetainLocalOrdersUseCase,
     private val getCurrentPackingBoxUseCase: GetCurrentPackingBoxUseCase,
     private val getLocalPackingPendingUseCase: GetLocalPackingPendingUseCase,
-    private val getClientPrinterSelectionUseCase: GetClientPrinterSelectionUseCase,
     private val openPackingBoxUseCase: OpenPackingBoxUseCase,
     private val scanCodesToPackingBoxUseCase: ScanCodesToPackingBoxUseCase,
     private val closePackingBoxUseCase: ClosePackingBoxUseCase,
@@ -85,7 +81,6 @@ class ScanViewModel @Inject constructor(
         ),
     )
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
-    private var localPoolPrefetchInProgress = false
 
     private fun VerifyPaneUiState.readyForPackingCamera(scanMode: ScanMode): VerifyPaneUiState {
         val enabled = scanMode == ScanMode.PackingCamera && hasCameraPermission
@@ -361,10 +356,6 @@ class ScanViewModel @Inject constructor(
 
         viewModelScope.launch {
             runCatching {
-                val printerSelection = getClientPrinterSelectionUseCase(DeviceIdentity.clientDeviceId)
-                if (printerSelection.selectedPrinterId == null) {
-                    throw PrinterSelectionRequiredException
-                }
                 if (_uiState.value.packing.localPoolOrderId != selectedLine.orderId) {
                     val count = downloadOrderLocalPoolUseCase(selectedLine.orderId)
                     _uiState.update { current ->
@@ -387,25 +378,6 @@ class ScanViewModel @Inject constructor(
                 .onSuccess(::handleOpenBoxResult)
                 .onFailure { error ->
                     audioFeedbackPlayer.playError()
-                    if (error is PrinterSelectionRequiredException) {
-                        _uiState.update {
-                            it.copy(
-                                packing = it.packing.copy(
-                                    isBusy = false,
-                                    showPrinterRequiredDialog = true,
-                                    showPrinterSettingsAction = true,
-                                    resultCard = ScanResultCardUi(
-                                        headline = "NO",
-                                        message = strings.get(R.string.printer_select_before_open_box_message),
-                                        tone = ScanResultTone.Warning,
-                                    ),
-                                    statusText = strings.get(R.string.printer_select_before_open_box_title),
-                                    errorText = strings.get(R.string.printer_select_before_open_box_message),
-                                ),
-                            )
-                        }
-                        return@onFailure
-                    }
                     _uiState.update {
                         it.copy(
                             packing = it.packing.copy(
@@ -1006,7 +978,6 @@ class ScanViewModel @Inject constructor(
                         downloadLocalPoolFor(selected)
                     }
                 }
-                prefetchLocalPoolsFor(lines, skipOrderId = nextSelectedLine?.orderId.orEmpty())
             }.onFailure { error ->
                 _uiState.update { state ->
                     state.copy(
@@ -1069,30 +1040,6 @@ class ScanViewModel @Inject constructor(
                         )
                     }
                 }
-        }
-    }
-
-    private fun prefetchLocalPoolsFor(lines: List<PackingOrderLineUi>, skipOrderId: String = "") {
-        if (localPoolPrefetchInProgress) return
-        val orderIds = lines
-            .filter { it.scanRequired }
-            .map { it.orderId }
-            .filter(String::isNotBlank)
-            .distinct()
-        if (orderIds.isEmpty()) return
-        localPoolPrefetchInProgress = true
-        viewModelScope.launch {
-            runCatching {
-                retainLocalOrdersUseCase(orderIds)
-                orderIds
-                    .filter { it != skipOrderId }
-                    .forEach { orderId ->
-                        runCatching { downloadOrderLocalPoolUseCase(orderId) }
-                    }
-                refreshCatalogStatsUseCase()
-            }.also {
-                localPoolPrefetchInProgress = false
-            }
         }
     }
 
@@ -1844,16 +1791,38 @@ class ScanViewModel @Inject constructor(
                         sku = sku,
                         productName = productName,
                         label = buildString {
-                            append(order.orderNumber)
-                            append(" · ")
-                            append(sku)
-                            append(" · ")
-                            append(productName)
-                            if (!order.scanRequired) {
+                            order.plantName
+                                ?.takeIf(String::isNotBlank)
+                                ?.let {
+                                    append(it)
+                                    append(" · ")
+                                }
+                            if (order.packedCodes != null && order.requiredCodes != null) {
+                                append(order.packedCodes)
+                                append("/")
+                                append(order.requiredCodes)
                                 append(" · ")
+                            }
+                            if (order.availableToPack != null) {
+                                append("pool ")
+                                append(order.availableToPack)
+                                append(" · ")
+                            }
+                            if ((order.supplierNewCodes ?: 0) > 0) {
+                                append("+")
+                                append(order.supplierNewCodes)
+                                append(" · ")
+                            }
+                            order.deadlineAt
+                                ?.takeIf(String::isNotBlank)
+                                ?.let {
+                                    append(it.take(10))
+                                    append(" · ")
+                                }
+                            if (!order.scanRequired) {
                                 append(strings.get(R.string.packing_without_scanning_suffix))
                             }
-                        },
+                        }.trim().trimEnd('·').trim(),
                         packageCapacity = line.packageCapacity,
                         scanRequired = order.scanRequired,
                     )
@@ -1879,8 +1848,6 @@ class ScanViewModel @Inject constructor(
 
     private fun isCameraMode(mode: ScanMode): Boolean =
         mode == ScanMode.CameraVerify || mode == ScanMode.PackingCamera
-
-    private data object PrinterSelectionRequiredException : RuntimeException()
 
     private companion object {
         val WRONG_ORDER_CODES = setOf("wrong_order", "mark_code_wrong_order")
