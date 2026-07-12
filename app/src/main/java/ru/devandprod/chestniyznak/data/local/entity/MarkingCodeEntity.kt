@@ -2,16 +2,18 @@ package ru.devandprod.chestniyznak.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.Index
+import androidx.room.ColumnInfo
 import androidx.room.PrimaryKey
+import ru.devandprod.chestniyznak.data.local.LocalScopeStore
 
 @Entity(
     tableName = "marking_codes",
     indices = [
-        Index(value = ["rawCodeSha256"], unique = true),
-        Index(value = ["gtin", "serial"]),
-        Index(value = ["identityKey"]),
-        Index(value = ["orderId"]),
-        Index(value = ["packageCode"]),
+        Index(value = ["scopeKey", "rawCodeSha256"], unique = true),
+        Index(value = ["scopeKey", "gtin", "serial"]),
+        Index(value = ["scopeKey", "identityKey"]),
+        Index(value = ["scopeKey", "orderId"]),
+        Index(value = ["scopeKey", "packageCode"]),
     ],
 )
 data class MarkingCodeEntity(
@@ -24,6 +26,8 @@ data class MarkingCodeEntity(
     val rawCode: String,
     val visibleCode: String,
     val rawCodeSha256: String,
+    @ColumnInfo(defaultValue = "'legacy:unscoped'")
+    val scopeKey: String = LocalScopeStore.LEGACY_SCOPE_KEY,
     val status1c: String,
     val appStatus: String,
     val orderNumber: String,

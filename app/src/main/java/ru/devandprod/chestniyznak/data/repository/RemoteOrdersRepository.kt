@@ -43,7 +43,7 @@ class RemoteOrdersRepository @Inject constructor(
 
         when {
             response.isSuccessful && response.body() != null -> response.body()!!.toDomain()
-            response.code() == 401 || response.code() == 403 -> {
+            response.code() == 401 -> {
                 authRepository.invalidateSession()
                 throw RuntimeException(strings.get(R.string.common_session_expired))
             }
@@ -68,7 +68,7 @@ class RemoteOrdersRepository @Inject constructor(
 
         when {
             response.isSuccessful && response.body() != null -> response.body()!!.toDomain()
-            response.code() == 401 || response.code() == 403 -> {
+            response.code() == 401 -> {
                 authRepository.invalidateSession()
                 throw RuntimeException(strings.get(R.string.common_session_expired))
             }

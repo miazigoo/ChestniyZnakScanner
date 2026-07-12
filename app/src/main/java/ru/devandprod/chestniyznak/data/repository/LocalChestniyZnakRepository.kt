@@ -1,21 +1,31 @@
 package ru.devandprod.chestniyznak.data.repository
 
 import java.security.MessageDigest
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import androidx.room.withTransaction
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import ru.devandprod.chestniyznak.BuildConfig
 import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.common.IoDispatcher
 import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
+import ru.devandprod.chestniyznak.data.local.LocalScopeStore
 import ru.devandprod.chestniyznak.data.local.dao.MarkingCodeDao
 import ru.devandprod.chestniyznak.data.local.dao.ScanLogDao
+import ru.devandprod.chestniyznak.data.local.dao.SyncEventDao
+import ru.devandprod.chestniyznak.data.local.database.AppDatabase
 import ru.devandprod.chestniyznak.data.local.entity.MarkingCodeEntity
 import ru.devandprod.chestniyznak.data.local.entity.ScanLogEntity
+import ru.devandprod.chestniyznak.data.local.entity.SyncEventEntity
+import ru.devandprod.chestniyznak.data.local.sync.TsdSyncScheduler
 import ru.devandprod.chestniyznak.data.local.seed.SeedAssetLoader
 import ru.devandprod.chestniyznak.domain.model.CatalogStats
 import ru.devandprod.chestniyznak.domain.model.DefectMarkResult
@@ -31,8 +41,12 @@ import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
 
 @Singleton
 class LocalChestniyZnakRepository @Inject constructor(
+    private val database: AppDatabase,
     private val markingCodeDao: MarkingCodeDao,
     private val scanLogDao: ScanLogDao,
+    private val syncEventDao: SyncEventDao,
+    private val localScopeStore: LocalScopeStore,
+    private val syncScheduler: TsdSyncScheduler,
     private val seedAssetLoader: SeedAssetLoader,
     private val parser: ChestniyZnakParser,
     private val json: Json,
@@ -41,11 +55,14 @@ class LocalChestniyZnakRepository @Inject constructor(
 ) : ChestniyZnakRepository {
 
     override suspend fun ensureSeedData() = withContext(ioDispatcher) {
-        if (markingCodeDao.count() > 0) return@withContext
+        if (!BuildConfig.DEBUG) return@withContext
+        val scopeKey = localScopeStore.currentScopeKey()
+        if (markingCodeDao.countInScope(scopeKey) > 0) return@withContext
 
         val entities = seedAssetLoader.loadCodes().map { seed ->
             val parsed = parser.parse(seed.rawCode)
             MarkingCodeEntity(
+                scopeKey = scopeKey,
                 gtin = parsed.gtin,
                 serial = parsed.serial,
                 identityKey = parsed.identityKey,
@@ -68,8 +85,9 @@ class LocalChestniyZnakRepository @Inject constructor(
         codes: List<OrderLocalCode>,
         preserveLocalPending: Boolean,
     ) = withContext(ioDispatcher) {
+        val scopeKey = localScopeStore.currentScopeKey()
         val localPendingByHash = if (preserveLocalPending) {
-            markingCodeDao.findAllLocalPackingPending()
+            markingCodeDao.findAllLocalPackingPending(scopeKey)
                 .associateBy { it.rawCodeSha256 }
         } else {
             emptyMap()
@@ -82,6 +100,7 @@ class LocalChestniyZnakRepository @Inject constructor(
                 val localPending = localPendingByHash[rawCodeSha256]
                     ?.takeIf { !it.packageCode.isNullOrBlank() }
                 MarkingCodeEntity(
+                    scopeKey = scopeKey,
                     gtin = parsed.gtin,
                     serial = parsed.serial,
                     identityKey = parsed.identityKey,
@@ -106,19 +125,22 @@ class LocalChestniyZnakRepository @Inject constructor(
                     remoteUpdatedAt = code.updatedAt,
                 )
             }
-        markingCodeDao.deleteByOrderId(orderId)
-        markingCodeDao.insertAll(entities)
+        database.withTransaction {
+            markingCodeDao.deleteByOrderId(scopeKey, orderId)
+            markingCodeDao.insertAll(entities)
+        }
     }
 
     override suspend fun retainLocalOrders(orderIds: List<String>) = withContext(ioDispatcher) {
+        val scopeKey = localScopeStore.currentScopeKey()
         val normalized = orderIds
             .map(String::trim)
             .filter(String::isNotBlank)
             .distinct()
         if (normalized.isEmpty()) {
-            markingCodeDao.deleteOrderPools()
+            markingCodeDao.deleteOrderPools(scopeKey)
         } else {
-            markingCodeDao.deleteOrdersNotIn(normalized)
+            markingCodeDao.deleteOrdersNotIn(scopeKey, normalized)
         }
     }
 
@@ -141,12 +163,14 @@ class LocalChestniyZnakRepository @Inject constructor(
         allowDuplicate: Boolean,
         orderId: String?,
     ): VerificationResult {
+        val scopeKey = localScopeStore.currentScopeKey()
         val selectedOrderId = orderId.normalizedOrderId()
         val parsed = try {
             parser.parse(rawInput)
         } catch (exception: ChestniyZnakParseException) {
             val scanId = scanLogDao.insert(
                 ScanLogEntity(
+                    scopeKey = scopeKey,
                     status = VerificationStatus.BAD_FORMAT.name,
                     message = exception.message.orEmpty(),
                     rawInput = rawInput,
@@ -170,18 +194,18 @@ class LocalChestniyZnakRepository @Inject constructor(
 
         val hash = rawHash(parsed.rawCode)
         val matchedCode = if (selectedOrderId != null) {
-            markingCodeDao.findByRawHashInOrder(hash, selectedOrderId)
+            markingCodeDao.findByRawHashInOrder(scopeKey, hash, selectedOrderId)
         } else {
-            markingCodeDao.findByRawHash(hash)
+            markingCodeDao.findByRawHash(scopeKey, hash)
         }
         val exactCodeInOtherOrder = selectedOrderId
             ?.takeIf { matchedCode == null }
-            ?.let { markingCodeDao.findByRawHash(hash) }
+            ?.let { markingCodeDao.findByRawHash(scopeKey, hash) }
         val status: VerificationStatus
         val message: String
 
         if (matchedCode != null) {
-            val hasOkScan = scanLogDao.hasSuccessfulScan(matchedCode.id)
+            val hasOkScan = scanLogDao.hasSuccessfulScan(scopeKey, matchedCode.id)
             if (matchedCode.isPendingLocalPacking()) {
                 status = VerificationStatus.DUPLICATE_SCAN
                 message = strings.get(R.string.packing_code_duplicate_current)
@@ -205,12 +229,12 @@ class LocalChestniyZnakRepository @Inject constructor(
             status = VerificationStatus.WRONG_ORDER
             message = strings.get(R.string.packing_other_order)
         } else if (
-            selectedOrderId?.let { markingCodeDao.existsByIdentityInOrder(parsed.gtin, parsed.serial, it) }
-                ?: markingCodeDao.existsByIdentity(parsed.gtin, parsed.serial)
+            selectedOrderId?.let { markingCodeDao.existsByIdentityInOrder(scopeKey, parsed.gtin, parsed.serial, it) }
+                ?: markingCodeDao.existsByIdentity(scopeKey, parsed.gtin, parsed.serial)
         ) {
             status = VerificationStatus.TAIL_MISMATCH
             message = strings.get(R.string.local_tail_mismatch)
-        } else if (markingCodeDao.existsByIdentity(parsed.gtin, parsed.serial)) {
+        } else if (markingCodeDao.existsByIdentity(scopeKey, parsed.gtin, parsed.serial)) {
             status = VerificationStatus.WRONG_ORDER
             message = strings.get(R.string.packing_other_order)
         } else {
@@ -220,6 +244,7 @@ class LocalChestniyZnakRepository @Inject constructor(
 
         val scanId = scanLogDao.insert(
             ScanLogEntity(
+                scopeKey = scopeKey,
                 codeId = matchedCode?.id,
                 status = status.name,
                 message = message,
@@ -251,6 +276,7 @@ class LocalChestniyZnakRepository @Inject constructor(
         scannerId: String,
         allowDuplicate: Boolean,
     ): VerificationResult = withContext(ioDispatcher) {
+        val scopeKey = localScopeStore.currentScopeKey()
         val parsed = try {
             parser.parse(rawInput)
         } catch (exception: ChestniyZnakParseException) {
@@ -260,7 +286,7 @@ class LocalChestniyZnakRepository @Inject constructor(
             )
         }
 
-        val matchedCode = markingCodeDao.findByRawHash(rawHash(parsed.rawCode))
+        val matchedCode = markingCodeDao.findByRawHash(scopeKey, rawHash(parsed.rawCode))
         val status: VerificationStatus
         val message: String
 
@@ -272,7 +298,7 @@ class LocalChestniyZnakRepository @Inject constructor(
                 status = VerificationStatus.OK
                 message = strings.get(R.string.local_found)
             }
-        } else if (markingCodeDao.existsByIdentity(parsed.gtin, parsed.serial)) {
+        } else if (markingCodeDao.existsByIdentity(scopeKey, parsed.gtin, parsed.serial)) {
             status = VerificationStatus.TAIL_MISMATCH
             message = strings.get(R.string.local_tail_mismatch)
         } else {
@@ -308,10 +334,11 @@ class LocalChestniyZnakRepository @Inject constructor(
         orderId: String?,
     ): List<LocalPackingPendingCode> =
         withContext(ioDispatcher) {
+            val scopeKey = localScopeStore.currentScopeKey()
             val selectedOrderId = orderId.normalizedOrderId()
             val pendingCodes = selectedOrderId
-                ?.let { markingCodeDao.findLocalPackingPendingInOrder(packageCode, it) }
-                ?: markingCodeDao.findLocalPackingPending(packageCode)
+                ?.let { markingCodeDao.findLocalPackingPendingInOrder(scopeKey, packageCode, it) }
+                ?: markingCodeDao.findLocalPackingPending(scopeKey, packageCode)
             pendingCodes
                 .map { entity ->
                     LocalPackingPendingCode(
@@ -328,28 +355,51 @@ class LocalChestniyZnakRepository @Inject constructor(
         rawInput: String,
         packageCode: String?,
         orderId: String?,
+        packageUuid: String?,
     ) = withContext(ioDispatcher) {
+        val scopeKey = localScopeStore.currentScopeKey()
         val parsed = parser.parse(rawInput)
         val hash = rawHash(parsed.rawCode)
         val selectedOrderId = orderId.normalizedOrderId()
-        if (selectedOrderId == null) {
-            markingCodeDao.markPackingPending(
-                rawHash = hash,
-                packageCode = packageCode,
-            )
-        } else {
-            markingCodeDao.markPackingPendingInOrder(
-                rawHash = hash,
-                orderId = selectedOrderId,
-                packageCode = packageCode,
+        database.withTransaction {
+            val affectedRows = if (selectedOrderId == null) {
+                markingCodeDao.markPackingPending(
+                    scopeKey = scopeKey,
+                    rawHash = hash,
+                    packageCode = packageCode,
+                )
+            } else {
+                markingCodeDao.markPackingPendingInOrder(
+                    scopeKey = scopeKey,
+                    rawHash = hash,
+                    orderId = selectedOrderId,
+                    packageCode = packageCode,
+                )
+            }
+            if (affectedRows <= 0) {
+                throw IllegalStateException(strings.get(R.string.local_not_found))
+            }
+            enqueueLocalSyncEvent(
+                scopeKey = scopeKey,
+                eventType = "code.scan",
+                eventPrefix = "scan",
+                payload = LocalSyncEventPayload(
+                    packageId = packageUuid,
+                    packageCode = packageCode,
+                    orderId = selectedOrderId,
+                    markCode = parsed.rawCode,
+                ),
             )
         }
+        syncScheduler.enqueueNow()
     }
 
     override suspend fun clearLocalPackingPending(
         rawCodes: List<String>,
         orderId: String?,
+        packageUuid: String?,
     ) = withContext(ioDispatcher) {
+        val scopeKey = localScopeStore.currentScopeKey()
         val hashes = rawCodes
             .flatMap { rawCode ->
                 listOfNotNull(
@@ -360,11 +410,29 @@ class LocalChestniyZnakRepository @Inject constructor(
             .distinct()
         if (hashes.isNotEmpty()) {
             val selectedOrderId = orderId.normalizedOrderId()
-            if (selectedOrderId == null) {
-                markingCodeDao.clearPackingPending(hashes)
-            } else {
-                markingCodeDao.clearPackingPendingInOrder(hashes, selectedOrderId)
+            database.withTransaction {
+                val affectedRows = if (selectedOrderId == null) {
+                    markingCodeDao.clearPackingPending(scopeKey, hashes)
+                } else {
+                    markingCodeDao.clearPackingPendingInOrder(scopeKey, hashes, selectedOrderId)
+                }
+                if (affectedRows <= 0) {
+                    throw IllegalStateException(strings.get(R.string.packing_remove_code_failed))
+                }
+                rawCodes.forEach { rawCode ->
+                    enqueueLocalSyncEvent(
+                        scopeKey = scopeKey,
+                        eventType = "code.remove",
+                        eventPrefix = "remove",
+                        payload = LocalSyncEventPayload(
+                            packageId = packageUuid,
+                            orderId = selectedOrderId,
+                            markCode = runCatching { parser.parse(rawCode).rawCode }.getOrElse { rawCode },
+                        ),
+                    )
+                }
             }
+            syncScheduler.enqueueNow()
         }
     }
 
@@ -374,6 +442,7 @@ class LocalChestniyZnakRepository @Inject constructor(
         packageClosedAt: String?,
         orderId: String?,
     ) = withContext(ioDispatcher) {
+        val scopeKey = localScopeStore.currentScopeKey()
         val hashes = rawCodes
             .flatMap { rawCode ->
                 listOfNotNull(
@@ -386,12 +455,14 @@ class LocalChestniyZnakRepository @Inject constructor(
             val selectedOrderId = orderId.normalizedOrderId()
             if (selectedOrderId == null) {
                 markingCodeDao.markPackingCommitted(
+                    scopeKey = scopeKey,
                     rawHashes = hashes,
                     packageCode = packageCode,
                     packageClosedAt = packageClosedAt,
                 )
             } else {
                 markingCodeDao.markPackingCommittedInOrder(
+                    scopeKey = scopeKey,
                     rawHashes = hashes,
                     packageCode = packageCode,
                     packageClosedAt = packageClosedAt,
@@ -423,9 +494,26 @@ class LocalChestniyZnakRepository @Inject constructor(
     override suspend fun refreshStats() = Unit
 
     suspend fun snapshotStats(): CatalogStats = withContext(ioDispatcher) {
+        val scopeKey = localScopeStore.currentScopeKey()
         CatalogStats(
-            totalCodes = markingCodeDao.count(),
-            totalScans = scanLogDao.count(),
+            totalCodes = markingCodeDao.countInScope(scopeKey),
+            totalScans = scanLogDao.countInScope(scopeKey),
+        )
+    }
+
+    private suspend fun enqueueLocalSyncEvent(
+        scopeKey: String,
+        eventType: String,
+        eventPrefix: String,
+        payload: LocalSyncEventPayload,
+    ) {
+        syncEventDao.insert(
+            SyncEventEntity(
+                eventId = "$eventPrefix:${UUID.randomUUID()}",
+                scopeKey = scopeKey,
+                eventType = eventType,
+                payloadJson = json.encodeToString(payload),
+            ),
         )
     }
 
@@ -468,3 +556,15 @@ class LocalChestniyZnakRepository @Inject constructor(
         val PACKED_REMOTE_STATUSES = setOf("packed", "exported")
     }
 }
+
+@Serializable
+private data class LocalSyncEventPayload(
+    @SerialName("package_id")
+    val packageId: String? = null,
+    @SerialName("package_code")
+    val packageCode: String? = null,
+    @SerialName("order_id")
+    val orderId: String? = null,
+    @SerialName("mark_code")
+    val markCode: String,
+)

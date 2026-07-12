@@ -16,6 +16,9 @@ fun apiBaseUrlOverride(): String {
     return value ?: "https://api.chestniy-z.ru/api/v1/"
 }
 
+fun apiModeFor(baseUrl: String): String =
+    if (baseUrl.trimEnd('/').endsWith("/api/v1")) "SAAS" else "LEGACY"
+
 fun quotedBuildConfigString(value: String): String = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
 android {
@@ -32,20 +35,25 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
-        buildConfigField("String", "API_BASE_URL", quotedBuildConfigString(apiBaseUrlOverride()))
+        val apiBaseUrl = apiBaseUrlOverride()
+        buildConfigField("String", "API_BASE_URL", quotedBuildConfigString(apiBaseUrl))
+        buildConfigField("String", "API_MODE", quotedBuildConfigString(apiModeFor(apiBaseUrl)))
         buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
     }
 
     buildTypes {
         debug {
+            val apiBaseUrl = apiBaseUrlOverride()
             isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", quotedBuildConfigString(apiBaseUrlOverride()))
+            buildConfigField("String", "API_BASE_URL", quotedBuildConfigString(apiBaseUrl))
+            buildConfigField("String", "API_MODE", quotedBuildConfigString(apiModeFor(apiBaseUrl)))
             buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "true")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             buildConfigField("String", "API_BASE_URL", "\"https://api.chestniy-z.ru/api/v1/\"")
+            buildConfigField("String", "API_MODE", "\"SAAS\"")
             buildConfigField("boolean", "ENABLE_HTTP_LOGGING", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -92,7 +100,9 @@ dependencies {
 
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.work)
     ksp(libs.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
@@ -103,6 +113,7 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+    implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.core)

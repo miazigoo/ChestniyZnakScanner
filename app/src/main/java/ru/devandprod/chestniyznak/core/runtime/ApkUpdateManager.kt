@@ -22,17 +22,21 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import ru.devandprod.chestniyznak.BuildConfig
 import ru.devandprod.chestniyznak.R
+import ru.devandprod.chestniyznak.core.common.ApkDownloadClient
 import ru.devandprod.chestniyznak.core.common.IoDispatcher
 import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
+import ru.devandprod.chestniyznak.data.remote.auth.ApiEndpoint
 
 @Singleton
 class ApkUpdateManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
+    @ApkDownloadClient private val downloadClient: OkHttpClient,
     private val json: Json,
     private val strings: AppStringProvider,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -95,11 +99,16 @@ class ApkUpdateManager @Inject constructor(
         scope.launch {
             _state.update { it.copy(isDownloading = true, downloadedBytes = 0L, errorText = null) }
             runCatching {
+                val downloadUrl = state.downloadUrl.toHttpUrlOrNull()
+                    ?: throw IllegalStateException(strings.get(R.string.apk_download_failed))
+                if (!ApiEndpoint.isSameOrigin(downloadUrl)) {
+                    throw IllegalStateException(strings.get(R.string.apk_download_failed))
+                }
                 val request = Request.Builder()
-                    .url(state.downloadUrl)
+                    .url(downloadUrl)
                     .get()
                     .build()
-                okHttpClient.newCall(request).execute().use { response ->
+                downloadClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
                         throw IllegalStateException(strings.get(R.string.apk_download_failed))
                     }

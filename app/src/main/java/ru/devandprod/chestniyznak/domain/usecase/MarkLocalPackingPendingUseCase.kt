@@ -6,7 +6,12 @@ import ru.devandprod.chestniyznak.domain.repository.ChestniyZnakRepository
 class MarkLocalPackingPendingUseCase @Inject constructor(
     private val repository: ChestniyZnakRepository,
 ) {
-    suspend operator fun invoke(rawInput: String, packageCode: String?, orderId: String? = null) {
-        repository.markLocalPackingPending(rawInput, packageCode, orderId)
+    suspend operator fun invoke(
+        rawInput: String,
+        packageCode: String?,
+        orderId: String? = null,
+        packageUuid: String? = null,
+    ) {
+        repository.markLocalPackingPending(rawInput, packageCode, orderId, packageUuid)
     }
 }

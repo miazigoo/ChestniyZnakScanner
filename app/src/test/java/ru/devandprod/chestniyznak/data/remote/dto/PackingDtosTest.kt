@@ -43,6 +43,7 @@ class PackingDtosTest {
     fun `current box response maps count_in_packing to domain`() {
         val response = CurrentBoxResponseDto(
             boxId = 10,
+            packageUuid = "7fe6c32d-4e84-4d8d-8f79-8ae62d227ca0",
             orderUuid = "1b8f62c3-8c8f-48b0-a28c-8169b9e2af16",
             name = null,
             orderName = "26-0666/6938",
@@ -59,6 +60,7 @@ class PackingDtosTest {
         val detail = response.toDomain()
 
         assertEquals(10L, detail.box.boxId)
+        assertEquals("7fe6c32d-4e84-4d8d-8f79-8ae62d227ca0", detail.box.packageUuid)
         assertEquals("1b8f62c3-8c8f-48b0-a28c-8169b9e2af16", detail.box.orderUuid)
         assertFalse(detail.box.countInPacking)
         assertEquals("26-0666/6938", detail.box.orderName)
@@ -89,5 +91,31 @@ class PackingDtosTest {
         assertTrue(result.ok)
         assertEquals(10L, result.box.boxId)
         assertTrue(result.box.isClosed)
+    }
+
+    @Test
+    fun `box dto maps package_uuid to domain for sync contract`() {
+        val response = json.decodeFromString(
+            ScanToBoxResponseDto.serializer(),
+            """
+            {
+              "ok": true,
+              "reason_code": "code_added",
+              "box": {
+                "box_id": 77,
+                "package_uuid": "e84ee051-46ce-44fe-ab45-e743ebc0af9d",
+                "capacity": 20,
+                "filled": 1,
+                "allow_duplicate_scans": false,
+                "is_closed": false,
+                "is_edit_mode": false
+              }
+            }
+            """.trimIndent(),
+        )
+
+        val result = response.toDomain()
+
+        assertEquals("e84ee051-46ce-44fe-ab45-e743ebc0af9d", result.box.packageUuid)
     }
 }

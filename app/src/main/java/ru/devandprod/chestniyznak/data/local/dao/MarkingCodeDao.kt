@@ -15,64 +15,72 @@ interface MarkingCodeDao {
     @Query("SELECT COUNT(*) FROM marking_codes")
     suspend fun count(): Int
 
+    @Query("SELECT COUNT(*) FROM marking_codes WHERE scopeKey = :scopeKey")
+    suspend fun countInScope(scopeKey: String): Int
+
     @Query("DELETE FROM marking_codes")
     suspend fun deleteAll()
 
-    @Query("DELETE FROM marking_codes WHERE orderId = :orderId AND appStatus != 'pending_local'")
-    suspend fun deleteByOrderId(orderId: String)
+    @Query("DELETE FROM marking_codes WHERE scopeKey = :scopeKey AND orderId = :orderId AND appStatus != 'pending_local'")
+    suspend fun deleteByOrderId(scopeKey: String, orderId: String)
 
-    @Query("DELETE FROM marking_codes WHERE orderId != '' AND appStatus != 'pending_local'")
-    suspend fun deleteOrderPools()
+    @Query("DELETE FROM marking_codes WHERE scopeKey = :scopeKey AND orderId != '' AND appStatus != 'pending_local'")
+    suspend fun deleteOrderPools(scopeKey: String)
 
     @Query(
         """
         DELETE FROM marking_codes
-        WHERE orderId != ''
+        WHERE scopeKey = :scopeKey
+            AND orderId != ''
             AND orderId NOT IN (:orderIds)
             AND appStatus != 'pending_local'
         """,
     )
-    suspend fun deleteOrdersNotIn(orderIds: List<String>)
+    suspend fun deleteOrdersNotIn(scopeKey: String, orderIds: List<String>)
 
     @Query("SELECT COUNT(*) FROM marking_codes")
     fun observeCount(): Flow<Int>
 
-    @Query("SELECT * FROM marking_codes WHERE rawCodeSha256 = :rawHash LIMIT 1")
-    suspend fun findByRawHash(rawHash: String): MarkingCodeEntity?
+    @Query("SELECT * FROM marking_codes WHERE scopeKey = :scopeKey AND rawCodeSha256 = :rawHash LIMIT 1")
+    suspend fun findByRawHash(scopeKey: String, rawHash: String): MarkingCodeEntity?
 
     @Query(
         """
         SELECT * FROM marking_codes
-        WHERE rawCodeSha256 = :rawHash
+        WHERE scopeKey = :scopeKey
+            AND rawCodeSha256 = :rawHash
             AND orderId = :orderId
         LIMIT 1
         """,
     )
-    suspend fun findByRawHashInOrder(rawHash: String, orderId: String): MarkingCodeEntity?
+    suspend fun findByRawHashInOrder(scopeKey: String, rawHash: String, orderId: String): MarkingCodeEntity?
 
     @Query(
         """
         SELECT * FROM marking_codes
-        WHERE appStatus = 'pending_local'
+        WHERE scopeKey = :scopeKey
+            AND appStatus = 'pending_local'
             AND packageCode = :packageCode
         ORDER BY id ASC
         """,
     )
-    suspend fun findLocalPackingPending(packageCode: String): List<MarkingCodeEntity>
+    suspend fun findLocalPackingPending(scopeKey: String, packageCode: String): List<MarkingCodeEntity>
 
-    @Query("SELECT * FROM marking_codes WHERE appStatus = 'pending_local'")
-    suspend fun findAllLocalPackingPending(): List<MarkingCodeEntity>
+    @Query("SELECT * FROM marking_codes WHERE scopeKey = :scopeKey AND appStatus = 'pending_local'")
+    suspend fun findAllLocalPackingPending(scopeKey: String): List<MarkingCodeEntity>
 
     @Query(
         """
         SELECT * FROM marking_codes
-        WHERE appStatus = 'pending_local'
+        WHERE scopeKey = :scopeKey
+            AND appStatus = 'pending_local'
             AND packageCode = :packageCode
             AND orderId = :orderId
         ORDER BY id ASC
         """,
     )
     suspend fun findLocalPackingPendingInOrder(
+        scopeKey: String,
         packageCode: String,
         orderId: String,
     ): List<MarkingCodeEntity>
@@ -84,10 +92,11 @@ interface MarkingCodeDao {
             packageCode = :packageCode,
             packageStatus = 'local_pending',
             packageClosedAt = NULL
-        WHERE rawCodeSha256 = :rawHash
+        WHERE scopeKey = :scopeKey
+            AND rawCodeSha256 = :rawHash
         """,
     )
-    suspend fun markPackingPending(rawHash: String, packageCode: String?)
+    suspend fun markPackingPending(scopeKey: String, rawHash: String, packageCode: String?): Int
 
     @Query(
         """
@@ -96,15 +105,17 @@ interface MarkingCodeDao {
             packageCode = :packageCode,
             packageStatus = 'local_pending',
             packageClosedAt = NULL
-        WHERE rawCodeSha256 = :rawHash
+        WHERE scopeKey = :scopeKey
+            AND rawCodeSha256 = :rawHash
             AND orderId = :orderId
         """,
     )
     suspend fun markPackingPendingInOrder(
+        scopeKey: String,
         rawHash: String,
         orderId: String,
         packageCode: String?,
-    )
+    ): Int
 
     @Query(
         """
@@ -116,10 +127,12 @@ interface MarkingCodeDao {
             packageCode = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageCode END,
             packageStatus = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageStatus END,
             packageClosedAt = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageClosedAt END
-        WHERE rawCodeSha256 IN (:rawHashes) AND appStatus = 'pending_local'
+        WHERE scopeKey = :scopeKey
+            AND rawCodeSha256 IN (:rawHashes)
+            AND appStatus = 'pending_local'
         """,
     )
-    suspend fun clearPackingPending(rawHashes: List<String>)
+    suspend fun clearPackingPending(scopeKey: String, rawHashes: List<String>): Int
 
     @Query(
         """
@@ -131,12 +144,13 @@ interface MarkingCodeDao {
             packageCode = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageCode END,
             packageStatus = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageStatus END,
             packageClosedAt = CASE WHEN packageUnitId IS NULL THEN NULL ELSE packageClosedAt END
-        WHERE rawCodeSha256 IN (:rawHashes)
+        WHERE scopeKey = :scopeKey
+            AND rawCodeSha256 IN (:rawHashes)
             AND orderId = :orderId
             AND appStatus = 'pending_local'
         """,
     )
-    suspend fun clearPackingPendingInOrder(rawHashes: List<String>, orderId: String)
+    suspend fun clearPackingPendingInOrder(scopeKey: String, rawHashes: List<String>, orderId: String): Int
 
     @Query(
         """
@@ -146,10 +160,12 @@ interface MarkingCodeDao {
             packageCode = :packageCode,
             packageStatus = 'closed',
             packageClosedAt = :packageClosedAt
-        WHERE rawCodeSha256 IN (:rawHashes)
+        WHERE scopeKey = :scopeKey
+            AND rawCodeSha256 IN (:rawHashes)
         """,
     )
     suspend fun markPackingCommitted(
+        scopeKey: String,
         rawHashes: List<String>,
         packageCode: String,
         packageClosedAt: String?,
@@ -163,29 +179,32 @@ interface MarkingCodeDao {
             packageCode = :packageCode,
             packageStatus = 'closed',
             packageClosedAt = :packageClosedAt
-        WHERE rawCodeSha256 IN (:rawHashes)
+        WHERE scopeKey = :scopeKey
+            AND rawCodeSha256 IN (:rawHashes)
             AND orderId = :orderId
         """,
     )
     suspend fun markPackingCommittedInOrder(
+        scopeKey: String,
         rawHashes: List<String>,
         packageCode: String,
         packageClosedAt: String?,
         orderId: String,
     )
 
-    @Query("SELECT EXISTS(SELECT 1 FROM marking_codes WHERE gtin = :gtin AND serial = :serial)")
-    suspend fun existsByIdentity(gtin: String, serial: String): Boolean
+    @Query("SELECT EXISTS(SELECT 1 FROM marking_codes WHERE scopeKey = :scopeKey AND gtin = :gtin AND serial = :serial)")
+    suspend fun existsByIdentity(scopeKey: String, gtin: String, serial: String): Boolean
 
     @Query(
         """
         SELECT EXISTS(
             SELECT 1 FROM marking_codes
-            WHERE gtin = :gtin
+            WHERE scopeKey = :scopeKey
+                AND gtin = :gtin
                 AND serial = :serial
                 AND orderId = :orderId
         )
         """,
     )
-    suspend fun existsByIdentityInOrder(gtin: String, serial: String, orderId: String): Boolean
+    suspend fun existsByIdentityInOrder(scopeKey: String, gtin: String, serial: String, orderId: String): Boolean
 }

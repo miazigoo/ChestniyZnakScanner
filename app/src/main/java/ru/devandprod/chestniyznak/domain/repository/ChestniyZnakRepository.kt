@@ -28,8 +28,17 @@ interface ChestniyZnakRepository {
         packageCode: String,
         orderId: String? = null,
     ): List<LocalPackingPendingCode>
-    suspend fun markLocalPackingPending(rawInput: String, packageCode: String?, orderId: String? = null)
-    suspend fun clearLocalPackingPending(rawCodes: List<String>, orderId: String? = null)
+    suspend fun markLocalPackingPending(
+        rawInput: String,
+        packageCode: String?,
+        orderId: String? = null,
+        packageUuid: String? = null,
+    )
+    suspend fun clearLocalPackingPending(
+        rawCodes: List<String>,
+        orderId: String? = null,
+        packageUuid: String? = null,
+    )
     suspend fun markLocalPackingCommitted(
         rawCodes: List<String>,
         packageCode: String,

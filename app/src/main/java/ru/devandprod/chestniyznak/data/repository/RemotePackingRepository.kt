@@ -106,7 +106,7 @@ class RemotePackingRepository @Inject constructor(
         when {
             response.isSuccessful && response.body() != null -> response.body()!!.toDomain()
             response.code() == 404 -> null
-            response.code() == 401 || response.code() == 403 -> {
+            response.code() == 401 -> {
                 authRepository.invalidateSession()
                 throw RuntimeException(strings.get(R.string.common_session_expired))
             }
@@ -390,7 +390,7 @@ class RemotePackingRepository @Inject constructor(
     }
 
     private fun <T> mapResponse(response: retrofit2.Response<T>): T? {
-        if (response.code() == 401 || response.code() == 403) {
+        if (response.code() == 401) {
             authRepository.invalidateSession()
             throw RuntimeException(strings.get(R.string.common_session_expired))
         }

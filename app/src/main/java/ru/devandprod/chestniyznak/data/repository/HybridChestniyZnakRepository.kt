@@ -90,7 +90,7 @@ class HybridChestniyZnakRepository @Inject constructor(
                 refreshStats()
                 response.body()!!.toDomain()
             }
-            response.code() == 401 || response.code() == 403 -> {
+            response.code() == 401 -> {
                 authRepository.invalidateSession()
                 VerificationResult(
                     status = VerificationStatus.INTERNAL_ERROR,
@@ -137,7 +137,7 @@ class HybridChestniyZnakRepository @Inject constructor(
                 refreshStats()
                 response.body()!!.toDomain()
             }
-            response.code() == 401 || response.code() == 403 -> {
+            response.code() == 401 -> {
                 authRepository.invalidateSession()
                 VerificationResult(
                     status = VerificationStatus.INTERNAL_ERROR,
@@ -177,16 +177,18 @@ class HybridChestniyZnakRepository @Inject constructor(
         rawInput: String,
         packageCode: String?,
         orderId: String?,
+        packageUuid: String?,
     ) = withContext(ioDispatcher) {
-        localRepository.markLocalPackingPending(rawInput, packageCode, orderId)
+        localRepository.markLocalPackingPending(rawInput, packageCode, orderId, packageUuid)
         statsFlow.value = localRepository.snapshotStats()
     }
 
     override suspend fun clearLocalPackingPending(
         rawCodes: List<String>,
         orderId: String?,
+        packageUuid: String?,
     ) = withContext(ioDispatcher) {
-        localRepository.clearLocalPackingPending(rawCodes, orderId)
+        localRepository.clearLocalPackingPending(rawCodes, orderId, packageUuid)
         statsFlow.value = localRepository.snapshotStats()
     }
 
@@ -226,7 +228,7 @@ class HybridChestniyZnakRepository @Inject constructor(
                 refreshStats()
                 response.body()!!.toDomain()
             }
-            response.code() == 401 || response.code() == 403 -> {
+            response.code() == 401 -> {
                 authRepository.invalidateSession()
                 DefectMarkResult(
                     ok = false,

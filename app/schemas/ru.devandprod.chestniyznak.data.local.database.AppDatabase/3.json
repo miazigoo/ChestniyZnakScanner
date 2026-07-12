@@ -1,0 +1,483 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "3b6e2b8c473b84687cc231ae67b33813",
+    "entities": [
+      {
+        "tableName": "marking_codes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `gtin` TEXT NOT NULL, `serial` TEXT NOT NULL, `identityKey` TEXT NOT NULL, `aiPartsJson` TEXT NOT NULL, `rawCode` TEXT NOT NULL, `visibleCode` TEXT NOT NULL, `rawCodeSha256` TEXT NOT NULL, `scopeKey` TEXT NOT NULL DEFAULT 'legacy:unscoped', `status1c` TEXT NOT NULL, `appStatus` TEXT NOT NULL, `orderNumber` TEXT NOT NULL, `orderId` TEXT NOT NULL, `orderLineId` TEXT, `remoteCodeId` TEXT, `packageUnitId` TEXT, `packageCode` TEXT, `packageStatus` TEXT, `packageClosedAt` TEXT, `remoteUpdatedAt` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gtin",
+            "columnName": "gtin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serial",
+            "columnName": "serial",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "identityKey",
+            "columnName": "identityKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aiPartsJson",
+            "columnName": "aiPartsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawCode",
+            "columnName": "rawCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "visibleCode",
+            "columnName": "visibleCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawCodeSha256",
+            "columnName": "rawCodeSha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scopeKey",
+            "columnName": "scopeKey",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'legacy:unscoped'"
+          },
+          {
+            "fieldPath": "status1c",
+            "columnName": "status1c",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "appStatus",
+            "columnName": "appStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orderNumber",
+            "columnName": "orderNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orderId",
+            "columnName": "orderId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orderLineId",
+            "columnName": "orderLineId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "remoteCodeId",
+            "columnName": "remoteCodeId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "packageUnitId",
+            "columnName": "packageUnitId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "packageCode",
+            "columnName": "packageCode",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "packageStatus",
+            "columnName": "packageStatus",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "packageClosedAt",
+            "columnName": "packageClosedAt",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "remoteUpdatedAt",
+            "columnName": "remoteUpdatedAt",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_marking_codes_scopeKey_rawCodeSha256",
+            "unique": true,
+            "columnNames": [
+              "scopeKey",
+              "rawCodeSha256"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_marking_codes_scopeKey_rawCodeSha256` ON `${TABLE_NAME}` (`scopeKey`, `rawCodeSha256`)"
+          },
+          {
+            "name": "index_marking_codes_scopeKey_gtin_serial",
+            "unique": false,
+            "columnNames": [
+              "scopeKey",
+              "gtin",
+              "serial"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_marking_codes_scopeKey_gtin_serial` ON `${TABLE_NAME}` (`scopeKey`, `gtin`, `serial`)"
+          },
+          {
+            "name": "index_marking_codes_scopeKey_identityKey",
+            "unique": false,
+            "columnNames": [
+              "scopeKey",
+              "identityKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_marking_codes_scopeKey_identityKey` ON `${TABLE_NAME}` (`scopeKey`, `identityKey`)"
+          },
+          {
+            "name": "index_marking_codes_scopeKey_orderId",
+            "unique": false,
+            "columnNames": [
+              "scopeKey",
+              "orderId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_marking_codes_scopeKey_orderId` ON `${TABLE_NAME}` (`scopeKey`, `orderId`)"
+          },
+          {
+            "name": "index_marking_codes_scopeKey_packageCode",
+            "unique": false,
+            "columnNames": [
+              "scopeKey",
+              "packageCode"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_marking_codes_scopeKey_packageCode` ON `${TABLE_NAME}` (`scopeKey`, `packageCode`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scan_logs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `codeId` INTEGER, `scopeKey` TEXT NOT NULL DEFAULT 'legacy:unscoped', `status` TEXT NOT NULL, `message` TEXT NOT NULL, `rawInput` TEXT NOT NULL, `normalizedCode` TEXT NOT NULL, `visibleCode` TEXT NOT NULL, `gtin` TEXT NOT NULL, `serial` TEXT NOT NULL, `aiPartsJson` TEXT NOT NULL, `warningsJson` TEXT NOT NULL, `scannerId` TEXT NOT NULL, `scannerGsNative` INTEGER NOT NULL, `gsRestored` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "codeId",
+            "columnName": "codeId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "scopeKey",
+            "columnName": "scopeKey",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'legacy:unscoped'"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "message",
+            "columnName": "message",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawInput",
+            "columnName": "rawInput",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedCode",
+            "columnName": "normalizedCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "visibleCode",
+            "columnName": "visibleCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gtin",
+            "columnName": "gtin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serial",
+            "columnName": "serial",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aiPartsJson",
+            "columnName": "aiPartsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "warningsJson",
+            "columnName": "warningsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scannerId",
+            "columnName": "scannerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scannerGsNative",
+            "columnName": "scannerGsNative",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gsRestored",
+            "columnName": "gsRestored",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_scan_logs_scopeKey_status_createdAt",
+            "unique": false,
+            "columnNames": [
+              "scopeKey",
+              "status",
+              "createdAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scan_logs_scopeKey_status_createdAt` ON `${TABLE_NAME}` (`scopeKey`, `status`, `createdAt`)"
+          },
+          {
+            "name": "index_scan_logs_scopeKey_gtin_serial",
+            "unique": false,
+            "columnNames": [
+              "scopeKey",
+              "gtin",
+              "serial"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scan_logs_scopeKey_gtin_serial` ON `${TABLE_NAME}` (`scopeKey`, `gtin`, `serial`)"
+          },
+          {
+            "name": "index_scan_logs_codeId",
+            "unique": false,
+            "columnNames": [
+              "codeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scan_logs_codeId` ON `${TABLE_NAME}` (`codeId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sync_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`eventId` TEXT NOT NULL, `scopeKey` TEXT NOT NULL, `eventType` TEXT NOT NULL, `payloadJson` TEXT NOT NULL, `status` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `nextRetryAt` INTEGER NOT NULL, `lastError` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`eventId`))",
+        "fields": [
+          {
+            "fieldPath": "eventId",
+            "columnName": "eventId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scopeKey",
+            "columnName": "scopeKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventType",
+            "columnName": "eventType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payloadJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempts",
+            "columnName": "attempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nextRetryAt",
+            "columnName": "nextRetryAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "lastError",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "eventId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sync_events_scopeKey_status_nextRetryAt",
+            "unique": false,
+            "columnNames": [
+              "scopeKey",
+              "status",
+              "nextRetryAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_events_scopeKey_status_nextRetryAt` ON `${TABLE_NAME}` (`scopeKey`, `status`, `nextRetryAt`)"
+          },
+          {
+            "name": "index_sync_events_createdAt",
+            "unique": false,
+            "columnNames": [
+              "createdAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_events_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "local_scopes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scopeKey` TEXT NOT NULL, `plantId` TEXT NOT NULL, `supplierId` TEXT NOT NULL, `clientDeviceId` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`scopeKey`))",
+        "fields": [
+          {
+            "fieldPath": "scopeKey",
+            "columnName": "scopeKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "plantId",
+            "columnName": "plantId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supplierId",
+            "columnName": "supplierId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clientDeviceId",
+            "columnName": "clientDeviceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "scopeKey"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3b6e2b8c473b84687cc231ae67b33813')"
+    ]
+  }
+}

@@ -17,13 +17,17 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 import ru.devandprod.chestniyznak.BuildConfig
+import ru.devandprod.chestniyznak.core.common.ApkDownloadClient
+import ru.devandprod.chestniyznak.data.local.dao.LocalScopeDao
 import ru.devandprod.chestniyznak.data.local.dao.MarkingCodeDao
 import ru.devandprod.chestniyznak.data.local.dao.ScanLogDao
+import ru.devandprod.chestniyznak.data.local.dao.SyncEventDao
 import ru.devandprod.chestniyznak.data.local.database.AppDatabase
 import ru.devandprod.chestniyznak.data.remote.api.AccountApi
 import ru.devandprod.chestniyznak.data.remote.api.ChestniyZnakApi
 import ru.devandprod.chestniyznak.data.remote.api.OrdersApi
 import ru.devandprod.chestniyznak.data.remote.api.PackingApi
+import ru.devandprod.chestniyznak.data.remote.api.TsdSyncApi
 import ru.devandprod.chestniyznak.data.remote.auth.BearerAuthInterceptor
 import ru.devandprod.chestniyznak.data.remote.auth.BearerTokenAuthenticator
 import ru.devandprod.chestniyznak.data.remote.auth.CsrfInterceptor
@@ -67,7 +71,7 @@ object StorageModule {
         AppDatabase::class.java,
         "chestniy_znak.db",
     )
-        .addMigrations(AppDatabase.MIGRATION_1_2)
+        .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
         .build()
 
     @Provides
@@ -75,6 +79,12 @@ object StorageModule {
 
     @Provides
     fun provideScanLogDao(database: AppDatabase): ScanLogDao = database.scanLogDao()
+
+    @Provides
+    fun provideSyncEventDao(database: AppDatabase): SyncEventDao = database.syncEventDao()
+
+    @Provides
+    fun provideLocalScopeDao(database: AppDatabase): LocalScopeDao = database.localScopeDao()
 
     @Provides
     @Singleton
@@ -112,6 +122,21 @@ object StorageModule {
 
     @Provides
     @Singleton
+    @ApkDownloadClient
+    fun provideApkDownloadClient(
+        languageHeaderInterceptor: LanguageHeaderInterceptor,
+    ): OkHttpClient = OkHttpClient.Builder()
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .addInterceptor(languageHeaderInterceptor)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(35, TimeUnit.SECONDS)
+        .callTimeout(40, TimeUnit.SECONDS)
+        .build()
+
+    @Provides
+    @Singleton
     fun provideRetrofit(
         okHttpClient: OkHttpClient,
         json: Json,
@@ -136,6 +161,10 @@ object StorageModule {
     @Provides
     @Singleton
     fun provideOrdersApi(retrofit: Retrofit): OrdersApi = retrofit.create(OrdersApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideTsdSyncApi(retrofit: Retrofit): TsdSyncApi = retrofit.create(TsdSyncApi::class.java)
 }
 
 @Module

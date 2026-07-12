@@ -4,7 +4,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import okhttp3.Interceptor
 import okhttp3.Response
-import ru.devandprod.chestniyznak.BuildConfig
 
 @Singleton
 class BearerAuthInterceptor @Inject constructor(
@@ -12,12 +11,12 @@ class BearerAuthInterceptor @Inject constructor(
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        if (!BuildConfig.API_BASE_URL.contains("/api/v1")) {
+        if (!ApiEndpoint.isSaasApi || !ApiEndpoint.isSameOrigin(request.url)) {
             return chain.proceed(request)
         }
 
         val session = tokenStore.load()
-        if (session == null || request.url.encodedPath.contains("/public/")) {
+        if (session == null || ApiEndpoint.isPublicPath(request.url)) {
             return chain.proceed(request)
         }
 

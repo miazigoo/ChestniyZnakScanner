@@ -21,21 +21,27 @@ class BearerTokenAuthenticator @Inject constructor(
     private val tokenStore: BearerTokenStore,
     private val json: Json,
 ) : Authenticator {
+    private val refreshLock = Any()
+
     override fun authenticate(route: Route?, response: Response): Request? {
-        if (!BuildConfig.API_BASE_URL.contains("/api/v1")) return null
+        if (!ApiEndpoint.isSaasApi || !ApiEndpoint.isSameOrigin(response.request.url)) return null
         if (response.request.header("Authorization").isNullOrBlank()) return null
         if (responseCount(response) >= MAX_AUTH_ATTEMPTS) return null
 
-        val refreshToken = tokenStore.load()?.refreshToken ?: return null
-        val refreshedSession = refreshSession(refreshToken) ?: return null
+        return synchronized(refreshLock) {
+            val currentSession = tokenStore.load() ?: return@synchronized null
+            val failedToken = response.request.header("Authorization")?.removePrefix("Bearer ")?.trim()
+            if (!failedToken.isNullOrBlank() && failedToken != currentSession.accessToken) {
+                return@synchronized response.request.withAccessToken(currentSession.accessToken)
+            }
 
-        tokenStore.save(
-            accessToken = refreshedSession.accessToken,
-            refreshToken = refreshedSession.refreshToken,
-        )
-        return response.request.newBuilder()
-            .header("Authorization", "Bearer ${refreshedSession.accessToken}")
-            .build()
+            val refreshedSession = refreshSession(currentSession.refreshToken) ?: return@synchronized null
+            tokenStore.save(
+                accessToken = refreshedSession.accessToken,
+                refreshToken = refreshedSession.refreshToken,
+            )
+            response.request.withAccessToken(refreshedSession.accessToken)
+        }
     }
 
     private fun refreshSession(refreshToken: String): TokenPairDto? {
@@ -50,7 +56,10 @@ class BearerTokenAuthenticator @Inject constructor(
         return runCatching {
             refreshClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
-                    tokenStore.clear()
+                    if (response.code in PERMANENT_REFRESH_FAILURE_CODES) {
+                        tokenStore.clear()
+                    }
+                    response.close()
                     return@use null
                 }
 
@@ -58,10 +67,14 @@ class BearerTokenAuthenticator @Inject constructor(
                 json.decodeFromString<ApiEnvelopeDto<TokenPairDto>>(payload).data
             }
         }.getOrElse {
-            tokenStore.clear()
             null
         }
     }
+
+    private fun Request.withAccessToken(accessToken: String): Request =
+        newBuilder()
+            .header("Authorization", "Bearer $accessToken")
+            .build()
 
     private fun responseCount(response: Response): Int {
         var count = 1
@@ -78,6 +91,7 @@ class BearerTokenAuthenticator @Inject constructor(
     private companion object {
         const val MAX_AUTH_ATTEMPTS = 2
         val JSON_MEDIA_TYPE = "application/json".toMediaType()
+        val PERMANENT_REFRESH_FAILURE_CODES = setOf(400, 401, 403)
         val refreshClient = OkHttpClient.Builder().build()
     }
 }

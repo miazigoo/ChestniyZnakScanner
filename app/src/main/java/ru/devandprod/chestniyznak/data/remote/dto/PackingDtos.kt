@@ -136,6 +136,8 @@ data class PrintJobDto(
 data class BoxDto(
     @SerialName("box_id")
     val boxId: Long,
+    @SerialName("package_uuid")
+    val packageUuid: String? = null,
     @SerialName("order_id")
     val orderId: Long? = null,
     @SerialName("order_uuid")
@@ -181,6 +183,8 @@ data class BoxItemDto(
 data class BoxDetailDto(
     @SerialName("box_id")
     val boxId: Long,
+    @SerialName("package_uuid")
+    val packageUuid: String? = null,
     @SerialName("order_id")
     val orderId: Long? = null,
     val name: String? = null,
@@ -228,6 +232,8 @@ data class BoxesListResponseDto(
 data class CurrentBoxResponseDto(
     @SerialName("box_id")
     val boxId: Long,
+    @SerialName("package_uuid")
+    val packageUuid: String? = null,
     @SerialName("order_id")
     val orderId: Long? = null,
     @SerialName("order_uuid")
@@ -393,6 +399,7 @@ private fun PrintJobDto.toDomain(): PrintJob = PrintJob(
 
 private fun CurrentBoxResponseDto.toBox(): BoxDto = BoxDto(
     boxId = boxId,
+    packageUuid = packageUuid,
     orderId = orderId,
     orderUuid = orderUuid,
     name = name,
@@ -410,6 +417,7 @@ private fun CurrentBoxResponseDto.toBox(): BoxDto = BoxDto(
 
 private fun BoxDto.toDomain(): PackingBox = PackingBox(
     boxId = boxId,
+    packageUuid = packageUuid,
     orderId = orderId,
     orderUuid = orderUuid,
     orderName = name?.takeIf(String::isNotBlank) ?: orderName,
