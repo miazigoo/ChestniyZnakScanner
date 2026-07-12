@@ -69,6 +69,19 @@ data class PackageLabelPrintResultRequestDto(
     val deviceId: String = "",
     @SerialName("printer_id")
     val printerId: Long? = null,
+    @SerialName("job_id")
+    val jobId: String? = null,
+    val result: String? = null,
+    @SerialName("claim_token")
+    val claimToken: String? = null,
+    @SerialName("client_event_id")
+    val clientEventId: String? = null,
+    @SerialName("bytes_attempted")
+    val bytesAttempted: Int? = null,
+    @SerialName("bytes_written")
+    val bytesWritten: Int? = null,
+    @SerialName("error_code")
+    val errorCode: String? = null,
     @SerialName("print_ok")
     val printOk: Boolean,
     @SerialName("print_error")
@@ -124,6 +137,12 @@ data class ClientPrinterSelectionResponseDto(
 
 @Serializable
 data class PrintJobDto(
+    val id: String? = null,
+    @SerialName("claim_token")
+    val claimToken: String? = null,
+    val status: String = "",
+    @SerialName("package_revision")
+    val packageRevision: Int? = null,
     val format: String = "",
     val driver: String = "",
     val encoding: String = "utf-8",
@@ -389,6 +408,10 @@ private fun ClientPrinterDto.toDomain(): ClientPrinter = ClientPrinter(
 )
 
 private fun PrintJobDto.toDomain(): PrintJob = PrintJob(
+    id = id,
+    claimToken = claimToken,
+    status = status,
+    packageRevision = packageRevision,
     format = format,
     driver = driver,
     encoding = encoding,

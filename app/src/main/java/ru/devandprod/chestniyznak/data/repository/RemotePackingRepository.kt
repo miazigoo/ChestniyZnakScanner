@@ -8,6 +8,7 @@ import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.nio.charset.Charset
+import java.util.UUID
 import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.core.common.IoDispatcher
 import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
@@ -275,28 +276,30 @@ class RemotePackingRepository @Inject constructor(
             printerId = selection.selectedPrinterId,
         )
         val job = prepared.printJob ?: return@withContext prepared
-        val (printOk, printError) = sendPrintJob(job)
+        val sendOutcome = sendPrintJob(job)
         val printerId = job.printer?.id
         runCatching {
             reportBoxLabelPrint(
                 boxId = boxId,
                 deviceId = deviceId,
                 printerId = printerId,
-                printOk = printOk,
-                printError = printError,
+                job = job,
+                outcome = sendOutcome,
             )
         }.getOrElse { error ->
-            if (printOk) {
-                throw RuntimeException(error.message ?: strings.get(R.string.printer_report_failed))
-            }
+            val reportError = error.message ?: strings.get(R.string.printer_report_failed)
+            val mayHavePrinted = (sendOutcome.bytesWritten ?: 0) > 0 ||
+                sendOutcome.result in setOf("sent_unconfirmed", "result_unknown")
             PackageLabelPrintResult(
                 ok = false,
-                reasonCode = "label_print_failed",
-                printStatus = "failed",
+                reasonCode = if (mayHavePrinted) "label_print_report_pending" else "label_print_failed",
+                printStatus = if (mayHavePrinted) "result_unknown" else "failed_before_send",
                 printOk = false,
-                printErrorCode = "printer_job_failed",
-                printError = printError.ifBlank {
-                    error.message ?: strings.get(R.string.printer_report_failed)
+                printErrorCode = if (mayHavePrinted) "print_report_pending" else "printer_job_failed",
+                printError = if (mayHavePrinted) {
+                    strings.get(R.string.printer_report_pending_no_auto_retry, reportError)
+                } else {
+                    sendOutcome.error.ifBlank { reportError }
                 },
                 printer = job.printer,
                 printJob = job,
@@ -339,8 +342,8 @@ class RemotePackingRepository @Inject constructor(
         boxId: Long,
         deviceId: String,
         printerId: Long?,
-        printOk: Boolean,
-        printError: String,
+        job: PrintJob,
+        outcome: PrintSendOutcome,
     ): PackageLabelPrintResult {
         val response = runCatching {
             packingApi.reportBoxLabelPrintResult(
@@ -348,8 +351,15 @@ class RemotePackingRepository @Inject constructor(
                 request = PackageLabelPrintResultRequestDto(
                     deviceId = deviceId,
                     printerId = printerId,
-                    printOk = printOk,
-                    printError = printError,
+                    jobId = job.id,
+                    result = outcome.result,
+                    claimToken = job.claimToken,
+                    clientEventId = "android-${UUID.randomUUID()}",
+                    bytesAttempted = outcome.bytesAttempted,
+                    bytesWritten = outcome.bytesWritten,
+                    errorCode = outcome.errorCode,
+                    printOk = outcome.result in setOf("sent_unconfirmed", "confirmed"),
+                    printError = outcome.error,
                 ),
             )
         }.getOrElse {
@@ -360,32 +370,58 @@ class RemotePackingRepository @Inject constructor(
             ?: throw RuntimeException(errorParser.message(response))
     }
 
-    private fun sendPrintJob(job: PrintJob): Pair<Boolean, String> {
+    private fun sendPrintJob(job: PrintJob): PrintSendOutcome {
         if (job.transport != "raw_tcp") {
-            return false to strings.get(R.string.printer_unsupported_transport, job.transport.ifBlank { "-" })
+            return PrintSendOutcome(
+                result = "failed_before_send",
+                errorCode = "unsupported_transport",
+                error = strings.get(R.string.printer_unsupported_transport, job.transport.ifBlank { "-" }),
+            )
         }
-        val printer = job.printer ?: return false to strings.get(R.string.printer_job_missing_printer)
+        val printer = job.printer ?: return PrintSendOutcome(
+            result = "failed_before_send",
+            errorCode = "printer_missing",
+            error = strings.get(R.string.printer_job_missing_printer),
+        )
         if (job.payload.isBlank()) {
-            return false to strings.get(R.string.printer_empty_job)
+            return PrintSendOutcome(
+                result = "failed_before_send",
+                errorCode = "empty_print_job",
+                error = strings.get(R.string.printer_empty_job),
+            )
         }
+        var bytesWritten = 0
+        val data = job.payload.toByteArray(Charset.forName(job.encoding.ifBlank { "utf-8" }))
         return runCatching {
-            val data = job.payload.toByteArray(Charset.forName(job.encoding.ifBlank { "utf-8" }))
             Socket().use { socket ->
                 socket.connect(InetSocketAddress(printer.ipAddress, printer.port), PRINT_TIMEOUT_MS)
                 socket.soTimeout = PRINT_TIMEOUT_MS
                 socket.getOutputStream().use { output ->
                     output.write(data)
+                    bytesWritten = data.size
                     output.flush()
                 }
             }
-            true to ""
+            PrintSendOutcome(
+                result = "sent_unconfirmed",
+                error = "",
+                bytesAttempted = data.size,
+                bytesWritten = bytesWritten,
+            )
         }.getOrElse { error ->
             val printerAddress = "${printer.ipAddress}:${printer.port}"
-            false to if (error is IOException) {
+            val message = if (error is IOException) {
                 strings.get(R.string.printer_tcp_connection_failed, printer.name, printerAddress)
             } else {
                 error.message ?: strings.get(R.string.printer_print_failed)
             }
+            PrintSendOutcome(
+                result = if (bytesWritten > 0) "result_unknown" else "failed_before_send",
+                errorCode = if (bytesWritten > 0) "tcp_write_ambiguous" else "tcp_write_failed",
+                error = message,
+                bytesAttempted = data.size,
+                bytesWritten = bytesWritten,
+            )
         }
     }
 
@@ -400,4 +436,12 @@ class RemotePackingRepository @Inject constructor(
     private companion object {
         const val PRINT_TIMEOUT_MS = 5_000
     }
+
+    private data class PrintSendOutcome(
+        val result: String,
+        val errorCode: String = "",
+        val error: String = "",
+        val bytesAttempted: Int? = null,
+        val bytesWritten: Int? = null,
+    )
 }

@@ -32,6 +32,10 @@ data class ClientPrinterSelection(
 )
 
 data class PrintJob(
+    val id: String? = null,
+    val claimToken: String? = null,
+    val status: String = "",
+    val packageRevision: Int? = null,
     val format: String,
     val driver: String,
     val encoding: String,

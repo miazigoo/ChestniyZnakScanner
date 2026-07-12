@@ -194,12 +194,15 @@
     <string name="packing_box_closed_id">Коробка #%1$d закрыта</string>
     <string name="packing_box_closed_and_printed">Коробка закрыта, этикетка напечатана</string>
     <string name="packing_box_closed_print_failed">Коробка закрыта, печать не выполнена</string>
+    <string name="packing_box_closed_print_sent_unconfirmed">Коробка закрыта. Задание отправлено на принтер без физического подтверждения.</string>
+    <string name="packing_box_closed_print_unknown">Коробка закрыта. Результат печати неизвестен — проверьте этикетку перед повторной печатью.</string>
     <string name="packing_box_closed_print_deferred">Коробка закрыта. Принтер не выбран, SSCC можно распечатать позже из карточки коробки.</string>
     <string name="packing_printing_label">Печатаем этикетку коробки...</string>
     <string name="printer_load_failed">Не удалось загрузить принтеры</string>
     <string name="printer_save_failed">Не удалось сохранить выбор принтера</string>
     <string name="printer_print_failed">Не удалось напечатать этикетку коробки</string>
     <string name="printer_report_failed">Не удалось отправить результат печати на сервер</string>
+    <string name="printer_report_pending_no_auto_retry">Отчет о печати не дошел до сервера: %1$s. Если этикетка вышла из принтера, не печатайте повторно автоматически — проверьте коробку и статус задания.</string>
     <string name="printer_unsupported_transport">Неподдерживаемый транспорт печати: %1$s</string>
     <string name="printer_job_missing_printer">В задании печати нет принтера</string>
     <string name="printer_empty_job">Backend вернул пустое задание печати</string>
@@ -456,6 +459,8 @@
     <string name="box_edit_status_cleared">Коробка очищена</string>
     <string name="box_edit_error_operation_failed">Операция не выполнена</string>
     <string name="box_edit_status_operation_error">Ошибка операции</string>
+    <string name="box_edit_status_closing">Закрываем коробку и готовим новую этикетку...</string>
+    <string name="box_edit_status_closed">Коробка закрыта после исправления</string>
     <string name="box_edit_confirm_delete_box_title">Удалить коробку?</string>
     <string name="box_edit_confirm_clear_title">Удалить все коды?</string>
     <string name="box_edit_confirm_delete_empty_message">Пустая коробка будет удалена без возможности восстановления.</string>
@@ -463,6 +468,7 @@
     <string name="box_edit_confirm_action">Подтвердить</string>
     <string name="box_edit_add_waiting">Сканируйте...</string>
     <string name="box_edit_add_button">Добавить</string>
+    <string name="box_edit_close_and_print_button">Закрыть и печатать</string>
     <string name="box_edit_delete_box_button">Удалить коробку</string>
     <string name="box_edit_delete_all_button">Удалить все</string>
     <string name="box_edit_codes_in_box">Коды в коробке</string>

@@ -1581,16 +1581,31 @@ class ScanViewModel @Inject constructor(
         printResult: PackageLabelPrintResult? = null,
     ) {
         val printerNotSelected = printResult?.printErrorCode == "printer_not_selected"
+        val printStatus = printResult?.printStatus.orEmpty()
+        val printDeferred = printStatus in setOf("queued", "claimed", "prepared", "sending")
+        val printSentUnconfirmed = printStatus == "sent_unconfirmed"
+        val printUnknown = printStatus == "result_unknown" || printResult?.printErrorCode == "print_report_pending"
+        val printFailedBeforeSend = printStatus in setOf("failed_before_send", "failed")
         when {
-            result.ok && printerNotSelected -> audioFeedbackPlayer.playWarning()
-            result.ok && printResult?.printOk == false -> audioFeedbackPlayer.playError()
+            result.ok && (printerNotSelected || printDeferred || printSentUnconfirmed || printUnknown) ->
+                audioFeedbackPlayer.playWarning()
+            result.ok && printFailedBeforeSend -> audioFeedbackPlayer.playError()
+            result.ok && printResult?.printOk == false -> audioFeedbackPlayer.playWarning()
             result.ok -> audioFeedbackPlayer.playSuccess()
             else -> audioFeedbackPlayer.playError()
         }
         val boxUi = result.box.toUi()
         val isFull = result.box.filled >= result.box.capacity
-        val printError = if (printerNotSelected) "" else printResult?.printError.orEmpty()
+        val printError = if (printerNotSelected || printDeferred || printSentUnconfirmed) "" else printResult?.printError.orEmpty()
         val printerName = printResult?.printer?.name.orEmpty()
+        val closeMessage = when {
+            printerNotSelected || printDeferred -> strings.get(R.string.packing_box_closed_print_deferred)
+            printUnknown -> strings.get(R.string.packing_box_closed_print_unknown)
+            printFailedBeforeSend -> strings.get(R.string.packing_box_closed_print_failed)
+            printSentUnconfirmed -> strings.get(R.string.packing_box_closed_print_sent_unconfirmed)
+            printResult?.printOk == true -> strings.get(R.string.packing_box_closed_and_printed)
+            else -> strings.get(R.string.packing_box_closed_simple)
+        }
         _uiState.update { state ->
             state.copy(
                 packing = state.packing.copy(
@@ -1613,16 +1628,8 @@ class ScanViewModel @Inject constructor(
                     resultCard = if (result.ok) {
                         ScanResultCardUi(
                             headline = "OK",
-                            message = if (printerNotSelected) {
-                                strings.get(R.string.packing_box_closed_print_deferred)
-                            } else if (printResult?.printOk == false) {
-                                strings.get(R.string.packing_box_closed_print_failed)
-                            } else if (printResult?.printOk == true) {
-                                strings.get(R.string.packing_box_closed_and_printed)
-                            } else {
-                                strings.get(R.string.packing_box_closed_simple)
-                            },
-                            tone = if (printResult?.printOk == false) {
+                            message = closeMessage,
+                            tone = if (printerNotSelected || printDeferred || printSentUnconfirmed || printUnknown || printFailedBeforeSend) {
                                 ScanResultTone.Warning
                             } else {
                                 ScanResultTone.Success
@@ -1648,12 +1655,12 @@ class ScanViewModel @Inject constructor(
                     } else {
                         strings.get(R.string.packing_box_not_closed)
                     },
-                    errorText = if (result.ok && printResult?.printOk == false && !printerNotSelected) {
+                    errorText = if (result.ok && (printFailedBeforeSend || printUnknown)) {
                         printError.ifBlank { strings.get(R.string.printer_print_failed) }
                     } else {
                         result.error
                     },
-                    showPrinterSettingsAction = result.ok && printResult?.printOk == false,
+                    showPrinterSettingsAction = result.ok && (printerNotSelected || printDeferred || printFailedBeforeSend),
                 ),
             )
         }

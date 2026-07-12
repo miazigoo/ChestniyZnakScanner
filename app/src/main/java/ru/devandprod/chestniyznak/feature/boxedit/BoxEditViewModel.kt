@@ -16,12 +16,16 @@ import kotlinx.coroutines.launch
 import ru.devandprod.chestniyznak.R
 import ru.devandprod.chestniyznak.app.navigation.AppDestination
 import ru.devandprod.chestniyznak.core.audio.AudioFeedbackPlayer
+import ru.devandprod.chestniyznak.core.device.DeviceIdentity
 import ru.devandprod.chestniyznak.core.i18n.AppStringProvider
+import ru.devandprod.chestniyznak.domain.model.PackageLabelPrintResult
 import ru.devandprod.chestniyznak.domain.model.PackingBoxDetail
 import ru.devandprod.chestniyznak.domain.usecase.ClearPackingBoxUseCase
+import ru.devandprod.chestniyznak.domain.usecase.ClosePackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.DeleteEmptyPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.GetPackingBoxUseCase
 import ru.devandprod.chestniyznak.domain.usecase.OpenPackingBoxEditUseCase
+import ru.devandprod.chestniyznak.domain.usecase.PrintPackingBoxLabelUseCase
 import ru.devandprod.chestniyznak.domain.usecase.RemovePackingBoxItemUseCase
 import ru.devandprod.chestniyznak.domain.usecase.ScanCodeToPackingBoxUseCase
 
@@ -36,6 +40,8 @@ class BoxEditViewModel @Inject constructor(
     private val removePackingBoxItemUseCase: RemovePackingBoxItemUseCase,
     private val clearPackingBoxUseCase: ClearPackingBoxUseCase,
     private val deleteEmptyPackingBoxUseCase: DeleteEmptyPackingBoxUseCase,
+    private val closePackingBoxUseCase: ClosePackingBoxUseCase,
+    private val printPackingBoxLabelUseCase: PrintPackingBoxLabelUseCase,
 ) : ViewModel() {
 
     private val boxId = checkNotNull(savedStateHandle.get<Long>(AppDestination.BOX_ID_ARG))
@@ -343,6 +349,69 @@ class BoxEditViewModel @Inject constructor(
         }
     }
 
+    fun onCloseRequested() {
+        val box = _uiState.value.box ?: return
+        if (_uiState.value.isBusy || (box.isClosed && !box.isEditMode)) return
+
+        _uiState.update {
+            it.copy(
+                isBusy = true,
+                isAwaitingScan = false,
+                errorText = null,
+                statusText = strings.get(R.string.box_edit_status_closing),
+            )
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                closePackingBoxUseCase(box.boxId, deviceId = DeviceIdentity.clientDeviceId)
+            }.onSuccess { closeResult ->
+                val printResult = runCatching {
+                    printPackingBoxLabelUseCase(
+                        boxId = closeResult.box.boxId,
+                        deviceId = DeviceIdentity.clientDeviceId,
+                    )
+                }.getOrElse { error ->
+                    PackageLabelPrintResult(
+                        ok = false,
+                        reasonCode = "label_print_failed",
+                        printStatus = "failed_before_send",
+                        printOk = false,
+                        printError = error.message ?: strings.get(R.string.printer_print_failed),
+                        box = closeResult.box,
+                    )
+                }
+                val message = closeEditMessage(printResult)
+                if (printResult.printStatus in setOf("failed_before_send", "failed")) {
+                    audioFeedbackPlayer.playError()
+                } else {
+                    audioFeedbackPlayer.playSuccess()
+                }
+                _uiState.update {
+                    it.copy(
+                        isBusy = false,
+                        statusText = message,
+                        box = it.box?.copy(isClosed = true, isEditMode = false),
+                        errorText = if (printResult.printStatus in setOf("failed_before_send", "failed", "result_unknown")) {
+                            printResult.printError.takeIf(String::isNotBlank)
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }.onFailure { error ->
+                audioFeedbackPlayer.playError()
+                _uiState.update {
+                    it.copy(
+                        isBusy = false,
+                        errorText = error.message ?: strings.get(R.string.packing_close_box_failed),
+                        statusText = strings.get(R.string.packing_box_not_closed),
+                    )
+                }
+            }
+        }
+    }
+
     private fun PackingBoxDetail.toUi(): EditableBoxUi = EditableBoxUi(
         boxId = box.boxId,
         orderName = box.orderName,
@@ -443,6 +512,18 @@ class BoxEditViewModel @Inject constructor(
         val box = _uiState.value.box ?: return
         if (!box.isClosed || box.isEditMode) return
         openEditModeAndStartScan()
+    }
+
+    private fun closeEditMessage(printResult: PackageLabelPrintResult): String = when (printResult.printStatus) {
+        "queued", "claimed", "prepared", "sending" -> strings.get(R.string.packing_box_closed_print_deferred)
+        "sent_unconfirmed" -> strings.get(R.string.packing_box_closed_print_sent_unconfirmed)
+        "result_unknown" -> strings.get(R.string.packing_box_closed_print_unknown)
+        "failed_before_send", "failed" -> strings.get(R.string.packing_box_closed_print_failed)
+        else -> if (printResult.printOk) {
+            strings.get(R.string.packing_box_closed_and_printed)
+        } else {
+            strings.get(R.string.box_edit_status_closed)
+        }
     }
 
     private companion object {

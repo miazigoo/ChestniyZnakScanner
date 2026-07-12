@@ -102,6 +102,7 @@ fun BoxEditRoute(
         },
         onCameraCodeScanned = viewModel::onCameraCodeScanned,
         onClearActionRequested = viewModel::onClearActionRequested,
+        onCloseRequested = viewModel::onCloseRequested,
         onConfirmClearAction = viewModel::onConfirmClearAction,
         onDismissClearDialog = viewModel::onDismissClearDialog,
         onItemLongPressed = viewModel::onItemLongPressed,
@@ -122,6 +123,7 @@ fun BoxEditScreen(
     onRequestCameraPermission: () -> Unit,
     onCameraCodeScanned: (String) -> Unit,
     onClearActionRequested: () -> Unit,
+    onCloseRequested: () -> Unit,
     onConfirmClearAction: () -> Unit,
     onDismissClearDialog: () -> Unit,
     onItemLongPressed: (Long) -> Unit,
@@ -239,6 +241,7 @@ fun BoxEditScreen(
                         onStopScanSession = onStopScanSession,
                         onRefresh = onRefresh,
                         onClearActionRequested = onClearActionRequested,
+                        onCloseRequested = onCloseRequested,
                     )
                 }
                 item {
@@ -398,6 +401,7 @@ private fun EditActionsCard(
     onStopScanSession: () -> Unit,
     onRefresh: () -> Unit,
     onClearActionRequested: () -> Unit,
+    onCloseRequested: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -468,6 +472,18 @@ private fun EditActionsCard(
                         stringResource(R.string.box_edit_add_button)
                     },
                 )
+            }
+
+            Button(
+                onClick = onCloseRequested,
+                enabled = !isBusy && (!box.isClosed || box.isEditMode),
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            ) {
+                Text(stringResource(R.string.box_edit_close_and_print_button))
             }
 
             Row(

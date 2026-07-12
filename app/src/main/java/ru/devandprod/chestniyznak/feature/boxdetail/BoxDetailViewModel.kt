@@ -139,37 +139,82 @@ class BoxDetailViewModel @Inject constructor(
                     deviceId = DeviceIdentity.clientDeviceId,
                 )
             }.onSuccess { result ->
-                if (result.printOk) {
-                    audioFeedbackPlayer.playSuccess()
-                    _uiState.update {
-                        it.copy(
-                            isActionBusy = false,
-                            statusText = strings.get(
-                                R.string.close_box_printed,
-                                result.printer?.name?.takeIf(String::isNotBlank)
-                                    ?: strings.get(R.string.common_unknown),
-                            ),
-                            errorText = null,
-                        )
+                when (result.printStatus) {
+                    "queued", "claimed", "prepared", "sending" -> {
+                        audioFeedbackPlayer.playWarning()
+                        _uiState.update {
+                            it.copy(
+                                isActionBusy = false,
+                                statusText = strings.get(R.string.packing_box_closed_print_deferred),
+                                errorText = null,
+                            )
+                        }
                     }
-                } else if (result.printErrorCode == "printer_not_selected") {
-                    audioFeedbackPlayer.playWarning()
-                    _uiState.update {
-                        it.copy(
-                            isActionBusy = false,
-                            statusText = strings.get(R.string.printer_select_for_reprint),
-                            errorText = null,
-                        )
+                    "sent_unconfirmed" -> {
+                        audioFeedbackPlayer.playWarning()
+                        _uiState.update {
+                            it.copy(
+                                isActionBusy = false,
+                                statusText = strings.get(R.string.packing_box_closed_print_sent_unconfirmed),
+                                errorText = null,
+                            )
+                        }
                     }
-                } else {
-                    audioFeedbackPlayer.playError()
-                    val errorText = result.printError.ifBlank { strings.get(R.string.printer_print_failed) }
-                    _uiState.update {
-                        it.copy(
-                            isActionBusy = false,
-                            statusText = strings.get(R.string.packing_box_closed_print_failed),
-                            errorText = errorText,
-                        )
+                    "result_unknown" -> {
+                        audioFeedbackPlayer.playWarning()
+                        _uiState.update {
+                            it.copy(
+                                isActionBusy = false,
+                                statusText = strings.get(R.string.packing_box_closed_print_unknown),
+                                errorText = result.printError.takeIf(String::isNotBlank),
+                            )
+                        }
+                    }
+                    "failed_before_send", "failed" -> {
+                        audioFeedbackPlayer.playError()
+                        val errorText = result.printError.ifBlank { strings.get(R.string.printer_print_failed) }
+                        _uiState.update {
+                            it.copy(
+                                isActionBusy = false,
+                                statusText = strings.get(R.string.packing_box_closed_print_failed),
+                                errorText = errorText,
+                            )
+                        }
+                    }
+                    else -> {
+                        if (result.printOk) {
+                            audioFeedbackPlayer.playSuccess()
+                            _uiState.update {
+                                it.copy(
+                                    isActionBusy = false,
+                                    statusText = strings.get(
+                                        R.string.close_box_printed,
+                                        result.printer?.name?.takeIf(String::isNotBlank)
+                                            ?: strings.get(R.string.common_unknown),
+                                    ),
+                                    errorText = null,
+                                )
+                            }
+                        } else if (result.printErrorCode == "printer_not_selected") {
+                            audioFeedbackPlayer.playWarning()
+                            _uiState.update {
+                                it.copy(
+                                    isActionBusy = false,
+                                    statusText = strings.get(R.string.printer_select_for_reprint),
+                                    errorText = null,
+                                )
+                            }
+                        } else {
+                            audioFeedbackPlayer.playError()
+                            val errorText = result.printError.ifBlank { strings.get(R.string.printer_print_failed) }
+                            _uiState.update {
+                                it.copy(
+                                    isActionBusy = false,
+                                    statusText = strings.get(R.string.packing_box_closed_print_failed),
+                                    errorText = errorText,
+                                )
+                            }
+                        }
                     }
                 }
             }.onFailure { error ->
