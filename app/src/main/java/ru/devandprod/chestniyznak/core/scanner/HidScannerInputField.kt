@@ -51,11 +51,14 @@ fun HidScannerInputField(
                         hideKeyboard()
                     }
                 }
+                val scannerInput = this
                 val emitRunnable = Runnable {
                     val text = this.text?.toString().orEmpty()
                     if (text.isNotBlank()) {
+                        hideKeyboard()
                         HidScannerInputBus.onTextCommitted(text)
                         setText("")
+                        post { hideKeyboard() }
                     }
                 }
                 addTextChangedListener(
@@ -68,8 +71,10 @@ fun HidScannerInputField(
                             val text = editable?.toString().orEmpty()
                             removeCallbacks(emitRunnable)
                             if (text.contains('\n') || text.contains('\r') || text.contains('\t')) {
+                                hideKeyboard()
                                 HidScannerInputBus.onTextCommitted(text)
                                 setText("")
+                                scannerInput.post { hideKeyboard() }
                             } else if (text.isNotBlank()) {
                                 postDelayed(emitRunnable, 180L)
                             }
