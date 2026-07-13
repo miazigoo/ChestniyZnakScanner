@@ -197,11 +197,14 @@
     <string name="packing_box_closed_and_printed">Box closed, label printed</string>
     <string name="packing_box_closed_print_failed">Box closed, print failed</string>
     <string name="packing_box_closed_print_deferred">Box closed. No printer is selected, so SSCC can be printed later from the box card.</string>
+    <string name="packing_box_closed_print_sent_unconfirmed">Box closed. Print job was sent to the printer without physical confirmation.</string>
+    <string name="packing_box_closed_print_unknown">Box closed. Print result is unknown. Check the label before reprinting.</string>
     <string name="packing_printing_label">Printing the box label...</string>
     <string name="printer_load_failed">Could not load printers</string>
     <string name="printer_save_failed">Could not save printer selection</string>
     <string name="printer_print_failed">Could not print the box label</string>
     <string name="printer_report_failed">Could not report the print result to the server</string>
+    <string name="printer_report_pending_no_auto_retry">Print report did not reach the server: %1$s. If the label came out of the printer, do not reprint automatically; check the box and print job status first.</string>
     <string name="printer_unsupported_transport">Unsupported print transport: %1$s</string>
     <string name="printer_job_missing_printer">Print job has no printer</string>
     <string name="printer_empty_job">Backend returned an empty print job</string>
@@ -456,6 +459,8 @@
     <string name="box_edit_status_deleting_empty">Deleting empty box...</string>
     <string name="box_edit_status_clearing_codes">Removing all codes from box...</string>
     <string name="box_edit_status_cleared">Box cleared</string>
+    <string name="box_edit_status_closing">Closing the box and preparing a new label...</string>
+    <string name="box_edit_status_closed">Box closed after correction</string>
     <string name="box_edit_error_operation_failed">Operation failed</string>
     <string name="box_edit_status_operation_error">Operation error</string>
     <string name="box_edit_confirm_delete_box_title">Delete box?</string>
@@ -465,6 +470,7 @@
     <string name="box_edit_confirm_action">Confirm</string>
     <string name="box_edit_add_waiting">Scan now...</string>
     <string name="box_edit_add_button">Add</string>
+    <string name="box_edit_close_and_print_button">Close and print</string>
     <string name="box_edit_delete_box_button">Delete box</string>
     <string name="box_edit_delete_all_button">Remove all</string>
     <string name="box_edit_codes_in_box">Codes in box</string>
